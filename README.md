@@ -1,26 +1,18 @@
-# Ponder: Preserve, Discuss, Discover
+# Podsphere
+Podsphere is a persistent data store, a graph-visualized discovery service and a discussion platform for Podcasts, built on Arweave.
 
-##### Hi
+### Planned Features & Mission Statement
+Podsphere aims to grow into a fully-decentralized (Web3) **Podcast metaverse** emerging from the following **core features**:
+- Index existing (Web2/Web3) & user-customized (Podsphere-native) podcast metadata
+- Discover new podcasts using a graph visualization of their subscribed podcast feeds
+- Catalogue favorite podcast moments, either as a public discussion thread or as a private heirloom
 
-Welcome to the Ponder Prototype.  You can view our current Roadmap at https://decentapps.eu/roadmap.
+Our mission is not just to provide a platform uniting these features, but to **permanently archive all corresponding data**.
+The **Arweave blockchain** facilitates this, conceivably for centuries to come.
+Decentralization and cryptography fortify stored data against tampering, censorship and server outages.
+Being open source, the entire blockchain and its data can always survive through forking.
+Moreover, each user can always download a copy of their most valued data, providing them with a local back-up, as well as an organized journal.
 
-##### Code
-
-The latest version of the code can be found on the [development](https://github.com/decentrists/Ponder/tree/development) branch.
-
-We are glad to collaborate with anyone able and passionate about the future of blockchain technology.  If you wish to contribute to the codebase, please contact us on git@decentapps.eu.  Thank you! <3
-
-##### Contact Us
-
-Please feel free to send us any questions or comments about the project or blockchain in general to hello@decentapps.eu.
-
-
-##### Current state of affairs (alpha)
-
-###### Desktop
-
-![DESKTOP HOMEPAGE](https://decentapps.eu/img/ponder/ponder-desktop.png)
-
-###### Mobile
-
-![MOBILE HOMEPAGE](https://decentapps.eu/img/ponder/ponder-mobile.png)
+### Current version: v0.0.6 (alpha)
+Podsphere currently resides in a pre-prototype stage.
+The latest version of the code can be found right here, on the [development](https://github.com/Davdxv/Podsphere/tree/development) branch.

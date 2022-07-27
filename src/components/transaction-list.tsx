@@ -12,7 +12,7 @@ import {
 import style from './shared-elements.module.scss';
 import { findMetadata } from '../utils';
 import { ArSyncTx, Podcast } from '../client/interfaces';
-import { ReactComponent as WhalephantIcon } from '../assets/ponder-logo.svg';
+import { ReactComponent as AppIcon } from '../assets/arsync-logo.svg';
 
 dayjs.extend(relativeTime);
 
@@ -33,7 +33,7 @@ function TxSubheader({ numEpisodes } : { numEpisodes: number }) {
 function PodcastImage({ podcastImageUrl } : { podcastImageUrl: string }) {
   return podcastImageUrl ? <Image className={style['podcast-image']} src={podcastImageUrl} /> : (
     <Box className={style['podcast-image-whalephant']}>
-      <WhalephantIcon />
+      <AppIcon />
     </Box>
   );
 }

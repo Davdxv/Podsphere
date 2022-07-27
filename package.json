@@ -1,7 +1,7 @@
 {
-  "name": "ponder-alpha",
+  "name": "podsphere-alpha",
   "private": true,
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "",
   "main": ".eslintrc.js",
   "scripts": {
@@ -25,7 +25,7 @@
     "prepare": "husky install"
   },
   "keywords": [],
-  "author": "decentapps.eu",
+  "author": "github.com/Davdxv",
   "license": "GPL-3",
   "dependencies": {
     "@emotion/react": "^11.9.0",

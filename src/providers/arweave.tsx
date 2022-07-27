@@ -76,7 +76,7 @@ const ARCONNECT_PERMISSIONS : PermissionType[] = [
   'SIGN_TRANSACTION', // TODO: request this permission when needed
 ];
 const ARCONNECT_APPINFO : AppInfo = {
-  name: `Ponder ${process.env.REACT_APP_VERSION}`,
+  name: `Podsphere ${process.env.REACT_APP_VERSION}`,
   // logo: '', TODO
 };
 const clientApiConfig : ApiConfig = client.getConfig().api;

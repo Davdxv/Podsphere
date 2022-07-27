@@ -1,7 +1,7 @@
 import { toTag, fromTag } from '../utils';
 
 const originalTagPrefix = process.env.REACT_APP_TAG_PREFIX;
-const testTag = 'testPonder';
+const testTag = 'testPodsphere';
 
 beforeAll(() => {
   Object.assign(process.env, { REACT_APP_TAG_PREFIX: testTag });
@@ -13,7 +13,7 @@ afterAll(() => {
 
 describe('toTag, fromTag', () => {
   it('toTag() prepends tag prefix to name', () => {
-    expect(toTag('foo')).toBe('testPonder-foo');
+    expect(toTag('foo')).toBe('testPodsphere-foo');
   });
 
   it('fromTag() removes prepending prefix to name', () => {

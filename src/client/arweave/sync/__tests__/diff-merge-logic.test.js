@@ -7,7 +7,7 @@ import {
 } from '../diff-merge-logic';
 
 const originalTagPrefix = process.env.REACT_APP_TAG_PREFIX;
-const testTag = 'testPonder';
+const testTag = 'testPodsphere';
 
 /* Array of deep cloned objects, which should be set in beforeAll() through saveDeepClones(),
  * if assertUnmutatedParams() is called in afterEach()

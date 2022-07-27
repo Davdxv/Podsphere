@@ -6,7 +6,7 @@ export class IndexedDb {
 
   private db: any;
 
-  public static readonly DB_NAME = 'Ponder';
+  public static readonly DB_NAME = 'Podsphere';
 
   public static readonly DB_VERSION = 1;
 

@@ -30,7 +30,7 @@ function gqlResponse(metadataBatch, firstEpisodeDate, lastEpisodeDate) {
             node: {
               id: 'mockId',
               tags: [
-                { name: 'App-Name', value: 'Ponder' },
+                { name: 'App-Name', value: 'Podsphere' },
                 { name: 'App-Version', value: 'bestVersion' },
                 { name: 'Content-Type', value: 'application/gzip' },
                 { name: 'Unix-Time', value: '1620172800' },
@@ -105,7 +105,7 @@ function getDataResult(firstEpisodeIndex, numEpisodes) {
 
 const originalTagPrefix = process.env.REACT_APP_TAG_PREFIX;
 beforeAll(() => {
-  process.env.REACT_APP_TAG_PREFIX = 'testPonder';
+  process.env.REACT_APP_TAG_PREFIX = 'testPodsphere';
 });
 
 afterAll(() => {
@@ -154,11 +154,11 @@ describe('getPodcastFeed', () => {
           variables: {
             tags: [
               {
-                name: 'testPonder-subscribeUrl',
+                name: 'testPodsphere-subscribeUrl',
                 values: ['https://server.dummy/rss'],
               },
               {
-                name: 'testPonder-metadataBatch',
+                name: 'testPodsphere-metadataBatch',
                 values: [metadataBatch],
               },
             ],

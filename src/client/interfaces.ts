@@ -26,7 +26,7 @@ export const OPTIONAL_ARWEAVE_STRING_TAGS = [
 ] as const;
 
 /**
- * These tags exist as e.g. multiple `Ponder-category` tags on an Arweave Transaction, but
+ * These tags exist as e.g. multiple `Podsphere-category` tags on an Arweave Transaction, but
  * internally we refer to them as `categories: string[]` (mapped to plural through `fromTag()`).
  */
 const OPTIONAL_ARWEAVE_PLURAL_TAGS = [

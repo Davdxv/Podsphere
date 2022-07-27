@@ -2,10 +2,9 @@
  * @module ArSync Main module for ArSync
  *
  * Current version: v1.3
- * Changelog: {@link https://github.com/decentrists/Ponder/pulls?q=is%3Apr+ArSync}
  *
- * ArSync comprises all necessary logic for creating, fetching and tracking Ponder's transactions on
- * Arweave.
+ * ArSync comprises all necessary logic for creating, fetching and tracking Podsphere's transactions
+ * on Arweave.
  * At present, these transactions comprise incremental (podcast) metadata. Future updates will
  * expand this with more types of transactions.
  *

@@ -6,7 +6,7 @@ import RssButton from '../buttons/rss-button';
 import SyncButton from '../buttons/sync-button';
 import RefreshButton from '../buttons/refresh-button';
 import style from './index-elements.module.scss';
-import { ReactComponent as WhalephantIcon } from '../../assets/ponder-logo.svg';
+import { ReactComponent as AppIcon } from '../../assets/arsync-logo.svg';
 
 function HeaderComponent({ onSubmit }) {
   const toast = useContext(ToastContext);
@@ -32,7 +32,7 @@ function HeaderComponent({ onSubmit }) {
   return (
     <Container className={style['header-container']}>
       <Box className={style['whalephant-wrapper']}>
-        <WhalephantIcon />
+        <AppIcon />
       </Box>
       <Box className={style['form-layer']}>
         <Box className={style['pod-alert']}>
