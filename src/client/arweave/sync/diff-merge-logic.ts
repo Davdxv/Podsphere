@@ -107,10 +107,10 @@ export function mergeEpisodeBatches(episodeBatches: PartialEpisodeWithDate[][]) 
  * @param metadataBatches
  * @param applyMergeSpecialTags
  *   - If false, each non-empty metadatum of newer batches overrides the value from prior batches.
- *     @see omitEmptyMetadata
- *   - If true, the following additional exceptions apply: @see mergeSpecialTags
+ *     See {@linkcode omitEmptyMetadata()}
+ *   - If true, the following additional exceptions apply: see {@linkcode mergeSpecialTags()}
  * @returns A new object with merged podcast metadata, where newer batches take precedence
- *   (read above for exceptions) and episodes are merged by @see mergeEpisodeBatches
+ *   (read above for exceptions) and episodes are merged by {@linkcode mergeEpisodeBatches()}
  */
 export function mergeBatchMetadata(
   metadataBatches: Partial<Podcast>[],
@@ -133,10 +133,8 @@ export function mergeBatchMetadata(
 
 /**
  * Helper function to run in the body of a reduce operation on an array of objects.
- * @param acc
- * @param metadata
  * @returns
- *   `acc` with all non-empty tags merged, where newer batches take precedence, except for:
+ *   `tags` with all non-empty tags merged, where newer batches take precedence, except for:
  *   - min holds for firstEpisodeDate
  *   - max holds for lastEpisodeDate and metadataBatch
  *   - metadataBatch maps to an Integer

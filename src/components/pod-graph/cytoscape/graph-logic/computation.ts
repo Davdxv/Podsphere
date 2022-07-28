@@ -136,9 +136,6 @@ const getKeywordScore = (
   keyword: string,
 ) => keywords.find(element => element.name === keyword)!.count;
 
-/**
- * @see https://phab.decentapps.eu/T243
- */
 export const computeEdgeWeight = (
   disjointGraphs: DisjointGraph[],
   sourceId: string,

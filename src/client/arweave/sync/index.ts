@@ -1,7 +1,7 @@
 /**
  * @module ArSync Main module for ArSync
  *
- * Current version: v1.3
+ * Current version: v1.3.1
  *
  * ArSync comprises all necessary logic for creating, fetching and tracking Podsphere's transactions
  * on Arweave.
@@ -29,13 +29,9 @@ import {
   Episode,
   Podcast,
 } from '../../interfaces';
-import {
-  findMetadata,
-  getFirstEpisodeDate,
-  getLastEpisodeDate,
-  hasMetadata,
-} from '../../../utils';
-import { formatTags, getMetadataBatchNumber } from '../create-transaction';
+import { findMetadata, hasMetadata } from '../../../utils';
+import { throwDevError } from '../../../errors';
+import { formatTags, withMetadataBatchNumber } from '../create-transaction';
 import { mergeBatchMetadata, rightDiff } from './diff-merge-logic';
 import { WalletDeferredToArConnect } from '../wallet';
 import {
@@ -52,12 +48,6 @@ import {
   signAndPostTransaction,
 } from '..';
 
-interface PartitionedBatch extends Pick<ArSyncTx, 'subscribeUrl' | 'title' | 'metadata'
-| 'numEpisodes'> {
-  compressedMetadata: Uint8Array;
-  tags: ArweaveTag[];
-}
-
 /** Max size of compressed metadata per transaction (including tags) */
 const MAX_BATCH_SIZE = 96 * 1024; // KiloBytes
 
@@ -65,9 +55,10 @@ export async function initArSyncTxs(
   subscriptions: Podcast[],
   metadataToSync: Partial<Podcast>[],
   wallet: JWKInterface | WalletDeferredToArConnect,
+  maxBatchSize: number | null = MAX_BATCH_SIZE,
 )
   : Promise<ArSyncTx[]> {
-  const result : ArSyncTx[] = [];
+  let result : ArSyncTx[] = [];
   const partitionedBatches : PartitionedBatch[] = [];
 
   metadataToSync.forEach(podcastMetadataToSync => {
@@ -79,7 +70,9 @@ export async function initArSyncTxs(
         cachedMetadata = findMetadata(subscribeUrl, subscriptions);
 
         // A transaction will be created for each batchesToSync[i]
-        const batchesToSync = partitionMetadataBatches(cachedMetadata, podcastMetadataToSync);
+        const batchesToSync = partitionMetadataBatches(cachedMetadata,
+          podcastMetadataToSync,
+          maxBatchSize);
         partitionedBatches.push(...batchesToSync);
       }
       catch (ex) {
@@ -88,7 +81,7 @@ export async function initArSyncTxs(
     }
   });
 
-  await Promise.all(partitionedBatches.map(async batch => {
+  result = await Promise.all(partitionedBatches.map(async batch => {
     let subscribeUrl! : string;
     let newTxResult : Transaction | Error;
     try {
@@ -109,7 +102,7 @@ export async function initArSyncTxs(
       numEpisodes: batch.numEpisodes,
       status: newTxResult instanceof Error ? ArSyncTxStatus.ERRORED : ArSyncTxStatus.INITIALIZED,
     };
-    result.push(arSyncTx);
+    return arSyncTx;
   }));
   console.debug('initArSyncTxs result:', result);
 
@@ -151,130 +144,169 @@ export async function startSync(
 }
 
 /**
- * Runs several passes of gzip compression of a subset of `episodesToSync` (consecutive, starting
- * with the oldest episode at `episodesToSync[-1]`), in an attempt to find the best possible single
- * metadata batch that fits within `MAX_BATCH_SIZE`.
+ * An object that includes the `compressedMetadata` and `tags` params required by
+ * {@linkcode newTransactionFromCompressedMetadata}, alongside some transient variables:
+ * `subscribeUrl`, `title`, `metadata`, `numEpisodes`
+ */
+interface PartitionedBatch extends Pick<ArSyncTx, 'subscribeUrl' | 'title' | 'metadata'
+| 'numEpisodes'> {
+  compressedMetadata: Uint8Array;
+  tags: ArweaveTag[];
+}
+
+/**
  * @param cachedMetadata
+ * @param priorBatchMetadata
+ *   To save space, the returned metadata objects comprise a right diff vs `priorBatchMetadata`
  * @param podcastMetadataToSync
  * @param episodesToSync
- * @returns The next metadata batch comprising a subset of `episodesToSync` that, using gzip
- *   compression, best fits within MAX_BATCH_SIZE.
+ * @param maxBatchSize
+ * @returns A {@linkcode PartitionedBatch} object that includes the `compressedMetadata` and `tags`
+ *   params required by {@linkcode newTransactionFromCompressedMetadata()}.
+ *   If `episodesToSync` does not fit within `maxBatchSize`, the resulting `metadata` and
+ *   `compressedMetadata` objects comprise a subset of oldest `episodesToSync` that upon gzip
+ *   compression best fits within `maxBatchSize`.
  */
-const findNextOptimalBatch = (
+const findNextBatch = (
   cachedMetadata: Partial<Podcast>,
+  priorBatchMetadata: Partial<Podcast>,
   podcastMetadataToSync: Partial<Podcast>,
   episodesToSync: Episode[],
+  maxBatchSize: number | null,
 ) : PartitionedBatch => {
-  const result : PartitionedBatch = {
+  /**
+   * @function findNextOptimalBatch runs several passes of gzip compression of a subset of
+   * `episodesToSync` (consecutive, starting with the oldest episode at `episodesToSync[-1]`),
+   * in an attempt to find the best possible single metadata batch that fits within `maxBatchSize`.
+   * @param resultTemplate `PartitionedBatch`
+   * @returns The given `PartitionedBatch` with `.compressedMetadata, .metadata, .tags` populated,
+   *   even if the max number of passes yields a slightly undersized(rare)/oversized(rarer) result
+   * @throws `ImplementationError` iff mistakenly called by parent with bad params
+   */
+  const findNextOptimalBatch = (resultTemplate: PartitionedBatch) : PartitionedBatch => {
+    if (!maxBatchSize) {
+      throwDevError(`findNextOptimalBatch shouldn't be called with maxBatchSize=${maxBatchSize}`);
+    }
+    if (!hasMetadata(episodesToSync)) {
+      throwDevError('findNextOptimalBatch shouldn\'t be called with empty episodesToSync.');
+    }
+
+    const OPTIMAL_RELATIVE_BATCH_SIZE = 0.8;
+    const MAX_NUM_PASSES = 10;
+    const PASS_ERR_MARGIN = 0.05;
+
+    const result : PartitionedBatch = { ...resultTemplate };
+    let numEps = Math.min(episodesToSync.length, 100);
+    let minEps = 1;
+    let maxEps = Infinity;
+    let bestResultMargin = Infinity;
+
+    for (let pass = 1; pass <= MAX_NUM_PASSES; pass++) {
+      // TODO: Remove debugs after (acceptance) testing
+      console.debug(`pass=${pass}:\nnumEps=${numEps}, minEps=${minEps}, maxEps=${maxEps}`);
+
+      const currentBatch = withMetadataBatchNumber({
+        ...podcastMetadataToSync,
+        episodes: (episodesToSync || []).slice(-numEps),
+      }, priorBatchMetadata);
+      const tags = formatTags(currentBatch, cachedMetadata);
+      const tagsSize = calculateTagsSize(tags);
+      const gzip : Uint8Array = compressMetadata(currentBatch);
+
+      const relativeBatchSize = (tagsSize + gzip.byteLength) / maxBatchSize;
+      const resultMargin = Math.abs(OPTIMAL_RELATIVE_BATCH_SIZE - relativeBatchSize);
+      if (resultMargin < bestResultMargin) {
+        // Best intermediate result has a relativeBatchSize closest to OPTIMAL_RELATIVE_BATCH_SIZE.
+        // Pass 1 always hits this branch, to ensure a usable result is populated.
+        bestResultMargin = resultMargin;
+        result.numEpisodes = numEps;
+        result.compressedMetadata = gzip;
+        result.metadata = currentBatch;
+        result.tags = tags;
+      }
+      console.debug('batchSize', tagsSize + gzip.byteLength);
+      console.debug('relativeBatchSize', relativeBatchSize);
+
+      if (relativeBatchSize > 1) { /* Too large */
+        maxEps = Math.min(maxEps, numEps);
+        // For the next pass, set numEps to the average of: (a predictive numEps based on
+        // relativeBatchSize) + (the smallest oversized numEps), adding a lower bias with each pass.
+        numEps = Math.min(episodesToSync.length,
+          Math.floor((1 - PASS_ERR_MARGIN * pass) * (((numEps / relativeBatchSize) + maxEps) / 2)));
+      }
+      else if (relativeBatchSize < OPTIMAL_RELATIVE_BATCH_SIZE) { /* Too small, but acceptable */
+        if (numEps >= episodesToSync.length) break;
+
+        minEps = Math.max(minEps, numEps);
+        numEps = Math.min(episodesToSync.length,
+          Math.floor((1 + PASS_ERR_MARGIN * pass) * (((numEps / relativeBatchSize) + minEps) / 2)));
+      }
+      else { /* Good result */
+        break;
+      }
+      if (numEps < minEps || numEps > maxEps || numEps < 1) { /* Optimal result was found already */
+        break;
+      }
+    }
+    console.debug('findNextOptimalBatch result', result);
+    return result;
+  }; /** End of #findNextOptimalBatch() */
+
+  const allMetadata = { ...podcastMetadataToSync };
+  if (episodesToSync.length) allMetadata.episodes = episodesToSync;
+  const allMetadataDiff = rightDiff(priorBatchMetadata, allMetadata, ['subscribeUrl', 'title']);
+
+  let result : PartitionedBatch = {
     subscribeUrl: podcastMetadataToSync.subscribeUrl || cachedMetadata.subscribeUrl || '',
     title: podcastMetadataToSync.title || cachedMetadata.title || '',
-    numEpisodes: 0,
-    metadata: podcastMetadataToSync,
+    numEpisodes: episodesToSync.length,
+    metadata: allMetadataDiff,
     compressedMetadata: new Uint8Array([]),
     tags: [],
   };
-  let numEps = Math.min(episodesToSync.length, 100);
-  let gzip : Uint8Array;
-  let minEps = 1;
-  let maxEps = Infinity;
-  let bestResultMargin = Infinity;
 
-  if (!hasMetadata(episodesToSync)) return result;
-
-  for (let pass = 1; pass <= 10; pass++) {
-    console.debug('pass', pass); // TODO: left in for (acceptance) testing
-    console.debug(`numEps=${numEps}, minEps=${minEps}, maxEps=${maxEps}`);
-
-    const currentBatch = {
-      ...podcastMetadataToSync,
-      episodes: (episodesToSync || []).slice(-numEps),
-    };
-    const tags = formatTags(currentBatch, cachedMetadata);
-    const tagsSize = calculateTagsSize(tags);
-    gzip = compressMetadata(currentBatch);
-
-    const relativeBatchSize = (tagsSize + gzip.byteLength) / MAX_BATCH_SIZE;
-    const resultMargin = Math.abs(0.8 - relativeBatchSize);
-    if (resultMargin < bestResultMargin) {
-      // Best intermediate result is the one closest to relativeBatchSize=0.8
-      bestResultMargin = resultMargin;
-      result.numEpisodes = numEps;
-      result.compressedMetadata = gzip;
-      result.metadata = currentBatch;
-      result.tags = tags;
+  if (!hasMetadata(episodesToSync) || !maxBatchSize) {
+    if (hasMetadata(episodesToSync)) {
+      result.metadata = withMetadataBatchNumber(result.metadata, priorBatchMetadata);
     }
-    console.debug('batchSize', tagsSize + gzip.byteLength);
-    console.debug('relativeBatchSize', relativeBatchSize);
-
-    if (relativeBatchSize > 1) {
-      // Too large
-      maxEps = Math.min(maxEps, numEps);
-      // For the next pass, set numEps to the average of: (a predictive numEps based on
-      // relativeBatchSize) + (the smallest oversized numEps), adding a lower bias with each pass.
-      numEps = Math.min(episodesToSync.length,
-        Math.floor((1 - 0.05 * pass) * (((numEps / relativeBatchSize) + maxEps) / 2)));
-    }
-    else if (relativeBatchSize < 0.8) {
-      // Too small, but acceptable
-      if (numEps >= episodesToSync.length) break;
-
-      minEps = Math.max(minEps, numEps);
-      numEps = Math.min(episodesToSync.length,
-        Math.floor((1 + 0.05 * pass) * (((numEps / relativeBatchSize) + minEps) / 2)));
-    }
-    else {
-      // Good result
-      break;
-    }
-    if (numEps < minEps || numEps > maxEps) {
-      // Optimal result has been found already
-      break;
-    }
+    result.compressedMetadata = compressMetadata(result.metadata);
+    result.tags = formatTags(result.metadata, cachedMetadata);
   }
-  console.debug('returned result', result);
+  else {
+    result = findNextOptimalBatch(result);
+  }
   return result;
 };
 
 /**
+ * Calls {@linkcode findNextBatch()} with each `episodesRemainder` resulting from the last call to
+ * `findNextBatch()`. `findNextBatch()` may call {@linkcode findNextBatch()#findNextOptimalBatch()}
+ * which ensures that each compressed batch size in bytes <= `maxBatchSize`.
  * @param cachedMetadata
  * @param podcastMetadataToSync
+ * @param maxBatchSize
  * @returns An array of partitioned `podcastMetadataToSync`, which when merged should equal
- *   `podcastMetadataToSync`. Ensures each batch size in bytes <= `MAX_BATCH_SIZE`.
+ *   `podcastMetadataToSync`. If `!maxBatchSize` or there are no episodes to sync, returns an array
+ *   with one all-encompassing `PartitionedBatch`.
  */
 function partitionMetadataBatches(
   cachedMetadata: Partial<Podcast>,
   podcastMetadataToSync: Partial<Podcast>,
+  maxBatchSize: number | null = MAX_BATCH_SIZE,
 ) : PartitionedBatch[] {
   const batches : PartitionedBatch[] = [];
   const { episodes, ...mainMetadata } = { ...podcastMetadataToSync };
 
-  let precedingMetadata = {};
+  let priorBatchMetadata = {};
   let previousBatchMetadata = {};
   let episodesRemainder = episodes || [];
   do {
-    // TODO: 2nd parameter should be akin to precedingVsCurrentDiff;
-    //       currently, batch.compressedMetadata and batch.tags are unoptimized versions
-    const currentBatch = findNextOptimalBatch(cachedMetadata, mainMetadata, episodesRemainder);
-
-    precedingMetadata = mergeBatchMetadata([precedingMetadata, previousBatchMetadata], true);
-    const precedingVsCurrentDiff = rightDiff(
-      precedingMetadata, currentBatch.metadata, ['subscribeUrl', 'title'],
-    );
-
-    if (episodesRemainder.length) {
-      const firstEpisodeDate = getFirstEpisodeDate(currentBatch.metadata);
-      const lastEpisodeDate = getLastEpisodeDate(currentBatch.metadata);
-      const metadataBatch = getMetadataBatchNumber(
-        precedingMetadata, firstEpisodeDate, lastEpisodeDate,
-      );
-      currentBatch.metadata = {
-        ...precedingVsCurrentDiff,
-        firstEpisodeDate,
-        lastEpisodeDate,
-        metadataBatch,
-      };
-    }
-    else currentBatch.metadata = precedingVsCurrentDiff;
+    priorBatchMetadata = mergeBatchMetadata([priorBatchMetadata, previousBatchMetadata], true);
+    const currentBatch = findNextBatch(cachedMetadata,
+      priorBatchMetadata,
+      mainMetadata,
+      episodesRemainder,
+      maxBatchSize);
     batches.push(currentBatch);
     previousBatchMetadata = currentBatch.metadata;
 

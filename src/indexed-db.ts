@@ -24,7 +24,7 @@ export class IndexedDb {
       { autoIncrement: false, keyPath: 'subscribeUrl' },
     ],
     [
-      'arSyncTxs',
+      'transactionHistory',
       { autoIncrement: false, keyPath: 'id' },
     ],
   ];

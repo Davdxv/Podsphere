@@ -41,7 +41,7 @@ export enum DBStatus {
   INITIALIZING1,
   INITIALIZING2,
   INITIALIZING3, // 'subscriptions' and 'metadataToSync' initialized
-  INITIALIZED, // 'subscriptions', 'metadataToSync' and 'arSyncTxs' initialized
+  INITIALIZED, // 'subscriptions', 'metadataToSync' and 'transactionHistory' (arSyncTxs) initialized
 }
 
 export const SubscriptionsContext = createContext<SubscriptionContextType>({
@@ -62,7 +62,7 @@ export const SubscriptionsContext = createContext<SubscriptionContextType>({
 const DB_SUBSCRIPTIONS = 'subscriptions';
 const DB_EPISODES = 'episodes';
 const DB_METADATATOSYNC = 'metadataToSync';
-const DB_ARSYNCTXS = 'arSyncTxs';
+const DB_ARSYNCTXS = 'transactionHistory';
 
 const db = new IndexedDb();
 
