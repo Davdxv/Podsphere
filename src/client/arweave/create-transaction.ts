@@ -11,6 +11,8 @@ import {
   hasMetadata,
   isValidDate,
   isValidInteger,
+  getFirstEpisodeDate,
+  getLastEpisodeDate,
 } from '../../utils';
 import {
   ArweaveTag,
@@ -222,6 +224,23 @@ function episodeTags(
     ['lastEpisodeDate', toISOString(lastEpisodeDate)],
     ['metadataBatch', `${metadataBatch}`],
   ];
+}
+
+export function withMetadataBatchNumber(
+  metadata: Partial<Podcast>,
+  priorBatchMetadata: Partial<Podcast>,
+) : Partial<Podcast> {
+  const firstEpisodeDate = getFirstEpisodeDate(metadata);
+  const lastEpisodeDate = getLastEpisodeDate(metadata);
+  const metadataBatch = getMetadataBatchNumber(
+    priorBatchMetadata, firstEpisodeDate, lastEpisodeDate,
+  );
+  return {
+    ...metadata,
+    firstEpisodeDate,
+    lastEpisodeDate,
+    metadataBatch,
+  };
 }
 
 /**
