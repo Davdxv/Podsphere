@@ -10,6 +10,7 @@ import { ApiConfig } from 'arweave/node/lib/api';
 import { AppInfo, GatewayConfig, PermissionType } from 'arconnect';
 import { ToastContext } from './toast';
 import useRerenderEffect from '../hooks/use-rerender-effect';
+import { IndexedDb } from '../indexed-db';
 import { DBStatus, SubscriptionsContext } from './subscriptions';
 import {
   isNotEmpty,
@@ -30,8 +31,6 @@ import client from '../client/arweave/client';
 import {
   ArSyncTx,
   ArSyncTxStatus,
-  DispatchResultDTO,
-  TransactionDTO,
 } from '../client/interfaces';
 import * as arweave from '../client/arweave';
 import * as arsync from '../client/arweave/sync';
@@ -342,21 +341,13 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
   useEffect(() => {
     const initializeArSyncTxs = async () => {
       try {
-        let fetchedData : ArSyncTx[] = await readCachedArSyncTxs();
-        fetchedData ||= [];
-
-        const arSyncTxsObject : ArSyncTx[] = fetchedData.map((tx: ArSyncTx) => ({
-          ...tx,
-          dispatchResult: tx.dispatchResult ? tx.dispatchResult as DispatchResultDTO : undefined,
-          resultObj: ('errorMessage' in tx.resultObj ? tx.resultObj as unknown as Error
-            : tx.resultObj as TransactionDTO),
-        } as ArSyncTx));
-
+        const fetchedData : ArSyncTx[] = await readCachedArSyncTxs() || [];
+        const arSyncTxsObject : ArSyncTx[] = arweave.arSyncTxsToDTO(fetchedData);
         setArSyncTxs(arSyncTxsObject);
       }
       catch (ex) {
-        const errorMessage = `Error while reading the cached transactions: ${ex}.\n`
-                             + 'Cached transactions have been cleared.';
+        const errorMessage = `Unable to read the cached transaction history:\n${ex}\n`
+          + `${IndexedDb.DB_ERROR_GENERIC_HELP_MESSAGE}`;
         console.error(errorMessage);
         toast(errorMessage, { autohideDelay: 0, variant: 'danger' });
       }
@@ -372,14 +363,12 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     const updateCachedArSyncTxs = async () => {
       try {
         const txsToCache = arSyncTxs.filter(isNotInitialized);
-        const arSyncTxsDto : ArSyncTx[] = txsToCache.map((tx: ArSyncTx) => ({
-          ...tx,
-          metadata: {},
-        }));
+        const arSyncTxsDto : ArSyncTx[] = arweave.arSyncTxsToDTO(txsToCache, true);
         await writeCachedArSyncTxs(arSyncTxsDto);
       }
       catch (ex) {
-        const errorMessage = `Error while saving the transactions to IndexedDB: ${ex}.`;
+        const errorMessage = `Unable to save the transaction history to IndexedDB:\n${ex}\n`
+          + `${IndexedDb.DB_ERROR_GENERIC_HELP_MESSAGE}`;
         console.error(errorMessage);
         toast(errorMessage, { autohideDelay: 0, variant: 'danger' });
       }

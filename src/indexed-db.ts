@@ -31,9 +31,9 @@ export class IndexedDb {
 
   public static readonly DB_ERROR_GENERIC_HELP_MESSAGE = [
     'If a refresh does not fix this, please contact our development team. You may attempt to',
-    'resolve this yourself by loading a backup of your subscriptions. A last resort would be',
-    'to clear the IndexedDB field from your browser\'s developer tools, but this will clear all',
-    'cached data, including your subscriptions.',
+    'resolve this yourself by loading a backup of your Ponder user data. A last resort would be to',
+    'clear the offending table from the IndexedDB field in your browser\'s developer tools, but',
+    'this will clear the corresponding cached data.',
   ].join(' ');
 
   constructor(database: string = IndexedDb.DB_NAME) {

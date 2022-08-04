@@ -185,7 +185,7 @@ export async function newTransactionFromMetadata(
 }
 
 /**
- * `newTransactionFromMetadata()` always calls this function. ArSync can be called directly.
+ * NOTE: `newTransactionFromMetadata()` always calls this function. ArSync calls it directly.
  * @param wallet
  * @param compressedMetadata
  * @param tags

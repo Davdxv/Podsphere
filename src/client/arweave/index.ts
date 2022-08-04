@@ -12,6 +12,7 @@ export {
   signAndPostTransaction,
   dispatchTransaction,
 } from './create-transaction';
+export { arSyncTxsToDTO } from './utils';
 
 export async function getTxConfirmationStatus(arSyncTx: ArSyncTx)
   : Promise<TransactionStatusResponse> {

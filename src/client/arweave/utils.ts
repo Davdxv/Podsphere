@@ -116,6 +116,41 @@ export const getTxId = (tx: ArSyncTx) : string => (isBundled(tx) ? tx.dispatchRe
 export const getBundleTxId = (tx: ArSyncTx) : string => (isNotEmpty(tx.dispatchResult)
   ? (tx.dispatchResult as DispatchResultDTO).bundledIn : '') || '';
 
+/**
+ * @param arSyncTxs
+ * @param throwOnError
+ * @returns The given `arSyncTxs`, made DTO-ready by omitting the most-sizeable transient values.
+ *   Note that each returned element's type signature is congruent with the `ArSyncTx` interface.
+ *   Optimized `ArSyncTx` props may mutate in value as well as type, though.
+ */
+export function arSyncTxsToDTO(arSyncTxs: ArSyncTx[], throwOnError = false) : ArSyncTx[] {
+  const result : ArSyncTx[] = [];
+  arSyncTxs.forEach((tx: ArSyncTx) => {
+    try {
+      let { dispatchResult, resultObj } = tx;
+      if (dispatchResult) dispatchResult = dispatchResult as DispatchResultDTO;
+      if (!(resultObj instanceof Error) && resultObj.id) {
+        resultObj = {
+          id: resultObj.id,
+        } as TransactionDTO;
+      }
+      result.push({
+        ...tx,
+        dispatchResult,
+        resultObj,
+        metadata: {},
+      } as ArSyncTx);
+    }
+    catch (ex) {
+      const errorMessage = `Could not read transaction history object: ${(ex as Error).message}`;
+      console.warn(errorMessage);
+      if (throwOnError) throw new Error(errorMessage);
+    }
+  });
+
+  return result;
+}
+
 /** Defaults to true, if process.env.REACT_APP_USE_ARCONNECT != false */
 export function usingArConnect() : boolean {
   return (process.env.REACT_APP_USE_ARCONNECT as string) !== 'false';

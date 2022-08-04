@@ -103,7 +103,6 @@ afterAll(() => {
 
 /**
  * newTransactionFromCompressedMetadata() is implicitly tested through newTransactionFromMetadata()
- * TODO: assert call to newTransactionFromCompressedMetadata()
  */
 describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () => {
   beforeEach(() => {

@@ -24,6 +24,7 @@ module.exports = {
     'react/jsx-no-constructed-context-values': 0,
     'react/function-component-definition': [0],
     'import/prefer-default-export': 0,
+    'import/named': 'error',
     'react/jsx-no-bind': 0,
     'react/static-property-placement': [2, 'static public field'],
     'consistent-return': 0,

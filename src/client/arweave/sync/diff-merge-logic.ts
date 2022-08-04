@@ -2,6 +2,7 @@ import {
   Episode,
   Podcast,
   PodcastTags,
+  Primitive,
 } from '../../interfaces';
 import {
   isNotEmpty,
@@ -11,9 +12,8 @@ import {
   hasMetadata,
   valuePresent,
   omitEmptyMetadata,
-  Primitive,
-  mergeArraysToLowerCase,
 } from '../../../utils';
+import { mergeArraysToLowerCase } from '../../metadata-filtering/formatting';
 
 /**
  * @param oldEpisode

@@ -1,5 +1,4 @@
-import { Primitive } from '../../../../utils';
-import { Podcast } from '../../../../client/interfaces';
+import { Podcast, Primitive } from '../../../../client/interfaces';
 
 export interface SharedKeywords {
   name: string;

@@ -319,9 +319,8 @@ describe('initArSyncTxs', () => {
           // Assert that the tags per batch are correct by checking each batch's metadataBatch tag.
           // (Assertion of all tags is done in the relevant test module.)
           const result2Tags = newTxMockCalls.slice(1).map(params => params[2]);
-          const result2BatchTagValues = result2Tags.map(tags => tags
-            .find(tag => tag[0] === 'metadataBatch')[1]);
-          const result2BatchTagNumbers = result2BatchTagValues
+          const result2BatchTagNumbers = result2Tags.map(tags => tags
+            .find(tag => tag[0] === 'metadataBatch')[1])
             .map(metadataBatchValue => parseInt(metadataBatchValue, 10));
           // Spread to circumvent Jest's JSON String serialization hindrances
           expect([...result2BatchTagNumbers]).toStrictEqual(integerArray(result2NumBatches));

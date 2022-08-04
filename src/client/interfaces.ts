@@ -2,6 +2,10 @@
 import { DispatchResult } from 'arconnect';
 import Transaction from 'arweave/node/lib/transaction';
 
+export type Primitive = string | boolean | number;
+
+export type EmptyTypes = null | undefined | {};
+
 export const MANDATORY_ARWEAVE_TAGS = [
   'subscribeUrl',
   'title',
@@ -133,7 +137,7 @@ export type Episode = {
   explicit?: string;
 };
 
-export interface TransactionDTO extends Transaction {}
+export interface TransactionDTO extends Pick<Transaction, 'id'> {}
 
 export interface DispatchResultDTO extends DispatchResult {
   bundledIn?: string;
@@ -144,7 +148,7 @@ export type BundledTxIdMapping = {
 };
 
 /**
- * @typedef {enum} ArSyncTxStatus
+ * @typedef {ArSyncTxStatus} ArSyncTxStatus
  *   An enum comprising all supported stages of an ArSyncTx object, used to track and update status.
  */
 export enum ArSyncTxStatus {
