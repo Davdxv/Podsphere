@@ -17,9 +17,9 @@ import {
   toDate,
   podcastFromDTO,
   concatMessages,
-  valueToLowerCase,
 } from '../../utils';
 import { toTag, fromTag, decompressMetadata } from './utils';
+import { valueToLowerCase } from '../metadata-filtering/formatting';
 import { mergeBatchMetadata, mergeBatchTags } from './sync/diff-merge-logic';
 import {
   ALLOWED_ARWEAVE_TAGS_PLURALIZED,

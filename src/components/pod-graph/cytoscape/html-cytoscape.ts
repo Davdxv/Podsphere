@@ -1,8 +1,7 @@
 import cytoscape from 'cytoscape';
 import nodeHtmlLabel from 'cy-node-html-label';
-import { sanitizeUri } from '../../../client/metadata-filtering';
 import { CoreWithNodeLabel } from './interfaces';
-import { sanitizeString } from '../../../utils';
+import { sanitizeString, sanitizeUri } from '../../../client/metadata-filtering/sanitization';
 
 // @ts-ignore
 nodeHtmlLabel(cytoscape);

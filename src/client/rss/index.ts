@@ -14,11 +14,11 @@ import {
   valuePresent,
   isValidString,
   isValidDate,
-  initializeKeywords,
-  mergeArraysToLowerCase, // applies sanitizeString(array.element, allowHtml = false)
-  sanitizeString,
 } from '../../utils';
 import {
+  initializeKeywords,
+  mergeArraysToLowerCase,
+  sanitizeString,
   sanitizeUri,
 } from '../metadata-filtering';
 
@@ -79,12 +79,6 @@ function formatPodcastFeed(feed: RssPodcastFeed, subscribeUrl: Podcast['subscrib
     managingEditor: sanitizeString(podcast.managingEditor || podItunes.managingEditor || ''),
     lastBuildDate: toDate(podcast.lastBuildDate),
   };
-  // TODO: data optimization:
-  //       if podcast.description ~= podcast.summary ~= podcast.subtitle
-  //       then keep only `description`
-  //         ~= : all.lengths match by >=95% && each.substring(0, 20) matches 100%
-  // TODO: same for:
-  //       if sanitizeString(episode.contentHtml, false) ~= episode.summary ~= episode.subtitle
 
   const episodesKeywords = new Set<string>();
   const episodes : Episode[] = (items || [])
