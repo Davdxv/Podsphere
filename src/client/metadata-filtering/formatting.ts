@@ -6,16 +6,27 @@ export function valueToLowerCase(value: any) : string {
 }
 
 /**
- * @param arr1
- * @param arr2
- * @returns {Array.<string>} The given arrays, concatenated, mapped to lower case & sanitized,
- *   omitting any duplicate/empty strings and non-string elements
+ * @param list1
+ * @param list2
+ * @returns The given arrays, concatenated, mapped to lower case & sanitized,
+ *   omitting any duplicate/empty strings and non-string elements.
+ *   - rss-parser patch: if either param is a (comma-separated) string, it's converted to an Array.
  */
-export function mergeArraysToLowerCase<T extends Primitive>(arr1 : T[] = [], arr2 : T[] = []) :
-string[] {
-  const filterArray = (arr : T[]) => (arr || [])
+export function mergeArraysToLowerCase<T extends Primitive>(
+  list1 : T[] | string = [],
+  list2 : T[] | string = [],
+) : string[] {
+  const filterArray = (arr: T[]) : string[] => arr
     .map(x => sanitizeString(valueToLowerCase(x), false))
     .filter(x => x);
 
-  return [...new Set(filterArray(arr1).concat(filterArray(arr2)))];
+  /** Sometimes rss-parser returns a comma-separated string instead of an Array */
+  const convertToArray = (param: any) : any[] => {
+    if (typeof param === 'string') return param.split(/[,;]+/);
+    if (!Array.isArray(param)) return [];
+    return param;
+  };
+
+  const concat = filterArray(convertToArray(list1)).concat(filterArray(convertToArray(list2)));
+  return [...new Set(concat)];
 }

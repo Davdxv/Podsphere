@@ -6,7 +6,7 @@ import { valueToLowerCase, mergeArraysToLowerCase } from './formatting';
  * @returns A keyword comprising the podcast author name, or (as a last resort) the podcast title,
  *   or an empty string if not generable
  */
-function getPrimaryKeyword(metadata : Partial<Podcast> | Partial<PodcastDTO>) : string {
+function getPrimaryKeyword(metadata: Partial<Podcast> | Partial<PodcastDTO>) : string {
   const primaryKeyword = metadata.author || metadata.ownerName || metadata.title;
   return valueToLowerCase(primaryKeyword);
 }
@@ -17,7 +17,7 @@ function getPrimaryKeyword(metadata : Partial<Podcast> | Partial<PodcastDTO>) : 
  * @returns {Array.<string>} A filtered array of `keywords` with an additional primary keyword
  */
 export function initializeKeywords(
-  metadata : Partial<Podcast> | Partial<PodcastDTO>,
+  metadata: Partial<Podcast> | Partial<PodcastDTO>,
   keywords: string[] = [],
 ) : string[] {
   const primaryKeyword = getPrimaryKeyword(metadata);

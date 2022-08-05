@@ -27,7 +27,7 @@ const PodGraph : React.FC<Props> = ({ subscriptions }) => {
   const [cy, setCy] = useState<ExtendedCore>();
   const [selectedPodcastId, setSelectedPodcastId] = useState<string | null>(null);
   const selectedPodcast = subscriptions
-    .find(subscription => subscription.subscribeUrl === selectedPodcastId);
+    .find(subscription => subscription.feedUrl === selectedPodcastId);
 
   const theme = useTheme();
   const isSm = useMediaQuery(theme.breakpoints.down('sm'));

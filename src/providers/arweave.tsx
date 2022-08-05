@@ -79,14 +79,16 @@ const ARCONNECT_APPINFO : AppInfo = {
   // logo: '', TODO
 };
 const clientApiConfig : ApiConfig = client.getConfig().api;
+// Optional gateway config. NOTE: these aren't observed when using ArConnect's dispatch().
 const ARCONNECT_GATEWAY : GatewayConfig | undefined = clientApiConfig.host && clientApiConfig.port
   && clientApiConfig.protocol ? {
     host: clientApiConfig.host,
     port: +clientApiConfig.port,
     protocol: clientApiConfig.protocol === 'http' ? 'http' : 'https',
-  } : undefined; // These are optional
+  } : undefined;
+/* */
 
-const TX_CONFIRMATION_INTERVAL = 30 * 1000;
+const TX_CONFIRMATION_INTERVAL = 60 * 1000;
 
 // TODO: ArSync v1.5+, test me
 const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -125,7 +127,10 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
 
     let newTxs : ArSyncTx[];
     try {
-      newTxs = await arsync.initArSyncTxs(newSubscriptions, newMetadataToSync, wallet);
+      if (usingArConnect()) {
+        newTxs = await arsync.initArSyncTxs(newSubscriptions, newMetadataToSync, wallet);
+      }
+      else newTxs = await arsync.initArSyncTxs(newSubscriptions, newMetadataToSync, wallet, null);
     }
     catch (ex) {
       console.error(ex);
@@ -247,7 +252,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     }
     if (confirmedArSyncTxs.length) {
       console.debug('At least one posted transaction has been confirmed.');
-      const confirmedPodcastIds = new Set<string>(confirmedArSyncTxs.map(tx => tx.subscribeUrl));
+      const confirmedPodcastIds = new Set<string>(confirmedArSyncTxs.map(tx => tx.podcastId));
       await refresh([...confirmedPodcastIds], true, 0);
     }
   }, [isSyncing, isRefreshing, arSyncTxs, refresh]);

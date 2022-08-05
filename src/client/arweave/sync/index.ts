@@ -1,7 +1,7 @@
 /**
  * @module ArSync Main module for ArSync
  *
- * Current version: v1.3.1
+ * Current version: v1.3.2
  *
  * ArSync comprises all necessary logic for creating, fetching and tracking Podsphere's transactions
  * on Arweave.
@@ -13,7 +13,7 @@
  * Main intrinsic interfaces/types (see {@link ../../interfaces.ts}):
  * @see {ArSyncTx}
  *   Main data structure used to track an Arweave transaction through its various stages.
- * @typedef {enum} ArSyncTxStatus
+ * @see {ArSyncTxStatus}
  *   An enum comprising all supported stages of an ArSyncTx object. Used to track and update status.
  */
 
@@ -29,7 +29,11 @@ import {
   Episode,
   Podcast,
 } from '../../interfaces';
-import { findMetadata, hasMetadata } from '../../../utils';
+import {
+  findMetadataById,
+  hasMetadata,
+  unixTimestamp,
+} from '../../../utils';
 import { throwDevError } from '../../../errors';
 import { formatTags, withMetadataBatchNumber } from '../create-transaction';
 import { mergeBatchMetadata, rightDiff } from './diff-merge-logic';
@@ -64,10 +68,10 @@ export async function initArSyncTxs(
   metadataToSync.forEach(podcastMetadataToSync => {
     let cachedMetadata : Partial<Podcast> = {};
     if (hasMetadata(podcastMetadataToSync)) {
-      let subscribeUrl! : string;
       try {
-        subscribeUrl = podcastMetadataToSync.subscribeUrl!;
-        cachedMetadata = findMetadata(subscribeUrl, subscriptions);
+        const { id } = podcastMetadataToSync;
+        if (!id) throw new Error('Could not find Podcast id.');
+        cachedMetadata = findMetadataById(id, subscriptions);
 
         // A transaction will be created for each batchesToSync[i]
         const batchesToSync = partitionMetadataBatches(cachedMetadata,
@@ -76,16 +80,15 @@ export async function initArSyncTxs(
         partitionedBatches.push(...batchesToSync);
       }
       catch (ex) {
-        console.error(`Failed to sync ${subscribeUrl} due to: ${ex}`);
+        const title = cachedMetadata.title || podcastMetadataToSync.title;
+        console.error(`Failed to sync ${title || podcastMetadataToSync.feedUrl} due to: ${ex}`);
       }
     }
   });
 
   result = await Promise.all(partitionedBatches.map(async batch => {
-    let subscribeUrl! : string;
     let newTxResult : Transaction | Error;
     try {
-      subscribeUrl = batch.subscribeUrl;
       newTxResult = await newTransactionFromCompressedMetadata(
         wallet, batch.compressedMetadata, batch.tags,
       );
@@ -95,12 +98,13 @@ export async function initArSyncTxs(
     }
     const arSyncTx : ArSyncTx = {
       id: uuid(),
-      subscribeUrl,
+      podcastId: batch.podcastId,
       title: batch.title,
       resultObj: newTxResult,
       metadata: batch.metadata,
       numEpisodes: batch.numEpisodes,
       status: newTxResult instanceof Error ? ArSyncTxStatus.ERRORED : ArSyncTxStatus.INITIALIZED,
+      timestamp: unixTimestamp(),
     };
     return arSyncTx;
   }));
@@ -144,12 +148,19 @@ export async function startSync(
 }
 
 /**
- * An object that includes the `compressedMetadata` and `tags` params required by
- * {@linkcode newTransactionFromCompressedMetadata}, alongside some transient variables:
- * `subscribeUrl`, `title`, `metadata`, `numEpisodes`
+ * @interface PartitionedBatch
+ * @description
+ *   An object that includes the `compressedMetadata` and `tags` params required by
+ *   {@linkcode newTransactionFromCompressedMetadata}. Local precursor to an (exported) `ArSyncTx`.
+ * @prop {string} podcastId uuid of the relevant podcast `= metadata.id`
+ * @prop {string} title
+ * @prop {Partial<Podcast>} metadata
+ * @prop {number} numEpisodes
+ * @prop {Uint8Array} compressedMetadata
+ * @prop {ArweaveTag[]} tags
  */
-interface PartitionedBatch extends Pick<ArSyncTx, 'subscribeUrl' | 'title' | 'metadata'
-| 'numEpisodes'> {
+interface PartitionedBatch extends
+  Pick<ArSyncTx, 'podcastId' | 'title' | 'metadata' | 'numEpisodes'> {
   compressedMetadata: Uint8Array;
   tags: ArweaveTag[];
 }
@@ -202,9 +213,6 @@ const findNextBatch = (
     let bestResultMargin = Infinity;
 
     for (let pass = 1; pass <= MAX_NUM_PASSES; pass++) {
-      // TODO: Remove debugs after (acceptance) testing
-      console.debug(`pass=${pass}:\nnumEps=${numEps}, minEps=${minEps}, maxEps=${maxEps}`);
-
       const currentBatch = withMetadataBatchNumber({
         ...podcastMetadataToSync,
         episodes: (episodesToSync || []).slice(-numEps),
@@ -224,8 +232,6 @@ const findNextBatch = (
         result.metadata = currentBatch;
         result.tags = tags;
       }
-      console.debug('batchSize', tagsSize + gzip.byteLength);
-      console.debug('relativeBatchSize', relativeBatchSize);
 
       if (relativeBatchSize > 1) { /* Too large */
         maxEps = Math.min(maxEps, numEps);
@@ -248,16 +254,15 @@ const findNextBatch = (
         break;
       }
     }
-    console.debug('findNextOptimalBatch result', result);
     return result;
   }; /** End of #findNextOptimalBatch() */
 
   const allMetadata = { ...podcastMetadataToSync };
   if (episodesToSync.length) allMetadata.episodes = episodesToSync;
-  const allMetadataDiff = rightDiff(priorBatchMetadata, allMetadata, ['subscribeUrl', 'title']);
+  const allMetadataDiff = rightDiff(priorBatchMetadata, allMetadata, ['id', 'feedType', 'feedUrl']);
 
   let result : PartitionedBatch = {
-    subscribeUrl: podcastMetadataToSync.subscribeUrl || cachedMetadata.subscribeUrl || '',
+    podcastId: podcastMetadataToSync.id || cachedMetadata.id || '',
     title: podcastMetadataToSync.title || cachedMetadata.title || '',
     numEpisodes: episodesToSync.length,
     metadata: allMetadataDiff,
@@ -326,14 +331,14 @@ export function formatNewMetadataToSync(
   let diffs = prevMetadataToSync;
   allTxs.forEach(tx => {
     if (isPosted(tx) || isConfirmed(tx)) {
-      const { subscribeUrl, metadata } = tx;
-      const prevPodcastToSyncDiff = findMetadata(subscribeUrl, diffs);
+      const { podcastId, metadata } = tx;
+      const prevPodcastToSyncDiff = findMetadataById(podcastId, diffs);
       let newDiff : Partial<Podcast> = {};
       if (hasMetadata(prevPodcastToSyncDiff)) {
-        newDiff = rightDiff(metadata, prevPodcastToSyncDiff, ['subscribeUrl', 'title']);
+        newDiff = rightDiff(metadata, prevPodcastToSyncDiff, ['id', 'feedType', 'feedUrl']);
       }
 
-      diffs = diffs.filter(oldDiff => oldDiff.subscribeUrl !== subscribeUrl);
+      diffs = diffs.filter(oldDiff => oldDiff.id !== podcastId);
       if (hasMetadata(newDiff)) diffs.push(newDiff);
     }
   });

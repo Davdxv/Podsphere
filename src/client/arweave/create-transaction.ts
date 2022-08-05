@@ -13,6 +13,8 @@ import {
   isValidInteger,
   getFirstEpisodeDate,
   getLastEpisodeDate,
+  removePrefixFromPodcastId,
+  isValidUuid,
 } from '../../utils';
 import {
   ArweaveTag,
@@ -42,12 +44,19 @@ const validateAndTrimTag = (tag: ArweaveTag) : ArweaveTag | null => {
   return [validName, validVal] as ArweaveTag;
 };
 
-export function formatTags(newMetadata: Partial<Podcast>, cachedMetadata: Partial<Podcast> = {})
-  : ArweaveTag[] {
+export function formatTags(
+  newMetadata: Partial<Podcast>,
+  cachedMetadata: Partial<Podcast> = {},
+) : ArweaveTag[] {
+  // An updated id is assumed to have been fetched through SubscriptionsProvider.refresh()
+  let id = newMetadata.id || cachedMetadata.id || '';
+  if (!isValidUuid(id)) id = '';
+
   const mandatoryPodcastTags : [MandatoryTags, string | undefined][] = [
-    ['subscribeUrl', newMetadata.subscribeUrl || cachedMetadata.subscribeUrl],
+    ['id', removePrefixFromPodcastId(id)],
+    ['feedType', newMetadata.feedType || cachedMetadata.feedType],
+    ['feedUrl', newMetadata.feedUrl || cachedMetadata.feedUrl],
     ['title', newMetadata.title || cachedMetadata.title],
-    ['description', newMetadata.description || cachedMetadata.description],
   ];
 
   const getMandatoryTagsValues = (key: MandatoryTags) => mandatoryPodcastTags
@@ -56,7 +65,7 @@ export function formatTags(newMetadata: Partial<Podcast>, cachedMetadata: Partia
   mandatoryPodcastTags.forEach(([name, value]) => {
     if (!value) {
       throw new Error('Could not upload metadata for '
-        + `${getMandatoryTagsValues('title') || getMandatoryTagsValues('subscribeUrl')}: `
+        + `${getMandatoryTagsValues('title') || getMandatoryTagsValues('feedUrl')}: `
         + `${name} is missing`);
     }
   });

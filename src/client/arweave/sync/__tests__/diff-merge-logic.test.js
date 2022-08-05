@@ -202,7 +202,7 @@ describe('mergeEpisodeBatches', () => {
 describe('mergeBatchMetadata', () => {
   // Each metadataBatches[i] mimicks a podcast metadata object as parsed from the JSON payload of an
   // Arweave transaction. Therefore, the following props reside elsewhere, namely in the tags:
-  // { subscribeUrl, title, categories, keywords, firstEpisodeDate, lastEpisodeDate, metadataBatch }
+  // { feedUrl, title, categories, keywords, firstEpisodeDate, lastEpisodeDate, metadataBatch }
   //
   // metadataBatches[i] are ordered from old to new, where metadata of newer batches take precedence
   const metadataBatches = [
@@ -460,7 +460,7 @@ describe('rightDiff', () => {
   describe('When the left set encloses the right set', () => {
     const oldMetadata = {
       description: 'description',
-      subscribeUrl: 'https://server.dummy/feed',
+      feedUrl: 'https://server.dummy/feed',
       imageUrl: 'https://imgurl/img.png?ver=0',
       imageTitle: 'imageTitle',
       episodes: oldEpisodes,
@@ -482,7 +482,7 @@ describe('rightDiff', () => {
     };
     const newMetadata = {
       description: 'description',
-      subscribeUrl: 'https://server.dummy/feed',
+      feedUrl: 'https://server.dummy/feed',
       imageUrl: 'https://imgurl/img.png?ver=0',
       imageTitle: 'imageTitle',
       episodes: oldEpisodes,
@@ -513,7 +513,7 @@ describe('rightDiff', () => {
   describe('When the right set contains 1 new metadatum', () => {
     const oldMetadata = {
       description: 'description',
-      subscribeUrl: 'https://server.dummy/feed',
+      feedUrl: 'https://server.dummy/feed',
       imageUrl: 'https://imgurl/img.png?ver=0',
       imageTitle: 'imageTitle',
       episodes: oldEpisodes,
@@ -524,10 +524,10 @@ describe('rightDiff', () => {
       episodes: oldEpisodes,
     };
 
-    it('returns the right diff including the primary key subscribeUrl', () => {
+    it('returns the right diff including the primary key feedUrl', () => {
       expect(rightDiff(oldMetadata, newMetadata)).toStrictEqual({
         description: 'new description',
-        subscribeUrl: 'https://server.dummy/feed',
+        feedUrl: 'https://server.dummy/feed',
       });
     });
   });
@@ -535,7 +535,7 @@ describe('rightDiff', () => {
   describe('When given 2 overlapping sets of podcast metadata', () => {
     const oldMetadata = {
       description: 'description',
-      subscribeUrl: 'https://server.dummy/feed',
+      feedUrl: 'https://server.dummy/feed',
       imageUrl: 'https://imgurl/img.png?ver=0',
       imageTitle: 'imageTitle',
       unknownField: 'unknownFieldValue',
@@ -544,7 +544,7 @@ describe('rightDiff', () => {
     };
     const newMetadata = {
       description: 'description',
-      subscribeUrl: 'https://server.dummy/feed',
+      feedUrl: 'https://server.dummy/feed',
       imageUrl: 'https://imgurl/img.png?ver=1',
       imageTitle: 'imageTitle',
       episodes: newEpisodes,
@@ -552,7 +552,7 @@ describe('rightDiff', () => {
       keywords: [''],
     };
 
-    it('returns the right diff where primary key subscribeUrl persists for the podcast diff, '
+    it('returns the right diff where primary key feedUrl persists for the podcast diff, '
        + 'publishedAt persists for each episode diff and the episodes diff is sorted', () => {
       expect(rightDiff(oldMetadata, newMetadata)).toStrictEqual({
         imageUrl: 'https://imgurl/img.png?ver=1',
@@ -570,7 +570,7 @@ describe('rightDiff', () => {
           },
         ],
         categories: ['diffcat'],
-        subscribeUrl: 'https://server.dummy/feed',
+        feedUrl: 'https://server.dummy/feed',
       });
     });
   });

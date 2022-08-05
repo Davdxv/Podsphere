@@ -1,6 +1,6 @@
 import dedent from 'dedent';
 import { strToU8, compressSync } from 'fflate';
-import { getPodcastFeed } from '../graphql-ops';
+import { getPodcastRss2Feed } from '../graphql-ops';
 // eslint-disable-next-line import/named
 import { transactions, api } from '../client';
 import { toTag } from '../utils';
@@ -34,7 +34,7 @@ function gqlResponse(metadataBatch, firstEpisodeDate, lastEpisodeDate) {
                 { name: 'App-Version', value: 'bestVersion' },
                 { name: 'Content-Type', value: 'application/gzip' },
                 { name: 'Unix-Time', value: '1620172800' },
-                { name: 'subscribeUrl', value: FEED_URL },
+                { name: 'feedUrl', value: FEED_URL },
                 { name: 'title', value: 'That Podcast' },
                 { name: 'description', value: 'The best of That Podcast' },
                 { name: 'keyword', value: 'comedY' },
@@ -83,7 +83,7 @@ const episodes = [
 
 function mergedBatchesResult(metadataBatch, firstEpisodeDate, lastEpisodeDate) {
   return {
-    subscribeUrl: FEED_URL,
+    feedUrl: FEED_URL,
     title: 'That Podcast',
     description: 'The best of That Podcast',
     categories: ['politics', 'cats'],
@@ -112,7 +112,7 @@ afterAll(() => {
   process.env.REACT_APP_TAG_PREFIX = originalTagPrefix;
 });
 
-describe('getPodcastFeed', () => {
+describe('getPodcastRss2Feed', () => {
   describe('Successful fetch', () => {
     describe('With 1 metadata batch', () => {
       beforeEach(() => {
@@ -123,7 +123,7 @@ describe('getPodcastFeed', () => {
       });
 
       it('returns the expected merged metadata and tags', async () => {
-        await expect(getPodcastFeed(FEED_URL)).resolves
+        await expect(getPodcastRss2Feed(FEED_URL)).resolves
           .toEqual(mergedBatchesResult(0, ep1date, ep4date));
 
         expect(api.post).toHaveBeenCalledTimes(2);
@@ -154,7 +154,7 @@ describe('getPodcastFeed', () => {
           variables: {
             tags: [
               {
-                name: 'testPodsphere-subscribeUrl',
+                name: 'testPodsphere-feedUrl',
                 values: ['https://server.dummy/rss'],
               },
               {
@@ -165,7 +165,7 @@ describe('getPodcastFeed', () => {
           },
         });
 
-        await getPodcastFeed(FEED_URL);
+        await getPodcastRss2Feed(FEED_URL);
 
         expect(api.post.mock.calls).toEqual([
           ['/graphql', expectedGqlQuery('0')],
@@ -184,7 +184,7 @@ describe('getPodcastFeed', () => {
 
         api.post.mockResolvedValueOnce(emptyGqlResponse());
 
-        await expect(getPodcastFeed(FEED_URL)).resolves
+        await expect(getPodcastRss2Feed(FEED_URL)).resolves
           .toEqual(mergedBatchesResult(1, ep1date, ep4date));
 
         expect(api.post).toHaveBeenCalledTimes(3);
@@ -209,7 +209,7 @@ describe('getPodcastFeed', () => {
 
         api.post.mockResolvedValueOnce(emptyGqlResponse());
 
-        await expect(getPodcastFeed(FEED_URL)).resolves
+        await expect(getPodcastRss2Feed(FEED_URL)).resolves
           .toEqual(mergedBatchesResult(2, ep1date, ep4date));
 
         expect(api.post).toHaveBeenCalledTimes(4);
@@ -235,7 +235,7 @@ describe('getPodcastFeed', () => {
 
         api.post.mockResolvedValueOnce(emptyGqlResponse());
 
-        await expect(getPodcastFeed(FEED_URL)).resolves
+        await expect(getPodcastRss2Feed(FEED_URL)).resolves
           .toEqual(mergedBatchesResult(2, ep1date, ep4date));
 
         expect(api.post).toHaveBeenCalledTimes(4);
@@ -250,7 +250,7 @@ describe('getPodcastFeed', () => {
       api.post.mockRejectedValue(mockError);
       transactions.getData.mockResolvedValue(getDataResult(0, 4));
 
-      await expect(getPodcastFeed(FEED_URL)).resolves
+      await expect(getPodcastRss2Feed(FEED_URL)).resolves
         .toMatchObject({ errorMessage: expect.stringMatching(/GraphQL/) });
 
       expect(api.post).toHaveBeenCalledTimes(1);

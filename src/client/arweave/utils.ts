@@ -134,11 +134,13 @@ export function arSyncTxsToDTO(arSyncTxs: ArSyncTx[], throwOnError = false) : Ar
           id: resultObj.id,
         } as TransactionDTO;
       }
+      const { episodes, ...metadata } = tx.metadata as Partial<Podcast>;
+
       result.push({
         ...tx,
         dispatchResult,
         resultObj,
-        metadata: {},
+        metadata,
       } as ArSyncTx);
     }
     catch (ex) {

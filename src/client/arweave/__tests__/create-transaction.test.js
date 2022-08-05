@@ -3,6 +3,7 @@ import { newTransactionFromMetadata } from '../create-transaction';
 import { toTag } from '../utils';
 // eslint-disable-next-line import/named
 import { addTag, createTransaction } from '../client';
+import { newCandidatePodcastId, removePrefixFromPodcastId } from '../../../utils';
 
 const MOCK_TIMESTAMP = 1234001234;
 const MOCK_U8_METADATA = new Uint8Array([2, 3]);
@@ -53,8 +54,11 @@ const allEpisodes = [
   },
 ];
 
+const PODCAST_ID = newCandidatePodcastId();
 const BASE_CACHED_METADATA = {
-  subscribeUrl: 'https://example.com/foo',
+  id: PODCAST_ID,
+  feedType: 'rss2',
+  feedUrl: 'https://example.com/foo',
   title: 'cachedTitle',
   description: 'cachedDescription',
   imageUrl: 'https://cached.imgurl/img.png?ver=0',
@@ -64,9 +68,10 @@ const BASE_CACHED_METADATA = {
   keywords: ['cached key'], // ignored by newTransactionFromMetadata
   episodes: [], // ignored by newTransactionFromMetadata
 };
-
 const BASE_NEW_METADATA = {
-  subscribeUrl: 'https://example.com/foo',
+  id: PODCAST_ID,
+  feedType: 'rss2',
+  feedUrl: 'https://example.com/foo',
   title: 'newTitle',
   description: 'newDescription',
   language: 'en-us',
@@ -140,7 +145,9 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
       it('creates a transaction with the expected metadata and tags', async () => {
         const expectedMetadata = newMetadata();
         const expectedTags = [
-          ['subscribeUrl', 'https://example.com/foo'],
+          ['id', removePrefixFromPodcastId(PODCAST_ID)],
+          ['feedType', 'rss2'],
+          ['feedUrl', 'https://example.com/foo'],
           ['title', 'newTitle'],
           ['description', 'newDescription'],
           ['language', 'en-us'],
@@ -181,7 +188,9 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
         };
         const expectedMetadata = newMetadata({ episodes: allEpisodes.slice(0, 2) });
         const expectedTags = [
-          ['subscribeUrl', 'https://example.com/foo'],
+          ['id', removePrefixFromPodcastId(PODCAST_ID)],
+          ['feedType', 'rss2'],
+          ['feedUrl', 'https://example.com/foo'],
           ['title', 'newTitle'],
           ['description', 'newDescription'],
           ['language', 'en-us'],
@@ -229,7 +238,9 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
         };
         const expectedMetadata = newMetadata({ episodes: allEpisodes.slice(0, 1) });
         const expectedTags = [
-          ['subscribeUrl', 'https://example.com/foo'],
+          ['id', removePrefixFromPodcastId(PODCAST_ID)],
+          ['feedType', 'rss2'],
+          ['feedUrl', 'https://example.com/foo'],
           ['title', 'newTitle'],
           ['description', 'newDescription'],
           ['language', 'en-us'],
@@ -302,13 +313,40 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
       assertThrow(erroneousMetadata, /Invalid date/);
     });
 
-    it('throws an Error if a mandatory podcast tag is missing', async () => {
-      const erroneousMetadata = {
-        subscribeUrl: 'https://example.com/foo',
-        description: 'newDescription',
-        episodes: allEpisodes,
+    describe('Mandatory tags', () => {
+      const mandatoryMetadata = {
+        id: newCandidatePodcastId(),
+        feedType: 'rss2',
+        feedUrl: 'https://example.com/foo',
+        title: 'myTitle',
       };
-      assertThrow(erroneousMetadata, /title is missing/);
+
+      it('does not throw an Error if exclusively mandatory podcast tags are given', async () => {
+        await expect(newTransactionFromMetadata(stubbedWallet, mandatoryMetadata, {}))
+          .resolves.not.toThrow();
+      });
+
+      it('throws an Error if the id is missing or invalid', async () => {
+        assertThrow({ ...mandatoryMetadata, id: 'x' }, /id is missing/);
+
+        const { id, ...insufficientMetadata } = mandatoryMetadata;
+        assertThrow(insufficientMetadata, /id is missing/);
+      });
+
+      it('throws an Error if the feedType is missing', async () => {
+        const { feedType, ...insufficientMetadata } = mandatoryMetadata;
+        assertThrow(insufficientMetadata, /feedType is missing/);
+      });
+
+      it('throws an Error if the feedUrl is missing', async () => {
+        const { feedUrl, ...insufficientMetadata } = mandatoryMetadata;
+        assertThrow(insufficientMetadata, /feedUrl is missing/);
+      });
+
+      it('throws an Error if the title is missing', async () => {
+        const { title, ...insufficientMetadata } = mandatoryMetadata;
+        assertThrow(insufficientMetadata, /title is missing/);
+      });
     });
   });
 });

@@ -1,3 +1,4 @@
+import { v4 as uuid } from 'uuid';
 import {
   EmptyTypes,
   Episode,
@@ -86,45 +87,84 @@ export function toDate(date: string | Date | undefined) : Date {
 
 /**
  * @param metadata
- * @returns true if `metadata` has specific metadata other than:
- *   `subscribeUrl`, `publishedAt`, `lastMutatedAt` and an empty episodes list
+ * @returns true iff `metadata` has specific metadata other than:
+ *   - `Pick<Podcast, 'id' | 'feedType' | 'feedUrl' | 'lastMutatedAt'>`
+ *   - an empty episodes list
+ *   - `Pick<Episode, 'publishedAt'>`
  */
 export function hasMetadata<T extends Partial<Podcast>[] | Partial<Episode>[],
 K extends Partial<Podcast> | Partial<Episode>>(metadata: K | T | EmptyTypes) : metadata is T | K {
   if (!isNotEmpty(metadata)) return false;
-  if (Array.isArray(metadata)) return true;
+  if (Array.isArray(metadata)) return !!metadata.length;
   if (metadata.title) return true;
 
   // @ts-ignore
-  const { subscribeUrl, publishedAt, lastMutatedAt, episodes, ...specificMetadata } = {
-    ...metadata,
-  };
+  const { id, feedType, feedUrl, lastMutatedAt, publishedAt, episodes,
+    ...specificMetadata } = metadata;
   if (episodes?.length) return true;
 
   return !!Object.values(specificMetadata).flat().filter(x => x).length;
 }
 
-export function findMetadata(
-  subscribeUrl: Podcast['subscribeUrl'],
-  arrayOfMetadata: Partial<Podcast>[] = [],
+export function findMetadataByFeedUrl(
+  feedUrl: Podcast['feedUrl'],
+  feedType: Podcast['feedType'] = 'rss2',
+  metadataList: Partial<Podcast>[] = [],
 ) : Partial<Podcast> {
-  return arrayOfMetadata.find(obj => isNotEmpty(obj) && obj.subscribeUrl === subscribeUrl) || {};
+  return metadataList.find(x => isNotEmpty(x) && x.feedUrl === feedUrl && x.feedType === feedType)
+    || {};
+}
+
+export function findMetadataById(id: Podcast['id'], metadataList: Partial<Podcast>[] = [])
+  : Partial<Podcast> {
+  return metadataList.find(obj => isNotEmpty(obj) && obj.id === id) || {};
+}
+
+/**
+ * @returns true if the given `id` is a valid uuid of length between 32 and 64, with only hex chars
+ */
+export function isValidUuid(id: Podcast['id']) {
+  const isHex = (char: string) => '0123456789abcdef'.includes(char.toLowerCase());
+
+  if (!id || typeof id !== 'string') return false;
+
+  const guid = removePrefixFromPodcastId(id).replaceAll('-', '');
+  return guid.length >= 32 && guid.length <= 64 && [...guid].every(isHex);
+}
+
+/**
+ * @returns A new uuid prefixed with `temp-`. Prefix is removed once the uuid is confirmed through
+ *   `./client/arweave/cache/podcast-id#getPodcastId()` (data structures are updated accordingly).
+ */
+export function newCandidatePodcastId() : string {
+  return `temp-${uuid()}`;
+}
+
+export function removePrefixFromPodcastId(candidateId: Podcast['id']) : string {
+  return candidateId.replace(/^temp-/, '');
+}
+
+export function isCandidatePodcastId(id: Podcast['id']) : boolean {
+  return !!id.match(/^temp-/);
 }
 
 export function partialToPodcast(partialMetadata: Partial<Podcast>) : Podcast | PodcastFeedError {
   const result : Podcast = {
     ...partialMetadata,
-    subscribeUrl: partialMetadata.subscribeUrl || '',
+    id: partialMetadata.id || '',
+    feedType: partialMetadata.feedType || 'rss2',
+    feedUrl: partialMetadata.feedUrl || '',
     title: partialMetadata.title || '',
   };
 
-  if (!result.subscribeUrl) return { errorMessage: 'Feed URL is missing.' };
-  if (!result.title) return { errorMessage: `Feed ${result.subscribeUrl} is missing a title.` };
+  if (!result.feedUrl) return { errorMessage: 'Feed URL is missing.' };
+  if (!result.id) return { errorMessage: `Failed to get a proper id for ${result.feedUrl}.` };
+  if (!result.title) return { errorMessage: `Feed ${result.feedUrl} is missing a title.` };
 
   return result;
 }
 
-export function podcastFromDTO(podcast : PodcastDTO, sortEpisodes = true) : Podcast {
+export function podcastFromDTO(podcast: PodcastDTO, sortEpisodes = true) : Podcast {
   const conditionalSort = (episodes: PodcastDTO['episodes']) => (sortEpisodes
     ? episodes.sort((a, b) => new Date(b.publishedAt).getTime()
      - new Date(a.publishedAt).getTime()) : episodes);
@@ -156,7 +196,7 @@ export function podcastsFromDTO(podcasts: PodcastDTO[], sortEpisodes = true) {
  * @param metadata
  * @returns The `metadata` exluding props where !valuePresent(value), @see valuePresent
  */
-export function omitEmptyMetadata(metadata : Partial<Podcast> | Partial<Episode>) {
+export function omitEmptyMetadata(metadata: Partial<Podcast> | Partial<Episode>) {
   if (!isNotEmpty(metadata)) return {};
 
   let result : Partial<Podcast> | Partial<Episode> = {};
@@ -207,7 +247,7 @@ export function isNotEmpty<T extends object>(obj: T | EmptyTypes) : obj is T {
 }
 
 /* Returns true if the given objects' values are (deep)equal */
-export function valuesEqual(a : object = {}, b : object = {}) : boolean {
+export function valuesEqual(a: object = {}, b: object = {}) : boolean {
   if (a === b) return true;
   if (!a || !b) return false;
 
@@ -223,9 +263,6 @@ export function valuesEqual(a : object = {}, b : object = {}) : boolean {
 
 export function corsApiHeaders() {
   switch (corsProxyURL()) {
-    case 'https://cors.bridged.cc/':
-      /* See: https://github.com/gridaco/base/issues/23 */
-      return { 'x-cors-grida-api-key': 'MyAPIKey' };
     default:
       return {};
   }

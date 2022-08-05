@@ -17,6 +17,7 @@ import {
   toDate,
   podcastFromDTO,
   concatMessages,
+  isValidUuid,
 } from '../../utils';
 import { toTag, fromTag, decompressMetadata } from './utils';
 import { valueToLowerCase } from '../metadata-filtering/formatting';
@@ -38,6 +39,11 @@ type GraphQLQuery = {
 type TagsToFilter = {
   [key: string]: string | string[];
 };
+type GetPodcastFeedForGqlQueryReturnType = {
+  errorMessage?: string;
+  metadata: Podcast | {};
+  tags: PodcastTags | {};
+};
 
 const MAX_BATCHES = 100;
 const MAX_GRAPHQL_NODES = 100;
@@ -49,17 +55,45 @@ const toTagFilter = (tagsToFilter: TagsToFilter) : TagFilter[] => Object
     values: Array.isArray(value) ? value : [value],
   }));
 
-export async function getPodcastFeed(
-  subscribeUrl: Podcast['subscribeUrl'],
+/**
+ * @param feedUrl
+ * @param feedType
+ * @returns The existing uuid of the podcast matching `feedUrl` & `feedType`, if the GQL query
+ *   returned `tags` where `tags.id` is a valid uuid. Else returns an empty string.
+ */
+export async function fetchPodcastId(
+  feedUrl: Podcast['feedUrl'],
+  feedType: Podcast['feedType'] = 'rss2',
+) : Promise<Podcast['id']> {
+  let tags : GetPodcastFeedForGqlQueryReturnType['tags'];
+  try {
+    const gqlQuery = gqlQueryForTags(
+      { feedUrl, feedType, metadataBatch: '0' },
+      [QueryField.TAGS],
+    );
+    const gqlResult = await getPodcastFeedForGqlQuery(gqlQuery, false);
+    tags = gqlResult.tags;
+  }
+  catch (_ex) {
+    tags = {};
+  }
+
+  if (isNotEmpty(tags)) return isValidUuid(tags.id) ? tags.id : '';
+
+  return '';
+}
+
+export async function getPodcastRss2Feed(
+  feedUrl: Podcast['feedUrl'],
 ) : Promise<Partial<Podcast> | PodcastFeedError> {
   const errorMessages : string[] = [];
-  const metadataBatches = [];
+  const metadataBatches : Podcast[] = [];
   const tagBatches : PodcastTags[] = [];
   // TODO: negative batch numbers
   let batch = 0;
   do {
     const gqlQuery = gqlQueryForTags(
-      { subscribeUrl, metadataBatch: `${batch}` },
+      { feedUrl, metadataBatch: `${batch}` },
       [QueryField.TAGS, QueryField.BUNDLEDIN],
     );
     const { errorMessage, metadata, tags } = await getPodcastFeedForGqlQuery(gqlQuery);
@@ -72,8 +106,8 @@ export async function getPodcastFeed(
         //       for now, we continue to attempt the next batch number
       }
       else {
-        metadataBatches.push(metadata);
-        tagBatches.push(tags);
+        metadataBatches.push(metadata as Podcast);
+        tagBatches.push(tags as PodcastTags);
       }
     }
     else break;
@@ -86,7 +120,7 @@ export async function getPodcastFeed(
     ...mergeBatchTags(tagBatches) };
   if (!hasMetadata(mergedMetadata) && errorMessages.length) {
     // Only return an errorMessage if no metadata was found, since GraphQL likely was unreachable.
-    return { errorMessage: `Encountered the following errors when fetching ${subscribeUrl} `
+    return { errorMessage: `Encountered the following errors when fetching ${feedUrl} `
                            + `metadata from Arweave:\n${concatMessages(errorMessages, true)}` };
   }
 
@@ -151,13 +185,7 @@ async function getGqlResponse(gqlQuery: GraphQLQuery)
 //   return (dataItem ? dataItem.rawData : []) as Uint8Array;
 // }
 
-type GetPodcastFeedForGqlQueryReturnType = {
-  errorMessage?: string;
-  metadata: Podcast | {};
-  tags: PodcastTags | {};
-};
-
-async function getPodcastFeedForGqlQuery(gqlQuery: GraphQLQuery)
+async function getPodcastFeedForGqlQuery(gqlQuery: GraphQLQuery, getData = true)
   : Promise<GetPodcastFeedForGqlQueryReturnType> {
   let edges = [];
   let errorMessage;
@@ -192,12 +220,13 @@ async function getPodcastFeedForGqlQuery(gqlQuery: GraphQLQuery)
         keywords: [],
         episodesKeywords: [],
       });
+    if (!getData) return { metadata: {}, tags };
   }
 
   let getDataResult = new Uint8Array([]);
   try {
     // TODO: T252 Create IndexedDB cache { tx.id: { podcastMetadata, tx.tags } } for
-    //       transactions that are selected for the result of getPodcastFeed(),
+    //       transactions that are selected for the result of getPodcastRss2Feed(),
     //       so that we may skip this client.transactions.getData() call.
     if (isBundledTx(tx)) {
       getDataResult = await fetchArweaveUrlData(tx.id);
@@ -231,7 +260,7 @@ async function getPodcastFeedForGqlQuery(gqlQuery: GraphQLQuery)
   if (errorMessage) return { errorMessage, metadata: {}, tags };
 
   // TODO: T251 sanity check podcastMetadata => reject episodes where !isValidDate(publishedAt)
-  return { metadata, tags };
+  return { metadata: metadata as Podcast, tags };
 }
 
 enum QueryField {

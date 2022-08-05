@@ -8,7 +8,7 @@ import {
   SharedKeywords,
 } from './utils';
 
-export interface DisjointGraphNode extends Pick<Podcast, 'subscribeUrl'> {
+export interface DisjointGraphNode extends Pick<Podcast, 'feedUrl'> {
   keywordsAndCategories: string[];
   visited: boolean;
 }
@@ -76,7 +76,7 @@ const finalizeDisjointGraphsObject = (
 ) => disjointGraphs
   .map(graph => graph.nodes
     .map(node => subscriptions
-      .find(subscription => subscription.subscribeUrl === node.subscribeUrl)!));
+      .find(subscription => subscription.feedUrl === node.feedUrl)!));
 
 /**
  * @param subscriptions
@@ -85,7 +85,7 @@ const finalizeDisjointGraphsObject = (
  */
 export const groupSubscriptionsBySharedKeywords = (subscriptions: Podcast[]) => {
   const nodes = subscriptions.map(subscription => ({
-    subscribeUrl: subscription.subscribeUrl,
+    feedUrl: subscription.feedUrl,
     keywordsAndCategories: removeDuplicateElements([
       ...(subscription.keywords || []),
       ...(subscription.categories || []),
@@ -114,7 +114,7 @@ export const generateNodes = (disjointGraphs: Podcast[][]) => {
       group: 'nodes' as const,
       classes: 'customNodes',
       data: {
-        id: podcast.subscribeUrl,
+        id: podcast.feedUrl,
         label: podcast.title,
         categories: podcast.categories || [],
         keywords: podcast.keywords || [],
@@ -145,8 +145,8 @@ export const computeEdgeWeight = (
   let source! : DisjointGraphNode;
   let graph! : DisjointGraph;
   for (const item of disjointGraphs) {
-    const sourceIndex = item.nodes.findIndex(node => node.subscribeUrl === sourceId);
-    const targetIndex = item.nodes.findIndex(node => node.subscribeUrl === targetId);
+    const sourceIndex = item.nodes.findIndex(node => node.feedUrl === sourceId);
+    const targetIndex = item.nodes.findIndex(node => node.feedUrl === targetId);
     if (sourceIndex !== -1 && targetIndex !== -1) {
       source = item.nodes[sourceIndex];
       target = item.nodes[targetIndex];
@@ -180,15 +180,15 @@ export const generateEdges = (podcasts: Podcast[][], disjointGraphs: DisjointGra
       ));
 
       // remove loops (edge from a node to itself)
-      matches = matches.filter(match => match.subscribeUrl !== podcast.subscribeUrl);
+      matches = matches.filter(match => match.feedUrl !== podcast.feedUrl);
 
       const result = matches.map(match => {
         const relations = findSharedCategoriesAndKeywords(podcast, match);
         const edge = {
-          source: podcast.subscribeUrl,
-          target: match.subscribeUrl,
+          source: podcast.feedUrl,
+          target: match.feedUrl,
           label: relations.join('\n'),
-          weight: computeEdgeWeight(disjointGraphs, podcast.subscribeUrl, match.subscribeUrl),
+          weight: computeEdgeWeight(disjointGraphs, podcast.feedUrl, match.feedUrl),
         };
         return { data: edge };
       });
