@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/lines-between-class-members */
-import { IDBPDatabase, openDB } from 'idb';
+import { IDBPDatabase, openDB, unwrap } from 'idb';
 import { Podcast } from './client/interfaces';
 
 type TableSchemaV1 = {
@@ -12,10 +12,13 @@ type TableSchemaV1 = {
   }
 };
 
+const IDBExportImport = require('indexeddb-export-import');
+
+type SchemaType = [string, IDBObjectStoreParameters][];
 export class IndexedDb {
   private database: string;
 
-  private db: any;
+  private db!: IDBPDatabase;
 
   public static readonly SUBSCRIPTIONS = 'subscriptions';
   public static readonly EPISODES = 'episodes';
@@ -54,6 +57,7 @@ export class IndexedDb {
 
   constructor(database: string = IndexedDb.DB_NAME) {
     this.database = database;
+    this.initializeDBSchema();
   }
 
   private async connectDB() {
@@ -142,30 +146,16 @@ export class IndexedDb {
     try {
       await this.connectDB();
 
-      const tx = this.db.transaction(tableName, 'readwrite');
-      const store = tx.objectStore(tableName);
-      const result = await store.delete(id);
-      return result;
-    }
-    catch (ex) {
-      console.warn('IndexedDb.deleteSubscription() encountered the following error:', ex);
-    }
-    return null;
-  }
+    const tx = this.db.transaction(tableName, 'readwrite');
+    const store = tx.objectStore(tableName);
+    const result = await store.get(subscribeUrl);
+    if (!result) return result;
 
-  public async getIdFromFeedUrl(feedUrl: Podcast['feedUrl']) : Promise<string | null> {
-    let result = null;
-    try {
-      await this.connectDB();
-
-      const tx = this.db.transaction(IndexedDb.SUBSCRIPTIONS, 'readonly');
-      const store = tx.objectStore(IndexedDb.SUBSCRIPTIONS);
-      const idMappingsIndex = store.index(IndexedDb.ID_MAPPINGS_INDEX);
-      result = idMappingsIndex.getKey(feedUrl);
-    }
-    catch (ex) {
-      console.warn('IndexedDb.getIdFromFeedUrl() encountered the following error:', ex);
-    }
-    return result;
+    await store.delete(subscribeUrl);
+    return subscribeUrl;
   }
 }
+
+const verifyBackup = (backup: string, schema: SchemaType) => {
+  const backupObj = JSON.parse(backup);
+};

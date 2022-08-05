@@ -5,8 +5,8 @@
   "description": "Podsphere is a persistent data store, a graph-visualized discovery service and a discussion platform for Podcasts, built on Arweave.",
   "main": ".eslintrc.js",
   "scripts": {
-    "start": "REACT_APP_USE_ARLOCAL=false npm run devserver",
-    "startlocal": "concurrently \"REACT_APP_USE_ARLOCAL=true npm run devserver\" \"npm run arlocal:all\"",
+    "start": "set REACT_APP_USE_ARLOCAL=false && npm run devserver",
+    "startlocal": "concurrently \"npm run devserver\" \"npm run arlocal:all\"",
     "startlocal:some": "concurrently \"REACT_APP_USE_ARLOCAL=true npm run devserver\" \"npm run arlocal:some\"",
     "build": "react-app-rewired build",
     "devserver": "react-app-rewired start",
@@ -49,6 +49,7 @@
     "formik": "^2.2.9",
     "he": "^1.2.0",
     "idb": "^7.0.1",
+    "indexeddb-export-import": "^2.1.5",
     "isomorphic-dompurify": "^0.20.0",
     "path-browserify": "^1.0.1",
     "prop-types": "^15.7.2",
@@ -64,7 +65,8 @@
     "styled-components": "^5.3.5",
     "typescript": "^4.6.3",
     "uuid": "^8.3.2",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "zod": "^3.17.10"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.18.6",

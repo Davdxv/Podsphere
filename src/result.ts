@@ -72,7 +72,7 @@ const arSyncTxSchema = z.object({
   numEpisodes: z.number(),
   dispatchResult: z.union([dispatchResultSchema, dispatchResultDTOSchema]),
   resultObj: z.union([z.instanceof(Transaction), z.instanceof(Error)]),
-  metadata: podcastSchema.optional(),
+  metadata: podcastSchema.partial(),
   status: arSyncTxStatusSchema,
 });
 
@@ -86,11 +86,11 @@ const arSyncTxSchema = z.object({
 //   subscriptions: Podcast[]
 // }
 export const dbSchema = z.object({
-  metadataToSync: podcastSchema.array(),
+  metadataToSync: podcastSchema.partial().array(),
   arSyncTxs: arSyncTxSchema.array(),
   episodes: z.object({
     episodes: episodeSchema.array(),
     subscribeUrl: z.string(),
-  }),
+  }).array(),
   subscriptions: podcastSchema.array(),
 });

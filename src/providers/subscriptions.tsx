@@ -332,6 +332,7 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
         await db.initializeDBSchema();
         await initializeSubscriptions();
         await initializeMetadataToSync();
+        await db.exportDB();
       }
       catch (ex) {
         const errorMessage = 'An error occurred while fetching the cached subscriptions from '
