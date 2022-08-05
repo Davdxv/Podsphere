@@ -206,7 +206,7 @@ function episodesRightDiff(
     }
 
     if (returnAnyDiff && result.length && hasMetadata(result)) return result;
-  }
+  });
   return result.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
 }
 
@@ -229,7 +229,9 @@ export function hasDiff<T extends Partial<Podcast> | Partial<Episode>>(
 /**
  * @param oldMetadata
  * @param newMetadata
- * @param persistentMetadata Metadata props to survive the diff iff hasMetadata(diff) == true.
+ * @param persistentMetadata
+ *   Metadata props to survive the diff iff hasMetadata(diff) == true.
+ *   TODO: pending T244, change to 'id'.
  * @param returnAnyDiff If `true`, returns any diff without generating a full diff:
  *   Returns as soon as any metadatum, other than those ignored by {@linkcode hasMetadata()},
  *   is added to the diff.
@@ -273,7 +275,7 @@ export function rightDiff<T extends Partial<Podcast> | Partial<Episode>>(
     }
 
     if (returnAnyDiff && hasMetadata(result)) return result;
-  }
+  });
 
   if (hasMetadata(result) && valuePresent(persistentMetadata)) {
     persistentMetadata.forEach(prop => {

@@ -1,10 +1,10 @@
 import { Podcast } from '../../interfaces';
-import { isNotEmpty } from '../../../utils';
 import {
   isCandidatePodcastId,
+  isNotEmpty,
   isValidUuid,
   newCandidatePodcastId,
-} from '../../../podcast-id';
+} from '../../../utils';
 import { fetchPodcastId } from '../graphql-ops';
 
 export interface IdMapping extends Pick<Podcast, 'id' | 'feedType' | 'feedUrl'> {}

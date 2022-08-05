@@ -25,6 +25,7 @@ import {
   toDate,
   podcastFromDTO,
   concatMessages,
+  isValidUuid,
 } from '../../utils';
 import { toTag, fromTag, decompressMetadata } from './utils';
 import { valueToLowerCase } from '../metadata-filtering/formatting';
@@ -93,7 +94,7 @@ export async function getPodcastRss2Feed(
   let batch = 0;
   do {
     const gqlQuery = gqlQueryForTags(
-      { feedUrl, feedType: 'rss2', metadataBatch: `${batch}` },
+      { feedUrl, metadataBatch: `${batch}` },
       [QueryField.TAGS, QueryField.BUNDLEDIN],
     );
     const { errorMessage, metadata, tags } = await getPodcastFeedForGqlQuery(gqlQuery);

@@ -1,3 +1,4 @@
+import { v4 as uuid } from 'uuid';
 import {
   EmptyTypes,
   Episode,
@@ -122,17 +123,35 @@ export function findMetadataByFeedUrl(
 
 export function findMetadataById(id: Podcast['id'], metadataList: Partial<Podcast>[] = [])
   : Partial<Podcast> {
-  let result = metadataList.find(obj => isNotEmpty(obj) && obj.id === id);
-  if (!result) {
-    if (isCandidatePodcastId(id)) {
-      result = metadataList.find(obj => obj?.id && addPrefixToPodcastId(obj.id) === id);
-    }
-    else {
-      result = metadataList.find(obj => obj?.id && removePrefixFromPodcastId(obj.id) === id);
-    }
-  }
+  return metadataList.find(obj => isNotEmpty(obj) && obj.id === id) || {};
+}
 
-  return result || {};
+/**
+ * @returns true if the given `id` is a valid uuid of length between 32 and 64, with only hex chars
+ */
+export function isValidUuid(id: Podcast['id']) {
+  const isHex = (char: string) => '0123456789abcdef'.includes(char.toLowerCase());
+
+  if (!id || typeof id !== 'string') return false;
+
+  const guid = removePrefixFromPodcastId(id).replaceAll('-', '');
+  return guid.length >= 32 && guid.length <= 64 && [...guid].every(isHex);
+}
+
+/**
+ * @returns A new uuid prefixed with `temp-`. Prefix is removed once the uuid is confirmed through
+ *   `./client/arweave/cache/podcast-id#getPodcastId()` (data structures are updated accordingly).
+ */
+export function newCandidatePodcastId() : string {
+  return `temp-${uuid()}`;
+}
+
+export function removePrefixFromPodcastId(candidateId: Podcast['id']) : string {
+  return candidateId.replace(/^temp-/, '');
+}
+
+export function isCandidatePodcastId(id: Podcast['id']) : boolean {
+  return !!id.match(/^temp-/);
 }
 
 export function partialToPodcast(partialMetadata: Partial<Podcast>) : Podcast | PodcastFeedError {
