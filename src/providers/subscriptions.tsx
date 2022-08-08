@@ -86,7 +86,7 @@ const DB_EPISODES = IndexedDb.EPISODES;
 const DB_METADATATOSYNC = IndexedDb.METADATATOSYNC;
 const DB_ARSYNCTXS = IndexedDb.TX_HISTORY;
 
-const db = new IndexedDb();
+export const db = new IndexedDb();
 
 // declare global {
 //   interface Window {

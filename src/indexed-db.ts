@@ -1,3 +1,4 @@
+
 /* eslint-disable @typescript-eslint/lines-between-class-members */
 import { IDBPDatabase, openDB, unwrap } from 'idb';
 import { Podcast } from './client/interfaces';
@@ -153,6 +154,38 @@ export class IndexedDb {
 
     await store.delete(subscribeUrl);
     return subscribeUrl;
+  }
+
+  public async exportDB() {
+    await this.connectDB();
+    const idbDatabase = unwrap(this.db); // get native IDBDatabase object from Dexie wrapper
+
+    // export to JSON, clear database, and import from JSON
+    return new Promise<string>((res, rej) => {
+      IDBExportImport.exportToJsonString(idbDatabase, (err: Error, jsonString: string) => {
+        if (err) {
+          rej(err);
+        } else {
+          res(jsonString);
+        }
+      });
+    });
+  }
+
+  public async importDB(backup: string) {
+    await this.connectDB();
+
+    const idbDatabase = unwrap(this.db); // get native IDBDatabase object from Dexie wrapper
+
+    IDBExportImport.clearDatabase(idbDatabase, (err: Error) => {
+      if (!err) { // cleared data successfully
+        IDBExportImport.importFromJsonString(idbDatabase, backup, (err2: Error) => {
+          if (!err2) {
+            console.log('Imported data successfully');
+          }
+        });
+      }
+    });
   }
 }
 
