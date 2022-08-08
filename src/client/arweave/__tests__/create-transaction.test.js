@@ -3,7 +3,7 @@ import { newTransactionFromMetadata } from '../create-transaction';
 import { toTag } from '../utils';
 // eslint-disable-next-line import/named
 import { addTag, createTransaction } from '../client';
-import { newCandidatePodcastId, removePrefixFromPodcastId } from '../../../utils';
+import { newCandidatePodcastId, removePrefixFromPodcastId } from '../../../podcast-id';
 
 const MOCK_TIMESTAMP = 1234001234;
 const MOCK_U8_METADATA = new Uint8Array([2, 3]);
@@ -58,7 +58,7 @@ const PODCAST_ID = newCandidatePodcastId();
 const BASE_CACHED_METADATA = {
   id: PODCAST_ID,
   feedType: 'rss2',
-  feedUrl: 'https://example.com/foo',
+  feedUrl: 'https://server.dummy/foo',
   title: 'cachedTitle',
   description: 'cachedDescription',
   imageUrl: 'https://cached.imgurl/img.png?ver=0',
@@ -71,7 +71,7 @@ const BASE_CACHED_METADATA = {
 const BASE_NEW_METADATA = {
   id: PODCAST_ID,
   feedType: 'rss2',
-  feedUrl: 'https://example.com/foo',
+  feedUrl: 'https://server.dummy/foo',
   title: 'newTitle',
   description: 'newDescription',
   language: 'en-us',
@@ -147,7 +147,7 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
         const expectedTags = [
           ['id', removePrefixFromPodcastId(PODCAST_ID)],
           ['feedType', 'rss2'],
-          ['feedUrl', 'https://example.com/foo'],
+          ['feedUrl', 'https://server.dummy/foo'],
           ['title', 'newTitle'],
           ['description', 'newDescription'],
           ['language', 'en-us'],
@@ -190,7 +190,7 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
         const expectedTags = [
           ['id', removePrefixFromPodcastId(PODCAST_ID)],
           ['feedType', 'rss2'],
-          ['feedUrl', 'https://example.com/foo'],
+          ['feedUrl', 'https://server.dummy/foo'],
           ['title', 'newTitle'],
           ['description', 'newDescription'],
           ['language', 'en-us'],
@@ -240,7 +240,7 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
         const expectedTags = [
           ['id', removePrefixFromPodcastId(PODCAST_ID)],
           ['feedType', 'rss2'],
-          ['feedUrl', 'https://example.com/foo'],
+          ['feedUrl', 'https://server.dummy/foo'],
           ['title', 'newTitle'],
           ['description', 'newDescription'],
           ['language', 'en-us'],
@@ -317,7 +317,7 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
       const mandatoryMetadata = {
         id: newCandidatePodcastId(),
         feedType: 'rss2',
-        feedUrl: 'https://example.com/foo',
+        feedUrl: 'https://server.dummy/foo',
         title: 'myTitle',
       };
 

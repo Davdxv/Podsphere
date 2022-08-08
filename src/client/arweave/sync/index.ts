@@ -265,7 +265,7 @@ const findNextBatch = (
 
   const podcastId = podcastMetadataToSync.id || cachedMetadata.id || '';
   let result : PartitionedBatch = {
-    podcastId: podcastMetadataToSync.id || cachedMetadata.id || '',
+    podcastId,
     title: podcastMetadataToSync.title || cachedMetadata.title || '',
     numEpisodes: episodesToSync.length,
     metadata: { ...allMetadataDiff, id: removePrefixFromPodcastId(podcastId) },
