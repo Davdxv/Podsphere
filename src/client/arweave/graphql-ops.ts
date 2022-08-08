@@ -108,6 +108,10 @@ export async function getPodcastRss2Feed(
       else {
         metadataBatches.push(metadata as Podcast);
         tagBatches.push(tags as PodcastTags);
+
+        // /** Uncomment temporarily to generate batched arlocal seeds */
+        // const batchMetadata = { ...(metadata as Podcast), ...(tags as PodcastTags) };
+        // console.debug(`PodcastDTO for batch ${batch} of ${batchMetadata.title}:`, batchMetadata);
       }
     }
     else break;

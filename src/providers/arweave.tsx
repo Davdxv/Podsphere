@@ -130,6 +130,11 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
       if (usingArConnect()) {
         newTxs = await arsync.initArSyncTxs(newSubscriptions, newMetadataToSync, wallet);
       }
+      // else if (usingArLocal()) { /** Uncomment temporarily to generate batched arlocal seeds */
+      //   const maxBatchSize = 25 * 1024;
+      //   newTxs = await arsync
+      //     .initArSyncTxs(newSubscriptions, newMetadataToSync, wallet, maxBatchSize);
+      // }
       else newTxs = await arsync.initArSyncTxs(newSubscriptions, newMetadataToSync, wallet, null);
     }
     catch (ex) {
@@ -229,8 +234,6 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
    */
   const confirmArSyncTxs = useCallback(async () => {
     if (isSyncing || isRefreshing) return;
-
-    console.debug('Refreshing transaction status');
 
     const confirmedArSyncTxs : ArSyncTx[] = [];
     const updatedArSyncTxs : ArSyncTx[] = await arweave.updateArBundledParentIds(arSyncTxs);

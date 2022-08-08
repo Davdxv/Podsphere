@@ -25,7 +25,7 @@ const MAINNET_CONFIG : ApiConfig = {
 } as const;
 
 const client = Arweave.init(usingArLocal() ? ARLOCAL_CONFIG : MAINNET_CONFIG);
-window.arApi = client;
+if (typeof window !== 'undefined') window.arApi = client;
 
 export default client;
 

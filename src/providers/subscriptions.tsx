@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useState,
 } from 'react';
+import dedent from 'dedent';
 import { ToastContext } from './toast';
 import useRerenderEffect from '../hooks/use-rerender-effect';
 import {
@@ -30,6 +31,16 @@ import {
   metadataToIdMappings,
 } from '../client/arweave/cache/podcast-id';
 import { sanitizeUri } from '../client/metadata-filtering';
+import { usingArLocal } from '../client/arweave/utils';
+
+if (usingArLocal()) {
+  console.debug('Seeded arlocal podcast feeds:\n', dedent`
+    https://feeds.simplecast.com/dHoohVNH
+     https://thejimmydoreshow.libsyn.com/rss
+     https://feeds.megaphone.fm/ADV2256857693
+     https://lexfridman.com/feed/podcast
+  `);
+}
 
 interface SubscriptionContextType {
   subscriptions: Podcast[],
