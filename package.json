@@ -30,6 +30,7 @@
   "dependencies": {
     "@emotion/react": "^11.9.0",
     "@emotion/styled": "^11.8.1",
+    "@mui/icons-material": "^5.8.4",
     "@mui/material": "^5.8.1",
     "arbundles": "^0.6.19",
     "arweave": "^1.11.4",

@@ -1,19 +1,84 @@
-.container {
+.main {
   margin: auto;
-  width: 600px;
-  height: 800px;
-  background-color: #0d0d0ded;
+  display: flex;
+  background-color: rgba(20, 20, 20, 0.7);
   margin-top: 125px;
+  width: 900px;
+  height: 800px;
+  border-top-left-radius: 30px;
+  border-bottom-left-radius: 30px;
+  color: #fff;
+}
+
+.menu {
+  width: 30%;
+  color: rgba(256, 256, 256, 0.5);
+}
+
+.menu li {
+  padding: 15px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.menu li > svg {
+  margin-right: 15px;
+}
+
+.general-icon {
+  color: rgb(147, 113, 246);
+}
+.advanced-icon {
+  color: #31664c
+}
+
+.menu li::before {
+  content: '';
+  display: block;
+  position: absolute;
+  bottom: 0;
+  width: 70%;
+  border-bottom: 1px solid rgba(35, 35, 35, 1);
+}
+
+.selected-item {
+  border-left: 3px solid rgb(147, 113, 246);
+  background-color: rgba(20, 20, 20, 1);
+}
+
+.profile {
+  display: flex;
+  margin: 20px 0;
+  align-items: center;
+  padding: 25px 10px 25px 25px;
+}
+
+.profile > p {
+  margin-top: -5px;
+  color: #fffc;
+  font-weight: bolder;
+}
+
+.profile-picture {
+  width: 60px;
+  margin-right: 15px;
+  border-radius: 50%;
+}
+
+.container {
+  width: 70%;
+  background-color: rgba(20, 20, 20, 1);
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  border-top-left-radius: 25px;
+  border-bottom-left-radius: 25px;
 }
 
 .container > div {
   width: 100%;
   padding: 20px;
   margin-bottom: 20px;
-  color: #fff;
 }
 
 .export-box {
@@ -28,10 +93,10 @@
 }
 
 .export-box > button {
-  background-color: green;
+  background-color: #31664c;
   padding: 10px 15px;
 }
 
 .export-box > button:hover {
-  background-color: darkgreen;
+  background-color: #4b9b735d;
 }

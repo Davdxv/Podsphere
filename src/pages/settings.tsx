@@ -1,5 +1,9 @@
-import { Box, Button, Typography } from '@mui/material';
+import {
+  Box, Button, List, ListItem, Typography,
+} from '@mui/material';
 import React from 'react';
+import SettingsIcon from '@mui/icons-material/Settings';
+import HandymanIcon from '@mui/icons-material/Handyman';
 import { BackupDropzone } from '../components/settings-page/BackupDropzone';
 import { db } from '../providers/subscriptions';
 import styles from './settings.module.scss';
@@ -28,14 +32,36 @@ const importBackup = async (file: string) => {
 };
 
 const SettingsPage = () => (
-  <Box className={styles.container}>
-    <Box className={styles['export-box']}>
-      <Typography> Backup your data: </Typography>
-      <Button onClick={downloadBackup}> Backup </Button>
+  <Box className={styles.main}>
+    <Box className={styles.menu}>
+      <Box className={styles.profile}>
+        <img
+          className={styles['profile-picture']}
+          src="https://bit.ly/3JE5I68"
+          alt="profile"
+        />
+        <Typography> Random Dude </Typography>
+      </Box>
+      <List>
+        <ListItem className={styles['selected-item']}>
+          <SettingsIcon className={styles['general-icon']} />
+          General
+        </ListItem>
+        <ListItem>
+          <HandymanIcon className={styles['advanced-icon']} />
+          Advanced
+        </ListItem>
+      </List>
     </Box>
-    <Box>
-      <Typography> Import your data: </Typography>
-      <BackupDropzone onDrop={importBackup} />
+    <Box className={styles.container}>
+      <Box className={styles['export-box']}>
+        <Typography> Backup your data: </Typography>
+        <Button onClick={downloadBackup}> Backup </Button>
+      </Box>
+      <Box>
+        <Typography> Import your data: </Typography>
+        <BackupDropzone onDrop={importBackup} />
+      </Box>
     </Box>
   </Box>
 );
