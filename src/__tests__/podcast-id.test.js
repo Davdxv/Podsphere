@@ -2,7 +2,7 @@ import {
   isValidUuid,
   newCandidatePodcastId,
   removePrefixFromPodcastId,
-} from '../utils';
+} from '../podcast-id';
 
 describe('newCandidatePodcastId, removePrefixFromPodcastId', () => {
   it('returns a valid uuid with a prefix', () => {

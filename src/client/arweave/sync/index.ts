@@ -46,6 +46,7 @@ import {
   isPosted,
   usingArConnect,
 } from '../utils';
+import { removePrefixFromPodcastId } from '../../../podcast-id';
 import {
   newTransactionFromCompressedMetadata,
   dispatchTransaction,
@@ -215,6 +216,7 @@ const findNextBatch = (
     for (let pass = 1; pass <= MAX_NUM_PASSES; pass++) {
       const currentBatch = withMetadataBatchNumber({
         ...podcastMetadataToSync,
+        id: removePrefixFromPodcastId(result.podcastId),
         episodes: (episodesToSync || []).slice(-numEps),
       }, priorBatchMetadata);
       const tags = formatTags(currentBatch, cachedMetadata);
@@ -261,11 +263,12 @@ const findNextBatch = (
   if (episodesToSync.length) allMetadata.episodes = episodesToSync;
   const allMetadataDiff = rightDiff(priorBatchMetadata, allMetadata, ['id', 'feedType', 'feedUrl']);
 
+  const podcastId = podcastMetadataToSync.id || cachedMetadata.id || '';
   let result : PartitionedBatch = {
-    podcastId: podcastMetadataToSync.id || cachedMetadata.id || '',
+    podcastId,
     title: podcastMetadataToSync.title || cachedMetadata.title || '',
     numEpisodes: episodesToSync.length,
-    metadata: allMetadataDiff,
+    metadata: { ...allMetadataDiff, id: removePrefixFromPodcastId(podcastId) },
     compressedMetadata: new Uint8Array([]),
     tags: [],
   };

@@ -2,6 +2,14 @@ import { JWKInterface } from 'arweave/node/lib/wallet';
 import Transaction from 'arweave/node/lib/transaction';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { DispatchResult } from 'arconnect';
+import {
+  ArweaveTag,
+  Episode,
+  MandatoryTags,
+  OPTIONAL_ARWEAVE_STRING_TAGS,
+  Podcast,
+} from '../interfaces';
+import { WalletDeferredToArConnect } from './wallet';
 import client from './client';
 import { compressMetadata, toTag, usingArConnect } from './utils';
 import {
@@ -13,17 +21,8 @@ import {
   isValidInteger,
   getFirstEpisodeDate,
   getLastEpisodeDate,
-  removePrefixFromPodcastId,
-  isValidUuid,
 } from '../../utils';
-import {
-  ArweaveTag,
-  Episode,
-  MandatoryTags,
-  OPTIONAL_ARWEAVE_STRING_TAGS,
-  Podcast,
-} from '../interfaces';
-import { WalletDeferredToArConnect } from './wallet';
+import { isValidUuid, removePrefixFromPodcastId } from '../../podcast-id';
 
 const MAX_TAGS = 120; // Arweave max = 128, but mind leaving some space for extra meta tags
 const MAX_TAG_NAME_SIZE = 1024; // Arweave max = 1024 bytes

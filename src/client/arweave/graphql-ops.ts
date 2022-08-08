@@ -9,19 +9,6 @@ import {
 import dedent from 'dedent';
 // TODO: arbundles is currently unused, but we might need it in the future.
 // import { Bundle, DataItem } from 'arbundles';
-import client from './client';
-import { fetchArweaveUrlData } from '../axios';
-import {
-  isNotEmpty,
-  hasMetadata,
-  toDate,
-  podcastFromDTO,
-  concatMessages,
-  isValidUuid,
-} from '../../utils';
-import { toTag, fromTag, decompressMetadata } from './utils';
-import { valueToLowerCase } from '../metadata-filtering/formatting';
-import { mergeBatchMetadata, mergeBatchTags } from './sync/diff-merge-logic';
 import {
   ALLOWED_ARWEAVE_TAGS_PLURALIZED,
   AllowedTagsPluralized,
@@ -30,6 +17,19 @@ import {
   PodcastFeedError,
   PodcastTags,
 } from '../interfaces';
+import client from './client';
+import { fetchArweaveUrlData } from '../axios';
+import {
+  isNotEmpty,
+  hasMetadata,
+  toDate,
+  podcastFromDTO,
+  concatMessages,
+} from '../../utils';
+import { toTag, fromTag, decompressMetadata } from './utils';
+import { valueToLowerCase } from '../metadata-filtering/formatting';
+import { mergeBatchMetadata, mergeBatchTags } from './sync/diff-merge-logic';
+import { isValidUuid } from '../../podcast-id';
 
 /** Type signature accepted by the Arweave API's '/graphql' endpoint */
 type GraphQLQuery = {
@@ -93,7 +93,7 @@ export async function getPodcastRss2Feed(
   let batch = 0;
   do {
     const gqlQuery = gqlQueryForTags(
-      { feedUrl, metadataBatch: `${batch}` },
+      { feedUrl, feedType: 'rss2', metadataBatch: `${batch}` },
       [QueryField.TAGS, QueryField.BUNDLEDIN],
     );
     const { errorMessage, metadata, tags } = await getPodcastFeedForGqlQuery(gqlQuery);

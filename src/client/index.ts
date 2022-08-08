@@ -1,3 +1,4 @@
+import { Podcast } from './interfaces';
 import * as arweave from './arweave';
 import * as rss from './rss';
 import {
@@ -5,7 +6,6 @@ import {
   findMetadataByFeedUrl,
   findMetadataById,
   hasMetadata,
-  isValidUuid,
   partialToPodcast,
   unixTimestamp,
 } from '../utils';
@@ -15,7 +15,7 @@ import {
   rightDiff,
   simpleDiff,
 } from './arweave/sync/diff-merge-logic';
-import { Podcast } from './interfaces';
+import { isValidUuid } from '../podcast-id';
 import { getPodcastId } from './arweave/cache/podcast-id';
 
 type GetPodcastResult = {

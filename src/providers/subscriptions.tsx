@@ -29,6 +29,7 @@ import {
   initializeIdCache,
   metadataToIdMappings,
 } from '../client/arweave/cache/podcast-id';
+import { sanitizeUri } from '../client/metadata-filtering';
 
 interface SubscriptionContextType {
   subscriptions: Podcast[],
@@ -36,7 +37,7 @@ interface SubscriptionContextType {
   lastRefreshTime: number,
   subscribe: (id: string) => Promise<boolean>,
   unsubscribe: (id: string) => Promise<void>,
-  refresh: (idsToRefresh?: Podcast['feedUrl'][] | null, silent?: boolean,
+  refresh: (idsToRefresh?: Podcast['id'][] | null, silent?: boolean,
     maxLastRefreshAge?: number) => Promise<[null, null] | [Podcast[], Partial<Podcast>[]]>,
   metadataToSync: Partial<Podcast>[],
   setMetadataToSync: (value: Partial<Podcast>[]) => void,
@@ -167,20 +168,28 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
 
   async function subscribe(feedUrl: Podcast['feedUrl']) {
-    // TODO: sanitizeUri(feedUrl, true)
-    if (subscriptions.some(subscription => subscription.feedUrl === feedUrl)) {
-      toast(`You are already subscribed to ${feedUrl}.`, { variant: 'danger' });
+    let validUrl = '';
+    try {
+      validUrl = sanitizeUri(feedUrl, true);
+    }
+    catch (ex) {
+      toast(`Unable to subscribe: ${(ex as Error).message}`, { variant: 'danger' });
+      return false;
+    }
+
+    if (subscriptions.some(subscription => subscription.feedUrl === validUrl)) {
+      toast(`You are already subscribed to ${validUrl}.`, { variant: 'danger' });
       return true;
     }
 
     const { errorMessage,
       newPodcastMetadata,
-      newPodcastMetadataToSync } = await fetchPodcastRss2Feed(feedUrl, metadataToSync);
+      newPodcastMetadataToSync } = await fetchPodcastRss2Feed(validUrl, metadataToSync);
 
     if (hasMetadata(newPodcastMetadata)) {
       toast(`Successfully subscribed to ${newPodcastMetadata.title}.`, { variant: 'success' });
 
-      setMetadataToSync(prev => prev.filter(podcast => podcast.feedUrl !== feedUrl)
+      setMetadataToSync(prev => prev.filter(podcast => podcast.feedUrl !== validUrl)
         .concat(hasMetadata(newPodcastMetadataToSync) ? newPodcastMetadataToSync : []));
       setSubscriptions(prev => prev.concat(newPodcastMetadata));
 
@@ -223,7 +232,13 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
       const newIdMappings : NewIdMapping[] = await getNewPodcastIds(subscriptions);
       const subscriptionsWithNewIds = updatePodcastIds(subscriptions, newIdMappings);
       const metadataToSyncWithNewIds = updatePodcastIds(metadataToSync, newIdMappings);
-      const newIdsToRefresh = newIdMappings.map(mapping => mapping.newId || mapping.oldId);
+      let newIdsToRefresh = null;
+      if (idsToRefresh !== null) {
+        newIdsToRefresh = idsToRefresh.map(oldId => {
+          const mapping = newIdMappings.find(newMapping => newMapping.oldId === oldId);
+          return mapping && mapping.newId ? mapping.newId : oldId;
+        });
+      }
 
       const { errorMessages, newSubscriptions, newMetadataToSync } = await refreshSubscriptions(
         subscriptionsWithNewIds,

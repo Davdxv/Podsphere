@@ -6,15 +6,14 @@ import {
   PodcastFeedError,
 } from '../interfaces';
 import {
-  withCorsProxy,
-  toDate,
-  isNotEmpty,
   hasMetadata,
-  omitEmptyMetadata,
-  valuePresent,
-  isValidString,
+  isNotEmpty,
   isValidDate,
-  newCandidatePodcastId,
+  isValidString,
+  omitEmptyMetadata,
+  toDate,
+  valuePresent,
+  withCorsProxy,
 } from '../../utils';
 import {
   initializeKeywords,
@@ -22,6 +21,7 @@ import {
   sanitizeString,
   sanitizeUri,
 } from '../metadata-filtering';
+import { newCandidatePodcastId } from '../../podcast-id';
 
 interface RssPodcastFeed extends Parser.Output<any>, Omit<Podcast, 'feedUrl' | 'title' |
 'lastBuildDate'> {

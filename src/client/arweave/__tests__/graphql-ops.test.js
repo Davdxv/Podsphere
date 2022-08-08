@@ -158,6 +158,10 @@ describe('getPodcastRss2Feed', () => {
                 values: ['https://server.dummy/rss'],
               },
               {
+                name: 'testPodsphere-feedType',
+                values: ['rss2'],
+              },
+              {
                 name: 'testPodsphere-metadataBatch',
                 values: [metadataBatch],
               },

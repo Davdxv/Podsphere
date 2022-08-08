@@ -1,7 +1,10 @@
 import { randomBytes } from 'crypto';
 import { initArSyncTxs, startSync } from '..';
-import { newCandidatePodcastId, podcastFromDTO } from '../../../../utils';
+import { podcastFromDTO } from '../../../../utils';
 import { ArSyncTxStatus } from '../../../interfaces';
+import { decompressMetadata } from '../../utils';
+import { mergeBatchMetadata } from '../diff-merge-logic';
+import { newCandidatePodcastId, removePrefixFromPodcastId } from '../../../../podcast-id';
 // eslint-disable-next-line import/named
 import { addTag } from '../../client';
 import {
@@ -9,8 +12,6 @@ import {
   newTransactionFromCompressedMetadata,
   signAndPostTransaction,
 } from '../../create-transaction';
-import { decompressMetadata } from '../../utils';
-import { mergeBatchMetadata } from '../diff-merge-logic';
 
 jest.mock('../../create-transaction', () => ({
   ...jest.requireActual('../../create-transaction'),
@@ -47,7 +48,7 @@ const ANY_NUMBER = expect.any(Number);
 const podcast1 = {
   id: newCandidatePodcastId(),
   feedType: 'rss2',
-  feedUrl: 'https://example.com/podcast1',
+  feedUrl: 'https://server.dummy/podcast1',
   title: 'cachedTitle',
   description: 'cachedDescription',
   imageUrl: 'https://cached.imgurl/img.png?ver=0',
@@ -61,7 +62,7 @@ const podcast2episodes = generateEps(3);
 const podcast2 = {
   id: newCandidatePodcastId(),
   feedType: 'rss2',
-  feedUrl: 'https://example.com/podcast2',
+  feedUrl: 'https://server.dummy/podcast2',
   title: 'podcast2 cachedTitle',
   description: 'podcast2 cachedDescription',
   episodes: podcast2episodes,
@@ -81,7 +82,7 @@ describe('initArSyncTxs', () => {
   describe('When metadataToSync is empty', () => {
     const metadataToSync = [];
 
-    it('returns 0 txs', async () => {
+    it('returns 0 txs (ArSyncTxs)', async () => {
       const result = await initArSyncTxs(subscriptions, metadataToSync, wallet, null);
       expect(result).toStrictEqual([]);
     });
@@ -101,9 +102,12 @@ describe('initArSyncTxs', () => {
 
   describe('When there is metadataToSync', () => {
     describe('When metadataToSync specifies 1 unsubscribed and 1 subscribed podcast', () => {
+      const unknownPodcastId = newCandidatePodcastId();
       const metadataToSync = [
         {
-          id: newCandidatePodcastId(),
+          id: unknownPodcastId,
+          feedType: 'rss2',
+          feedUrl: 'https://server.dummy/unknown_podcast_feed',
           title: 'unknown podcast newTitle',
         },
         {
@@ -113,17 +117,32 @@ describe('initArSyncTxs', () => {
         },
       ];
 
-      it('returns 1 initialized tx', async () => {
+      it('returns 2 initialized tx', async () => {
         newTransactionFromCompressedMetadata.mockResolvedValueOnce(mockTransaction);
+        newTransactionFromCompressedMetadata.mockResolvedValueOnce(mockTransaction2);
         const result = await initArSyncTxs(subscriptions, metadataToSync, wallet, null);
         expect(result).toStrictEqual([
           {
             id: global.VALID_ID,
-            podcastId: podcast2.id,
-            title: 'podcast2 newTitle',
+            podcastId: unknownPodcastId,
+            title: 'unknown podcast newTitle',
             resultObj: mockTransaction,
             metadata: {
+              ...metadataToSync[0],
+              id: removePrefixFromPodcastId(unknownPodcastId),
+            },
+            numEpisodes: 0,
+            status: ArSyncTxStatus.INITIALIZED,
+            timestamp: ANY_NUMBER,
+          },
+          {
+            id: global.VALID_ID,
+            podcastId: podcast2.id,
+            title: 'podcast2 newTitle',
+            resultObj: mockTransaction2,
+            metadata: {
               ...metadataToSync[1],
+              id: removePrefixFromPodcastId(podcast2.id),
               firstEpisodeDate: podcast2episodes[2].publishedAt,
               lastEpisodeDate: podcast2episodes[0].publishedAt,
               metadataBatch: 0,
@@ -161,7 +180,10 @@ describe('initArSyncTxs', () => {
               podcastId: podcast1.id,
               title: 'newTitle',
               resultObj: mockTransaction,
-              metadata: metadataToSync[0],
+              metadata: {
+                ...metadataToSync[0],
+                id: removePrefixFromPodcastId(podcast1.id),
+              },
               numEpisodes: 0,
               status: ArSyncTxStatus.INITIALIZED,
               timestamp: ANY_NUMBER,
@@ -173,6 +195,7 @@ describe('initArSyncTxs', () => {
               resultObj: mockTransaction2,
               metadata: {
                 ...metadataToSync[1],
+                id: removePrefixFromPodcastId(podcast2.id),
                 firstEpisodeDate: podcast2episodes[2].publishedAt,
                 lastEpisodeDate: podcast2episodes[0].publishedAt,
                 metadataBatch: 0,
@@ -196,7 +219,7 @@ describe('initArSyncTxs', () => {
               podcastId: podcast1.id,
               title: 'newTitle',
               resultObj: mockError,
-              metadata: metadataToSync[0],
+              metadata: { ...metadataToSync[0], id: removePrefixFromPodcastId(podcast1.id) },
               numEpisodes: 0,
               status: ArSyncTxStatus.ERRORED,
               timestamp: ANY_NUMBER,
@@ -208,6 +231,7 @@ describe('initArSyncTxs', () => {
               resultObj: mockTransaction,
               metadata: {
                 ...metadataToSync[1],
+                id: removePrefixFromPodcastId(podcast2.id),
                 firstEpisodeDate: podcast2episodes[2].publishedAt,
                 lastEpisodeDate: podcast2episodes[0].publishedAt,
                 metadataBatch: 0,
@@ -231,7 +255,7 @@ describe('initArSyncTxs', () => {
               podcastId: podcast1.id,
               title: 'newTitle',
               resultObj: mockError,
-              metadata: metadataToSync[0],
+              metadata: { ...metadataToSync[0], id: removePrefixFromPodcastId(podcast1.id) },
               numEpisodes: 0,
               status: ArSyncTxStatus.ERRORED,
               timestamp: ANY_NUMBER,
@@ -243,6 +267,7 @@ describe('initArSyncTxs', () => {
               resultObj: mockError2,
               metadata: {
                 ...metadataToSync[1],
+                id: removePrefixFromPodcastId(podcast2.id),
                 firstEpisodeDate: podcast2episodes[2].publishedAt,
                 lastEpisodeDate: podcast2episodes[0].publishedAt,
                 metadataBatch: 0,
@@ -282,19 +307,28 @@ describe('initArSyncTxs', () => {
             podcastId: pod1.id,
             title: 'newTitle',
             resultObj: mockTransaction,
-            metadata: pod1,
+            metadata: { ...pod1, id: removePrefixFromPodcastId(pod1.id) },
             numEpisodes: 0,
             status: ArSyncTxStatus.INITIALIZED,
             timestamp: ANY_NUMBER,
           });
         });
 
-        it('correctly partitions podcast 2 metadata into a complete subset of batches', () => {
+        it('returns sound txs for podcast 2', () => {
           const result2 = result.slice(1);
-          expect(result2.every(tx => tx.numEpisodes === tx.metadata.episodes.length)).toBe(true);
+          const result2Ids = result2.map(tx => tx.id);
+          expect(result2Ids).toEqual([...new Set(result2Ids)]);
+
           expect(result2.every(tx => tx.podcastId === pod2.id)).toBe(true);
           expect(result2.every(tx => tx.title === pod2.title)).toBe(true);
+          expect(result2.every(tx => tx.resultObj === mockTransaction2)).toBe(true);
+          expect(result2.every(tx => tx.numEpisodes === tx.metadata.episodes.length)).toBe(true);
+          expect(result2.every(tx => tx.status === ArSyncTxStatus.INITIALIZED)).toBe(true);
+          expect(result2.every(tx => tx.timestamp > 0)).toBe(true);
+        });
 
+        it('correctly partitions podcast 2 metadata into a complete subset of batches', () => {
+          const result2 = result.slice(1);
           const result2NumBatches = result2.length;
           const result2Metadata = result2.map(tx => tx.metadata);
           const result2MetadataBatchNumbers = result2Metadata.map(txMeta => txMeta.metadataBatch);
@@ -306,6 +340,7 @@ describe('initArSyncTxs', () => {
           };
           const expected2MergedMetadata = {
             ...pod2,
+            id: removePrefixFromPodcastId(pod2.id),
             keywords: ANYTHING,
             firstEpisodeDate: pod2.episodes[pod2.episodes.length - 1].publishedAt,
             lastEpisodeDate: pod2.episodes[0].publishedAt,
@@ -319,6 +354,7 @@ describe('initArSyncTxs', () => {
           const result2NumBatches = result2.length;
           const expected2MergedMetadata = {
             ...pod2,
+            id: removePrefixFromPodcastId(pod2.id),
             keywords: ANYTHING,
             firstEpisodeDate: pod2.episodes[pod2.episodes.length - 1].publishedAt,
             lastEpisodeDate: pod2.episodes[0].publishedAt,
@@ -348,14 +384,14 @@ describe('initArSyncTxs', () => {
       const pod1 = {
         id: podcast1.id,
         feedType: podcast1.feedType,
-        feedUrl: 'https://example.com/podcast1',
+        feedUrl: 'https://server.dummy/podcast1',
         title: 'newTitle',
         description: 'newDescription',
       };
       const pod2 = {
         id: podcast2.id,
         feedType: podcast2.feedType,
-        feedUrl: 'https://example.com/podcast2',
+        feedUrl: 'https://server.dummy/podcast2',
         title: 'podcast2 newTitle',
       };
 
@@ -402,9 +438,9 @@ describe('initArSyncTxs', () => {
 });
 
 describe('startSync', () => {
-  const mockMetadata1 = { feedUrl: 'https://example.com/podcast1' };
-  const mockMetadata2 = { feedUrl: 'https://example.com/podcast2' };
-  const mockMetadata3 = { feedUrl: 'https://example.com/podcast3' };
+  const mockMetadata1 = { feedUrl: 'https://server.dummy/podcast1' };
+  const mockMetadata2 = { feedUrl: 'https://server.dummy/podcast2' };
+  const mockMetadata3 = { feedUrl: 'https://server.dummy/podcast3' };
 
   describe('When pendingTxs is empty', () => {
     const pendingTxs = [];
@@ -419,7 +455,7 @@ describe('startSync', () => {
     const arSyncTxs = [
       {
         id: '1',
-        feedUrl: 'https://example.com/podcast1',
+        feedUrl: 'https://server.dummy/podcast1',
         title: 'cachedTitle',
         resultObj: mockTransaction,
         metadata: mockMetadata1,
@@ -428,7 +464,7 @@ describe('startSync', () => {
       },
       {
         id: '2',
-        feedUrl: 'https://example.com/podcast2',
+        feedUrl: 'https://server.dummy/podcast2',
         title: 'podcast2 cachedTitle',
         resultObj: mockTransaction,
         metadata: mockMetadata2,
@@ -440,7 +476,7 @@ describe('startSync', () => {
       {
         dispatchResult: undefined,
         id: '1',
-        feedUrl: 'https://example.com/podcast1',
+        feedUrl: 'https://server.dummy/podcast1',
         title: 'cachedTitle',
         resultObj: mockError,
         metadata: mockMetadata1,
@@ -450,7 +486,7 @@ describe('startSync', () => {
       {
         dispatchResult: modifiers.useArConnect ? mockDispatchResult : undefined,
         id: '2',
-        feedUrl: 'https://example.com/podcast2',
+        feedUrl: 'https://server.dummy/podcast2',
         title: 'podcast2 cachedTitle',
         resultObj: mockTransaction,
         metadata: mockMetadata2,
@@ -495,7 +531,7 @@ describe('startSync', () => {
     const arSyncTxs = [
       {
         id: '1',
-        feedUrl: 'https://example.com/podcast1',
+        feedUrl: 'https://server.dummy/podcast1',
         title: 'cachedTitle',
         resultObj: mockTransaction,
         metadata: mockMetadata1,
@@ -504,7 +540,7 @@ describe('startSync', () => {
       },
       {
         id: '2',
-        feedUrl: 'https://example.com/podcast2',
+        feedUrl: 'https://server.dummy/podcast2',
         title: 'podcast2 cachedTitle',
         resultObj: mockTransaction2,
         metadata: mockMetadata2,
@@ -513,7 +549,7 @@ describe('startSync', () => {
       },
       {
         id: '3',
-        feedUrl: 'https://example.com/podcast3',
+        feedUrl: 'https://server.dummy/podcast3',
         title: 'podcast3 cachedTitle',
         resultObj: mockTransaction3,
         metadata: mockMetadata3,
@@ -528,7 +564,7 @@ describe('startSync', () => {
       expect(result).toEqual([
         {
           id: '1',
-          feedUrl: 'https://example.com/podcast1',
+          feedUrl: 'https://server.dummy/podcast1',
           title: 'cachedTitle',
           resultObj: mockTransaction,
           metadata: mockMetadata1,
@@ -537,7 +573,7 @@ describe('startSync', () => {
         },
         {
           id: '2',
-          feedUrl: 'https://example.com/podcast2',
+          feedUrl: 'https://server.dummy/podcast2',
           title: 'podcast2 cachedTitle',
           resultObj: mockTransaction2,
           metadata: mockMetadata2,
@@ -546,7 +582,7 @@ describe('startSync', () => {
         },
         {
           id: '3',
-          feedUrl: 'https://example.com/podcast3',
+          feedUrl: 'https://server.dummy/podcast3',
           title: 'podcast3 cachedTitle',
           resultObj: mockTransaction3,
           metadata: mockMetadata3,
