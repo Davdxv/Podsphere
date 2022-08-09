@@ -141,19 +141,6 @@ describe('initArSyncTxs', () => {
             title: 'podcast2 newTitle',
             resultObj: mockTransaction2,
             metadata: {
-              ...metadataToSync[0],
-              id: removePrefixFromPodcastId(unknownPodcastId),
-            },
-            numEpisodes: 0,
-            status: ArSyncTxStatus.INITIALIZED,
-            timestamp: ANY_NUMBER,
-          },
-          {
-            id: global.VALID_ID,
-            podcastId: podcast2.id,
-            title: 'podcast2 newTitle',
-            resultObj: mockTransaction2,
-            metadata: {
               ...metadataToSync[1],
               id: removePrefixFromPodcastId(podcast2.id),
               firstEpisodeDate: podcast2episodes[2].publishedAt,

@@ -131,7 +131,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
         newTxs = await arsync.initArSyncTxs(newSubscriptions, newMetadataToSync, wallet);
       }
       // else if (usingArLocal()) { /** Uncomment temporarily to generate batched arlocal seeds */
-      //   const maxBatchSize = 25 * 1024;
+      //   const maxBatchSize = 96 * 1024;
       //   newTxs = await arsync
       //     .initArSyncTxs(newSubscriptions, newMetadataToSync, wallet, maxBatchSize);
       // }
