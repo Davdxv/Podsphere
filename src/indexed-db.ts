@@ -1,7 +1,9 @@
-
 /* eslint-disable @typescript-eslint/lines-between-class-members */
 import { IDBPDatabase, openDB, unwrap } from 'idb';
+// @ts-ignore
+import IDBExportImport from 'indexeddb-export-import';
 import { Podcast } from './client/interfaces';
+import { dbSchema } from './components/settings-page/zod-schemas';
 
 type TableSchemaV1 = {
   tableName: string,
@@ -13,9 +15,8 @@ type TableSchemaV1 = {
   }
 };
 
-const IDBExportImport = require('indexeddb-export-import');
+const verifyBackup = (backup: string) => dbSchema.safeParse(JSON.parse(backup));
 
-type SchemaType = [string, IDBObjectStoreParameters][];
 export class IndexedDb {
   private database: string;
 
@@ -147,18 +148,36 @@ export class IndexedDb {
     try {
       await this.connectDB();
 
-    const tx = this.db.transaction(tableName, 'readwrite');
-    const store = tx.objectStore(tableName);
-    const result = await store.get(subscribeUrl);
-    if (!result) return result;
+      const tx = this.db.transaction(tableName, 'readwrite');
+      const store = tx.objectStore(tableName);
+      const result = await store.delete(id);
+      return result;
+    }
+    catch (ex) {
+      console.warn('IndexedDb.deleteSubscription() encountered the following error:', ex);
+    }
+    return null;
+  }
 
-    await store.delete(subscribeUrl);
-    return subscribeUrl;
+  public async getIdFromFeedUrl(feedUrl: Podcast['feedUrl']) {
+    let result = null;
+    try {
+      await this.connectDB();
+
+      const tx = this.db.transaction(IndexedDb.SUBSCRIPTIONS, 'readonly');
+      const store = tx.objectStore(IndexedDb.SUBSCRIPTIONS);
+      const idMappingsIndex = store.index(IndexedDb.ID_MAPPINGS_INDEX);
+      result = idMappingsIndex.getKey(feedUrl);
+    }
+    catch (ex) {
+      console.warn('IndexedDb.getIdFromFeedUrl() encountered the following error:', ex);
+    }
+    return result;
   }
 
   public async exportDB() {
     await this.connectDB();
-    const idbDatabase = unwrap(this.db); // get native IDBDatabase object from Dexie wrapper
+    const idbDatabase = unwrap(this.db); // get native IDBDatabase
 
     // export to JSON, clear database, and import from JSON
     return new Promise<string>((res, rej) => {
@@ -173,9 +192,15 @@ export class IndexedDb {
   }
 
   public async importDB(backup: string) {
+    console.log(JSON.parse(backup));
+    console.log(verifyBackup(backup));
+    if (!verifyBackup(backup).success) {
+      console.error("Backup doesn't conform to the database schema");
+      return;
+    }
     await this.connectDB();
 
-    const idbDatabase = unwrap(this.db); // get native IDBDatabase object from Dexie wrapper
+    const idbDatabase = unwrap(this.db); // get native IDBDatabase
 
     IDBExportImport.clearDatabase(idbDatabase, (err: Error) => {
       if (!err) { // cleared data successfully
@@ -188,7 +213,3 @@ export class IndexedDb {
     });
   }
 }
-
-const verifyBackup = (backup: string, schema: SchemaType) => {
-  const backupObj = JSON.parse(backup);
-};

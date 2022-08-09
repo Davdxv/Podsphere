@@ -18,12 +18,14 @@ import {
   unixTimestamp,
   hasMetadata,
   concatMessages,
+  podcastsFromDTO,
 } from '../utils';
 import {
   ArSyncTx,
-  Episode,
+  ArSyncTxDTO,
   EpisodesDBTable,
   Podcast,
+  PodcastDTO,
 } from '../client/interfaces';
 import { IndexedDb } from '../indexed-db';
 import {
@@ -52,7 +54,7 @@ interface SubscriptionContextType {
     maxLastRefreshAge?: number) => Promise<[null, null] | [Podcast[], Partial<Podcast>[]]>,
   metadataToSync: Partial<Podcast>[],
   setMetadataToSync: (value: Partial<Podcast>[]) => void,
-  readCachedArSyncTxs: () => Promise<ArSyncTx[]>,
+  readCachedArSyncTxs: () => Promise<ArSyncTxDTO[]>,
   writeCachedArSyncTxs: (newValue: ArSyncTx[]) => Promise<void>,
   dbStatus: DBStatus,
   setDbStatus: (value: DBStatus) => void,
@@ -86,6 +88,13 @@ const DB_EPISODES = IndexedDb.EPISODES;
 const DB_METADATATOSYNC = IndexedDb.METADATATOSYNC;
 const DB_ARSYNCTXS = IndexedDb.TX_HISTORY;
 
+export interface SchemaType {
+  metadataToSync: Partial<PodcastDTO>[];
+  transactionHistory: ArSyncTxDTO[];
+  episodes: EpisodesDBTable[];
+  subscriptions: PodcastDTO[]
+}
+
 export const db = new IndexedDb();
 
 // declare global {
@@ -95,11 +104,11 @@ export const db = new IndexedDb();
 // }
 // window.idb = db;
 
-async function readCachedPodcasts() : Promise<Podcast[]> {
-  const readPodcasts : Podcast[] = [];
+async function readCachedPodcasts() : Promise<PodcastDTO[]> {
+  const readPodcasts : PodcastDTO[] = [];
 
-  let cachedSubscriptions : Podcast[] = [];
-  let cachedEpisodes : EpisodesDBTable[] = [];
+  let cachedSubscriptions : SchemaType[typeof DB_SUBSCRIPTIONS] = [];
+  let cachedEpisodes : SchemaType[typeof DB_EPISODES] = [];
   [cachedSubscriptions, cachedEpisodes] = await Promise.all([db.getAllValues(DB_SUBSCRIPTIONS),
     db.getAllValues(DB_EPISODES)]);
 
@@ -107,7 +116,7 @@ async function readCachedPodcasts() : Promise<Podcast[]> {
     const episodesTable : EpisodesDBTable | undefined = cachedEpisodes
       .find(table => table.id === sub.id);
     const episodes = episodesTable ? episodesTable.episodes : [];
-    const podcast : Podcast = { ...sub, episodes };
+    const podcast = { ...sub, episodes };
     readPodcasts.push(podcast);
   });
 
@@ -124,9 +133,9 @@ async function writeCachedPodcasts(subscriptions: Podcast[]) : Promise<string[]>
 
       if (!cachedSub || cachedSub.lastMutatedAt !== podcast.lastMutatedAt) {
         await removeCachedSubscription(podcast.feedUrl);
-        const episodesTable : EpisodesDBTable = {
+        const episodesTable = {
           id: podcast.id,
-          episodes: episodes as Episode[],
+          episodes,
         };
         await db.putValue(DB_SUBSCRIPTIONS, podcast);
         await db.putValue(DB_EPISODES, episodesTable);
@@ -140,8 +149,9 @@ async function writeCachedPodcasts(subscriptions: Podcast[]) : Promise<string[]>
   return errorMessages;
 }
 
-async function readCachedMetadataToSync() : Promise<Partial<Podcast>[]> {
-  const fetchedData : Partial<Podcast>[] = await db.getAllValues(DB_METADATATOSYNC);
+async function readCachedMetadataToSync() : Promise<Partial<PodcastDTO>[]> {
+  const fetchedData : SchemaType[typeof DB_METADATATOSYNC] = await db
+    .getAllValues(DB_METADATATOSYNC);
   return fetchedData;
 }
 
@@ -298,8 +308,8 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
     return Math.max(0, unixTimestamp() - lastRefreshTime);
   }
 
-  const readCachedArSyncTxs = async () : Promise<ArSyncTx[]> => {
-    const fetchedData : ArSyncTx[] = await db.getAllValues(DB_ARSYNCTXS);
+  const readCachedArSyncTxs = async () : Promise<ArSyncTxDTO[]> => {
+    const fetchedData : SchemaType[typeof DB_ARSYNCTXS] = await db.getAllValues(DB_ARSYNCTXS);
     return fetchedData;
   };
 
@@ -316,13 +326,13 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
       };
 
       const fetchedData = await readCachedPodcasts();
-      initializePodcastIdCache(fetchedData);
-      setSubscriptions(fetchedData);
+      initializePodcastIdCache(podcastsFromDTO(fetchedData));
+      setSubscriptions(podcastsFromDTO(fetchedData));
     };
 
     const initializeMetadataToSync = async () => {
       const fetchedData = await readCachedMetadataToSync();
-      setMetadataToSync(fetchedData);
+      setMetadataToSync(podcastsFromDTO(fetchedData));
     };
 
     const initializeDatabase = async () => {
@@ -332,7 +342,6 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
         await db.initializeDBSchema();
         await initializeSubscriptions();
         await initializeMetadataToSync();
-        await db.exportDB();
       }
       catch (ex) {
         const errorMessage = 'An error occurred while fetching the cached subscriptions from '

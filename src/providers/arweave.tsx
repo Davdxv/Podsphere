@@ -30,6 +30,7 @@ import { WalletDeferredToArConnect } from '../client/arweave/wallet';
 import client from '../client/arweave/client';
 import {
   ArSyncTx,
+  ArSyncTxDTO,
   ArSyncTxStatus,
 } from '../client/interfaces';
 import * as arweave from '../client/arweave';
@@ -349,7 +350,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
   useEffect(() => {
     const initializeArSyncTxs = async () => {
       try {
-        const fetchedData : ArSyncTx[] = await readCachedArSyncTxs() || [];
+        const fetchedData : ArSyncTxDTO[] = await readCachedArSyncTxs() || [];
         const arSyncTxsObject : ArSyncTx[] = arweave.arSyncTxsToDTO(fetchedData);
         setArSyncTxs(arSyncTxsObject);
       }
@@ -371,7 +372,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     const updateCachedArSyncTxs = async () => {
       try {
         const txsToCache = arSyncTxs.filter(isNotInitialized);
-        const arSyncTxsDto : ArSyncTx[] = arweave.arSyncTxsToDTO(txsToCache, true);
+        const arSyncTxsDto : ArSyncTx[] = arweave.arSyncTxsToDTO(txsToCache as any, true);
         await writeCachedArSyncTxs(arSyncTxsDto);
       }
       catch (ex) {

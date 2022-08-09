@@ -1,10 +1,10 @@
 import {
   Box, Button, List, ListItem, Typography,
 } from '@mui/material';
-import React from 'react';
+import React, { useState } from 'react';
 import SettingsIcon from '@mui/icons-material/Settings';
 import HandymanIcon from '@mui/icons-material/Handyman';
-import { BackupDropzone } from '../components/settings-page/BackupDropzone';
+import { BackupDropzone } from '../components/settings-page/backup-dropzone';
 import { db } from '../providers/subscriptions';
 import styles from './settings.module.scss';
 
@@ -28,11 +28,19 @@ const downloadBackup = async () => {
 };
 
 const importBackup = async (file: string) => {
-  db.importDB(file);
+  await db.importDB(file);
+  window.location.href = '/';
 };
 
-const SettingsPage = () => (
-  <Box className={styles.main}>
+enum MenuElement {
+  General,
+  Advanced,
+}
+
+const SidebarMenu : React.FC<{ activeElement: MenuElement,
+  handleChange: (activeEl: MenuElement) => void }> = ({ activeElement, handleChange }) => {
+  const onListItemClick = (element: MenuElement) => () => handleChange(element);
+  return (
     <Box className={styles.menu}>
       <Box className={styles.profile}>
         <img
@@ -43,27 +51,66 @@ const SettingsPage = () => (
         <Typography> Random Dude </Typography>
       </Box>
       <List>
-        <ListItem className={styles['selected-item']}>
+        <ListItem
+          onClick={onListItemClick(MenuElement.General)}
+          className={activeElement === MenuElement.General && styles['selected-item']}
+        >
           <SettingsIcon className={styles['general-icon']} />
           General
         </ListItem>
-        <ListItem>
+        <ListItem
+          onClick={onListItemClick(MenuElement.Advanced)}
+          className={activeElement === MenuElement.Advanced && styles['selected-item']}
+        >
           <HandymanIcon className={styles['advanced-icon']} />
           Advanced
         </ListItem>
       </List>
     </Box>
-    <Box className={styles.container}>
-      <Box className={styles['export-box']}>
-        <Typography> Backup your data: </Typography>
-        <Button onClick={downloadBackup}> Backup </Button>
-      </Box>
-      <Box>
-        <Typography> Import your data: </Typography>
-        <BackupDropzone onDrop={importBackup} />
-      </Box>
+  );
+};
+
+const GeneralSettings : React.FC = () => (
+  <Box className={styles.container}>
+    <Box className={styles['export-box']}>
+      <Typography> Backup your data: </Typography>
+      <Button onClick={downloadBackup}> Backup </Button>
+    </Box>
+    <Box>
+      <Typography> Import your data: </Typography>
+      <BackupDropzone onDrop={importBackup} />
     </Box>
   </Box>
 );
+
+const AdvancedSettings : React.FC = () => (
+  <Box className={styles.container}>
+    <Typography style={{ margin: 'auto' }}> TBD! :( </Typography>
+  </Box>
+);
+
+const getActivePane = (activeEl: MenuElement) => {
+  switch (activeEl) {
+    case MenuElement.General:
+      return <GeneralSettings />;
+    case MenuElement.Advanced:
+      return <AdvancedSettings />;
+    default:
+      return <GeneralSettings />;
+  }
+};
+
+const SettingsPage = () => {
+  const [activeElement, setActiveElement] = useState(MenuElement.General);
+
+  const handleChange = (activeEl: MenuElement) => setActiveElement(activeEl);
+
+  return (
+    <Box className={styles.main}>
+      <SidebarMenu handleChange={handleChange} activeElement={activeElement} />
+      {getActivePane(activeElement)}
+    </Box>
+  );
+};
 
 export default SettingsPage;

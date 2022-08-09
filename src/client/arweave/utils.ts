@@ -7,6 +7,7 @@ import {
 import { isNotEmpty } from '../../utils';
 import {
   ArSyncTx,
+  ArSyncTxDTO,
   ArSyncTxStatus,
   ArweaveTag,
   DispatchResultDTO,
@@ -123,9 +124,9 @@ export const getBundleTxId = (tx: ArSyncTx) : string => (isNotEmpty(tx.dispatchR
  *   Note that each returned element's type signature is congruent with the `ArSyncTx` interface.
  *   Optimized `ArSyncTx` props may mutate in value as well as type, though.
  */
-export function arSyncTxsToDTO(arSyncTxs: ArSyncTx[], throwOnError = false) : ArSyncTx[] {
+export function arSyncTxsToDTO(arSyncTxs: ArSyncTxDTO[], throwOnError = false) : ArSyncTx[] {
   const result : ArSyncTx[] = [];
-  arSyncTxs.forEach((tx: ArSyncTx) => {
+  arSyncTxs.forEach(tx => {
     try {
       let { dispatchResult, resultObj } = tx;
       if (dispatchResult) dispatchResult = dispatchResult as DispatchResultDTO;

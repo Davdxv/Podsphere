@@ -5,8 +5,8 @@
   "description": "Podsphere is a persistent data store, a graph-visualized discovery service and a discussion platform for Podcasts, built on Arweave.",
   "main": ".eslintrc.js",
   "scripts": {
-    "start": "set REACT_APP_USE_ARLOCAL=false && npm run devserver",
-    "startlocal": "concurrently \"npm run devserver\" \"npm run arlocal:all\"",
+    "start": "REACT_APP_USE_ARLOCAL=false npm run devserver",
+    "startlocal": "concurrently \"REACT_APP_USE_ARLOCAL=true npm run devserver\" \"npm run arlocal:all\"",
     "startlocal:some": "concurrently \"REACT_APP_USE_ARLOCAL=true npm run devserver\" \"npm run arlocal:some\"",
     "build": "react-app-rewired build",
     "devserver": "react-app-rewired start",
