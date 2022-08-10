@@ -1,5 +1,6 @@
 import cloneDeep from 'lodash.clonedeep';
 import {
+  hasDiff,
   mergeEpisodeBatches,
   mergeBatchMetadata,
   mergeBatchTags,
@@ -407,7 +408,7 @@ describe('mergeBatchTags', () => {
   });
 });
 
-describe('rightDiff', () => {
+describe('rightDiff, hasDiff', () => {
   const ep4date = new Date('2021-11-10T15:06:18.000Z');
   const ep3date = new Date('2021-11-09T15:06:18.000Z');
   const ep2date = new Date('2021-11-08T05:00:00.000Z');
@@ -473,6 +474,10 @@ describe('rightDiff', () => {
     it('returns an empty diff', () => {
       expect(rightDiff(oldMetadata, newMetadata)).toEqual({});
     });
+
+    test('hasDiff() returns false', () => {
+      expect(hasDiff(oldMetadata, newMetadata)).toBe(false);
+    });
   });
 
   describe('When the left set is disjoint from the right set', () => {
@@ -503,15 +508,18 @@ describe('rightDiff', () => {
 
     it('returns the right set (when the left set is empty)', () => {
       expect(rightDiff({}, newMetadata)).toStrictEqual(newMetadata);
+      expect(hasDiff({}, newMetadata)).toBe(true);
     });
 
     it('returns the right set (when the right set is empty)', () => {
       expect(rightDiff(oldMetadata, {})).toEqual({});
+      expect(hasDiff(oldMetadata, {})).toBe(false);
     });
   });
 
   describe('When the right set contains 1 new metadatum', () => {
     const oldMetadata = {
+      title: 'myTitle',
       description: 'description',
       feedUrl: 'https://server.dummy/feed',
       imageUrl: 'https://imgurl/img.png?ver=0',
@@ -519,16 +527,20 @@ describe('rightDiff', () => {
       episodes: oldEpisodes,
     };
     const newMetadata = {
+      title: 'myTitle',
       description: 'new description',
       imageTitle: '',
       episodes: oldEpisodes,
     };
 
-    it('returns the right diff including the primary key feedUrl', () => {
-      expect(rightDiff(oldMetadata, newMetadata)).toStrictEqual({
+    it('returns the right diff including all given persistentMetadata fields '
+       + 'that have a value (regardless of diff) in either the left or the right set', () => {
+      expect(rightDiff(oldMetadata, newMetadata, ['title', 'feedType', 'feedUrl'])).toStrictEqual({
         description: 'new description',
+        title: 'myTitle',
         feedUrl: 'https://server.dummy/feed',
       });
+      expect(hasDiff(oldMetadata, newMetadata)).toBe(true);
     });
   });
 
@@ -571,6 +583,29 @@ describe('rightDiff', () => {
         ],
         categories: ['diffcat'],
         feedUrl: 'https://server.dummy/feed',
+      });
+    });
+
+    describe('When returnAnyDiff = true (used by hasDiff())', () => {
+      it('returns a minimal right diff, ignoring the known given persistentMetadata fields', () => {
+        expect(rightDiff(oldMetadata, newMetadata, ['someField', 'feedUrl'], true))
+          .toStrictEqual({
+            imageUrl: 'https://imgurl/img.png?ver=1',
+          });
+      });
+
+      describe('When the full diff contains no metadata other than 2 new episodes', () => {
+        const oldMetadataWithNewEps = {
+          ...oldMetadata,
+          episodes: [...oldEpisodes, ...newEpisodes],
+        };
+
+        it('returns a minimal right diff of just 1 episode', () => {
+          const result = rightDiff(oldMetadata, oldMetadataWithNewEps, ['title', 'feedUrl'], true);
+          expect(Object.keys(result)).toStrictEqual(['episodes']);
+          expect(Object.values(result)).toMatchObject([[{ publishedAt: expect.anything() }]]);
+          expect(hasDiff(oldMetadata, oldMetadataWithNewEps, ['title', 'feedUrl'])).toBe(true);
+        });
       });
     });
   });
