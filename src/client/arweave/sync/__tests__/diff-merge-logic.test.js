@@ -533,9 +533,11 @@ describe('rightDiff, hasDiff', () => {
       episodes: oldEpisodes,
     };
 
-    it('returns the right diff including the primary key feedUrl', () => {
-      expect(rightDiff(oldMetadata, newMetadata)).toStrictEqual({
+    it('returns the right diff including all given persistentMetadata fields '
+       + 'that have a value (regardless of diff) in either the left or the right set', () => {
+      expect(rightDiff(oldMetadata, newMetadata, ['title', 'feedType', 'feedUrl'])).toStrictEqual({
         description: 'new description',
+        title: 'myTitle',
         feedUrl: 'https://server.dummy/feed',
       });
       expect(hasDiff(oldMetadata, newMetadata)).toBe(true);
@@ -581,6 +583,29 @@ describe('rightDiff, hasDiff', () => {
         ],
         categories: ['diffcat'],
         feedUrl: 'https://server.dummy/feed',
+      });
+    });
+
+    describe('When returnAnyDiff = true (used by hasDiff())', () => {
+      it('returns a minimal right diff, ignoring the known given persistentMetadata fields', () => {
+        expect(rightDiff(oldMetadata, newMetadata, ['someField', 'feedUrl'], true))
+          .toStrictEqual({
+            imageUrl: 'https://imgurl/img.png?ver=1',
+          });
+      });
+
+      describe('When the full diff contains no metadata other than 2 new episodes', () => {
+        const oldMetadataWithNewEps = {
+          ...oldMetadata,
+          episodes: [...oldEpisodes, ...newEpisodes],
+        };
+
+        it('returns a minimal right diff of just 1 episode', () => {
+          const result = rightDiff(oldMetadata, oldMetadataWithNewEps, ['title', 'feedUrl'], true);
+          expect(Object.keys(result)).toStrictEqual(['episodes']);
+          expect(Object.values(result)).toMatchObject([[{ publishedAt: expect.anything() }]]);
+          expect(hasDiff(oldMetadata, oldMetadataWithNewEps, ['title', 'feedUrl'])).toBe(true);
+        });
       });
     });
   });

@@ -25,7 +25,7 @@ const integerArray = n => [...Array(n).keys()];
 
 const decrementHours = (date, h) => new Date(date.setHours(date.getHours() - h));
 
-const randomByteString = b => (b && b > 0 ? randomBytes(Math.floor(b / 2)).toString('hex') : '');
+const randomByteString = b => (b > 0 ? randomBytes(Math.floor(b / 2)).toString('hex') : '');
 
 const generateEps = (numEps, randomBytesPerEp = 0) => [...new Array(numEps)]
   .map((_elem, index) => ({
