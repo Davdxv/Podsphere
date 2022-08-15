@@ -44,5 +44,7 @@ export function sanitizeUri(uri : string, throwOnError = false) : string {
   if (throwOnError && !sanitizedUri) {
     throw new Error(`${uri} is not a valid link.`);
   }
-  return sanitizedUri;
+
+  // Remove trailing slashes
+  return sanitizedUri.replace(/\/+$/, '');
 }

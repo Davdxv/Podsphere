@@ -1,5 +1,3 @@
-import seeds from '../../seeders/seeds.json';
-
 before(() => {
   cy.clearLocalStorage();
   cy.viewport(375, 812);
@@ -19,10 +17,4 @@ it('Can subscribe via RSS URL and changes are reflected in pod graph', () => {
   cy.get('#query').siblings('span').children('button').click();
   cy.get('.toast-header').should('be.visible');
   checkCanvases();
-});
-
-it('Should record RSS response in localStorage', () => {
-  console.log(window.localStorage.getItem('subscriptions'));
-  const podcasts = JSON.parse(window.localStorage.getItem('subscriptions'));
-  expect(podcasts).to.deep.equal([seeds.podcasts[0]]);
 });

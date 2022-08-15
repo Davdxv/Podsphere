@@ -24,10 +24,13 @@ export const OPTIONAL_ARWEAVE_STRING_TAGS = [
   'ownerName',
   'ownerEmail',
   'managingEditor',
+  'lastBuildDate',
+] as const;
+
+export const OPTIONAL_ARWEAVE_BATCH_TAGS = [
   'firstEpisodeDate',
   'lastEpisodeDate',
   'metadataBatch',
-  'lastBuildDate',
 ] as const;
 
 /**
@@ -49,12 +52,14 @@ const OPTIONAL_ARWEAVE_SINGULAR_TAGS = [
 export const ALLOWED_ARWEAVE_TAGS = [
   ...MANDATORY_ARWEAVE_TAGS,
   ...OPTIONAL_ARWEAVE_STRING_TAGS,
+  ...OPTIONAL_ARWEAVE_BATCH_TAGS,
   ...OPTIONAL_ARWEAVE_SINGULAR_TAGS,
 ] as const;
 
 export const ALLOWED_ARWEAVE_TAGS_PLURALIZED = [
   ...MANDATORY_ARWEAVE_TAGS,
   ...OPTIONAL_ARWEAVE_STRING_TAGS,
+  ...OPTIONAL_ARWEAVE_BATCH_TAGS,
   ...OPTIONAL_ARWEAVE_PLURAL_TAGS,
 ] as const;
 
@@ -101,8 +106,9 @@ export interface PodcastTags {
   lastBuildDate?: Date;
 }
 
-export interface PodcastDTO extends Omit<Podcast, 'firstEpisodeDate' | 'lastEpisodeDate'
-| 'metadataBatch' | 'episodes' | 'lastBuildDate'> {
+export interface PodcastDTO extends Omit<Podcast, 'feedType' | 'firstEpisodeDate'
+| 'lastEpisodeDate' | 'metadataBatch' | 'episodes' | 'lastBuildDate'> {
+  feedType: FeedType | string;
   firstEpisodeDate: string;
   lastEpisodeDate: string;
   metadataBatch: string;

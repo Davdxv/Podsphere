@@ -163,16 +163,28 @@ export function podcastFromDTO(podcast: PodcastDTO, sortEpisodes = true) : Podca
     publishedAt: toDate(episode.publishedAt),
   }));
 
-  return ({
-    ...podcast,
+  let { metadataBatch,
+    // eslint-disable-next-line prefer-const
+    firstEpisodeDate, lastEpisodeDate, lastBuildDate, ...mainMetadata } : any = podcast;
+
+  const result : Podcast = {
+    ...mainMetadata as Podcast,
     feedType: podcast.feedType as FeedType,
     keywords: initializeKeywords(podcast, podcast.keywords),
     episodes,
-    metadataBatch: Number(podcast.metadataBatch),
-    firstEpisodeDate: toDate(podcast.firstEpisodeDate),
-    lastEpisodeDate: toDate(podcast.lastEpisodeDate),
-    lastBuildDate: toDate(podcast.lastBuildDate),
-  });
+  };
+
+  metadataBatch = Number(metadataBatch);
+  firstEpisodeDate = toDate(firstEpisodeDate);
+  lastEpisodeDate = toDate(lastEpisodeDate);
+  lastBuildDate = toDate(lastBuildDate);
+
+  if (isValidInteger(metadataBatch)) result.metadataBatch = metadataBatch;
+  if (isValidDate(firstEpisodeDate)) result.firstEpisodeDate = firstEpisodeDate;
+  if (isValidDate(lastEpisodeDate)) result.lastEpisodeDate = lastEpisodeDate;
+  if (isValidDate(lastBuildDate)) result.lastBuildDate = lastBuildDate;
+
+  return result;
 }
 
 export function podcastsFromDTO(podcasts: PodcastDTO[], sortEpisodes = true) {

@@ -214,14 +214,19 @@ const findNextBatch = (
     let bestResultMargin = Infinity;
 
     for (let pass = 1; pass <= MAX_NUM_PASSES; pass++) {
-      const currentBatch = withMetadataBatchNumber({
+      const currentBatch = {
         ...podcastMetadataToSync,
         id: removePrefixFromPodcastId(result.podcastId),
         episodes: (episodesToSync || []).slice(-numEps),
-      }, priorBatchMetadata);
-      const tags = formatTags(currentBatch, cachedMetadata);
+      };
+      const diff = withMetadataBatchNumber(
+        rightDiff(priorBatchMetadata, currentBatch, ['id', 'feedType', 'feedUrl']),
+        priorBatchMetadata,
+      );
+
+      const tags = formatTags(diff, cachedMetadata);
       const tagsSize = calculateTagsSize(tags);
-      const gzip : Uint8Array = compressMetadata(currentBatch);
+      const gzip : Uint8Array = compressMetadata(diff);
 
       const relativeBatchSize = (tagsSize + gzip.byteLength) / maxBatchSize;
       const resultMargin = Math.abs(OPTIMAL_RELATIVE_BATCH_SIZE - relativeBatchSize);
@@ -231,7 +236,7 @@ const findNextBatch = (
         bestResultMargin = resultMargin;
         result.numEpisodes = numEps;
         result.compressedMetadata = gzip;
-        result.metadata = currentBatch;
+        result.metadata = diff;
         result.tags = tags;
       }
 
