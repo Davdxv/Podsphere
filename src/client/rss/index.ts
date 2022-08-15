@@ -6,14 +6,14 @@ import {
   PodcastFeedError,
 } from '../interfaces';
 import {
-  withCorsProxy,
-  toDate,
-  isNotEmpty,
   hasMetadata,
-  omitEmptyMetadata,
-  valuePresent,
-  isValidString,
+  isNotEmpty,
   isValidDate,
+  isValidString,
+  omitEmptyMetadata,
+  toDate,
+  valuePresent,
+  withCorsProxy,
 } from '../../utils';
 import {
   initializeKeywords,
@@ -21,8 +21,10 @@ import {
   sanitizeString,
   sanitizeUri,
 } from '../metadata-filtering';
+import { newCandidatePodcastId } from '../../podcast-id';
 
-interface RssPodcastFeed extends Parser.Output<any>, Omit<Podcast, 'title' | 'lastBuildDate'> {
+interface RssPodcastFeed extends Parser.Output<any>, Omit<Podcast, 'feedUrl' | 'title' |
+'lastBuildDate'> {
   categories?: string[];
   keywords?: string[];
   owner?: {
@@ -33,7 +35,7 @@ interface RssPodcastFeed extends Parser.Output<any>, Omit<Podcast, 'title' | 'la
   lastBuildDate?: string;
 }
 
-type OptionalPodcastTags = Omit<Podcast, 'id' | 'subscribeUrl' | 'title' | 'episodes'>;
+type OptionalPodcastTags = Omit<Podcast, 'id' | 'feedType' | 'feedUrl' | 'title' | 'episodes'>;
 type OptionalEpisodeTags = Omit<Episode, 'title' | 'publishedAt'>;
 type CategoriesWithSubs = {
   name?: string,
@@ -46,11 +48,11 @@ type CategoriesWithSubs = {
 
 /**
  * @param feed
- * @param subscribeUrl
+ * @param feedUrl
  * @returns {Podcast}
  * @throws {Error} If any of the mandatory podcast metadata are empty/missing after filtering
  */
-function formatPodcastFeed(feed: RssPodcastFeed, subscribeUrl: Podcast['subscribeUrl']) : Podcast {
+function formatPodcastFeed(feed: RssPodcastFeed, feedUrl: Podcast['feedUrl']) : Podcast {
   const { items, ...podcast } = feed;
   const podItunes = isNotEmpty(podcast.itunes) ? podcast.itunes : {};
 
@@ -131,7 +133,9 @@ function formatPodcastFeed(feed: RssPodcastFeed, subscribeUrl: Podcast['subscrib
   optionalPodcastTags.episodesKeywords = [...episodesKeywords];
 
   const mandatoryPodcastTags = {
-    subscribeUrl,
+    id: newCandidatePodcastId(),
+    feedType: 'rss2',
+    feedUrl,
     title: sanitizeString(podcast.title || ''),
     episodes,
     keywords: mergeArraysToLowerCase(podcast.keywords, podItunes.keywords),
@@ -146,7 +150,7 @@ function formatPodcastFeed(feed: RssPodcastFeed, subscribeUrl: Podcast['subscrib
   Object.entries(mandatoryPodcastTags).forEach(([tagName, value]) => {
     if (!valuePresent(value)) {
       throw new Error(
-        `Could not parse RSS feed ${subscribeUrl}: required property '${tagName}' is empty.`,
+        `Could not parse RSS feed ${feedUrl}: required property '${tagName}' is empty.`,
       );
     }
   });
@@ -155,26 +159,26 @@ function formatPodcastFeed(feed: RssPodcastFeed, subscribeUrl: Podcast['subscrib
 }
 
 /**
- * @param subscribeUrl
+ * @param feedUrl
  * @returns {(Podcast|PodcastFeedError)}
  */
-export async function getPodcastFeed(subscribeUrl: Podcast['subscribeUrl'], reformattedUrl = false)
+export async function getPodcastRss2Feed(feedUrl: Podcast['feedUrl'], reformattedUrl = false)
   : Promise<Podcast | PodcastFeedError> {
   let errorMessage;
   let feed;
   try {
-    feed = await parser.parseURL(withCorsProxy(subscribeUrl));
-    return formatPodcastFeed(feed as RssPodcastFeed, subscribeUrl!);
+    feed = await parser.parseURL(withCorsProxy(feedUrl));
+    return formatPodcastFeed(feed as RssPodcastFeed, feedUrl!);
   }
   catch (ex) {
     if (!reformattedUrl) {
       // Retry fetching feed once, adding url parameter `format=xml` (required for feedburner.com)
-      const newUrl = `${subscribeUrl}${subscribeUrl.match(/\?/) ? '&' : '?'}format=xml`;
-      return getPodcastFeed(newUrl, true);
+      const newUrl = `${feedUrl}${feedUrl.match(/\?/) ? '&' : '?'}format=xml`;
+      return getPodcastRss2Feed(newUrl, true);
     }
 
     /* TODO: Update error message after implementation of user-specified CORS-Proxies */
-    const getFeedErrorMessage = `Could not fetch RSS feed ${subscribeUrl}.\n`
+    const getFeedErrorMessage = `Could not fetch RSS feed ${feedUrl}.\n`
                                 + `Is the corsProxyURL specified in src/utils.js working?\n${ex}`;
     const formatFeedErrorMessage = (ex as Error).message;
     errorMessage = !hasMetadata(feed) ? getFeedErrorMessage : formatFeedErrorMessage;

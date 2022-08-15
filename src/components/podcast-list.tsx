@@ -21,7 +21,7 @@ const PodcastList : React.FC<Props> = ({ subscriptions, unsubscribe }) => (
     { subscriptions.length ? (
       <div>
         {subscriptions.map(subscription => (
-          <Box className={style['list-item']} key={subscription.subscribeUrl}>
+          <Box className={style['list-item']} key={subscription.feedUrl}>
             <Box className={style['title-detail']}>
               <Image
                 className={style['podcast-image']}
@@ -50,7 +50,7 @@ const PodcastList : React.FC<Props> = ({ subscriptions, unsubscribe }) => (
 
             <Box className={style['call-to-action']}>
               <Box className={style['action-btn']}>
-                <RemoveBtn onClick={() => unsubscribe(subscription.subscribeUrl)} />
+                <RemoveBtn onClick={() => unsubscribe(subscription.feedUrl)} />
               </Box>
             </Box>
           </Box>

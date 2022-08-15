@@ -58,7 +58,7 @@ export {};
 //             <Field
 //               component={Form.Control}
 //               name="rssUrl"
-//               placeholder="https://example.com/rss"
+//               placeholder="https://server.dummy/rss"
 //               disabled={submitting}
 //             />
 //           </Form.Group>

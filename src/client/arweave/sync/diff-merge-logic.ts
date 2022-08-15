@@ -102,7 +102,7 @@ export function mergeEpisodeBatches(episodeBatches: PartialEpisodeWithDate[][]) 
 }
 
 /**
- * NOTE: for the getPodcastFeed() caller, podcast categories & keywords are still in the tags,
+ * NOTE: for the getPodcastRss2Feed() caller, podcast categories & keywords are still in the tags,
  * outside of this scope. Other use cases may want to enable `applyMergeSpecialTags` or refactor.
  * @param metadataBatches
  * @param applyMergeSpecialTags
@@ -186,9 +186,13 @@ export function mergeBatchTags(tagBatches: PodcastTags[]) {
   return tagBatches.reduce((acc, batch) => mergeSpecialTags(acc, batch), initialAcc);
 }
 
-function episodesRightDiff(oldEpisodes : Episode[] = [], newEpisodes : Episode[] = []) {
+function episodesRightDiff(
+  oldEpisodes : Episode[] = [],
+  newEpisodes : Episode[] = [],
+  returnAnyDiff: boolean = false,
+) {
   const result : PartialEpisodeWithDate[] = [];
-  newEpisodes.forEach(newEpisode => {
+  for (const newEpisode of newEpisodes) {
     const oldEpisodeMatch = oldEpisodes.find(oldEpisode => datesEqual(
       oldEpisode.publishedAt,
       newEpisode.publishedAt,
@@ -200,7 +204,9 @@ function episodesRightDiff(oldEpisodes : Episode[] = [], newEpisodes : Episode[]
     else {
       result.push(newEpisode);
     }
-  });
+
+    if (returnAnyDiff && result.length && hasMetadata(result)) return result;
+  }
   return result.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
 }
 
@@ -209,23 +215,38 @@ function arrayRightDiff<T extends Primitive>(oldArray : T[] = [], newArray : T[]
 }
 
 /**
+ * Calls {@linkcode rightDiff()} with parameter `returnAnyDiff = true`.
+ */
+export function hasDiff<T extends Partial<Podcast> | Partial<Episode>>(
+  oldMetadata: T,
+  newMetadata: T,
+  persistentMetadata: (keyof Podcast | keyof Episode)[] = ['id'],
+) : boolean {
+  const minDiff = rightDiff<T>(oldMetadata, newMetadata, persistentMetadata, true);
+  return hasMetadata(minDiff);
+}
+
+/**
  * @param oldMetadata
  * @param newMetadata
- * @param persistentMetadata
- *   Metadata props to survive the diff iff hasMetadata(diff) == true.
- *   TODO: pending T244, change to 'id'.
- * @returns The newMetadata omitting each { prop: value } already present in oldMetadata
+ * @param persistentMetadata Metadata props to survive the diff iff hasMetadata(diff) == true.
+ * @param returnAnyDiff If `true`, returns any diff without generating a full diff:
+ *   Returns as soon as any metadatum, other than those ignored by {@linkcode hasMetadata()},
+ *   is added to the diff.
+ * @returns If `!returnAnyDiff`, returns `newMetadata` omitting each `{ prop: value }`
+ *   already present in `oldMetadata`.
  */
-export function rightDiff<T extends Partial<Episode> | Partial<Podcast>>(
-  oldMetadata : T,
-  newMetadata : T,
-  persistentMetadata = ['subscribeUrl'],
+export function rightDiff<T extends Partial<Podcast> | Partial<Episode>>(
+  oldMetadata: T,
+  newMetadata: T,
+  persistentMetadata: (keyof Podcast | keyof Episode)[] = ['id', 'feedType', 'feedUrl'],
+  returnAnyDiff: boolean = false,
 ) : Partial<T> {
   if (!hasMetadata(oldMetadata)) return newMetadata;
   if (!hasMetadata(newMetadata)) return {} as T;
 
   let result : Partial<T> = {};
-  Object.entries(newMetadata).forEach(([prop, value]) => {
+  for (const [prop, value] of Object.entries(newMetadata)) {
     const oldValue = oldMetadata[prop as keyof T];
 
     switch (prop) {
@@ -236,7 +257,7 @@ export function rightDiff<T extends Partial<Episode> | Partial<Podcast>>(
         break;
       case 'episodes': {
         // @ts-ignore
-        const episodesDiff = episodesRightDiff(oldValue, value);
+        const episodesDiff = episodesRightDiff(oldValue, value, returnAnyDiff);
         if (hasMetadata(episodesDiff)) result = { ...result, episodes: episodesDiff };
         break;
       }
@@ -250,14 +271,14 @@ export function rightDiff<T extends Partial<Episode> | Partial<Podcast>>(
         }
         else if (value !== oldValue && valuePresent(value)) result = { ...result, [prop]: value };
     }
-  });
+
+    if (returnAnyDiff && hasMetadata(result)) return result;
+  }
 
   if (hasMetadata(result) && valuePresent(persistentMetadata)) {
     persistentMetadata.forEach(prop => {
-      result = {
-        ...result,
-        [prop]: newMetadata[prop as keyof T] || oldMetadata[prop as keyof T],
-      };
+      const propValue = newMetadata[prop as keyof T] || oldMetadata[prop as keyof T];
+      if (propValue) result = { ...result, [prop]: propValue };
     });
   }
   return result;

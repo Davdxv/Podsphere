@@ -6,7 +6,7 @@ import {
 } from '../computation';
 
 const getIdsFromGraphs = (graph: DisjointGraph) => graph
-  .nodes.map(item => item.subscribeUrl).sort();
+  .nodes.map(item => item.feedUrl).sort();
 
 const fakeCategories = ['comedy', 'drama', 'humor', 'history', 'news', 'sports', 'fashion',
   'music', 'cooking', 'media', 'programming', 'design', 'engineering', 'business', 'art'];
@@ -15,7 +15,7 @@ const createFakePodcast = () => {
   const numberOfCategories = Math.floor(Math.random() * 5);
 
   return ({
-    subscribeUrl: 'https://server.dummy/rss',
+    feedUrl: 'https://server.dummy/rss',
     title: `Some Podcast ${uuid()}`,
     description: 'The best of That Podcast',
     categories: sample(fakeCategories, numberOfCategories),
@@ -29,9 +29,9 @@ const createFakePodcast = () => {
 
 describe('findAllDisjointGraphs works correctly for', () => {
   test('connected graphs', () => {
-    const nodes = [{ subscribeUrl: '1', keywordsAndCategories: ['a'], visited: false },
-      { subscribeUrl: '2', keywordsAndCategories: ['b', 'c'], visited: false },
-      { subscribeUrl: '3', keywordsAndCategories: ['a', 'b'], visited: false }];
+    const nodes = [{ feedUrl: '1', keywordsAndCategories: ['a'], visited: false },
+      { feedUrl: '2', keywordsAndCategories: ['b', 'c'], visited: false },
+      { feedUrl: '3', keywordsAndCategories: ['a', 'b'], visited: false }];
 
     const disjointGraphs = findAllDisjointGraphs(nodes);
     const ids = disjointGraphs.map(graph => getIdsFromGraphs(graph));
@@ -46,9 +46,9 @@ describe('findAllDisjointGraphs works correctly for', () => {
   });
 
   test('disconnected graphs', () => {
-    const nodes = [{ subscribeUrl: '1', keywordsAndCategories: ['a'], visited: false },
-      { subscribeUrl: '2', keywordsAndCategories: ['c'], visited: false },
-      { subscribeUrl: '3', keywordsAndCategories: ['b'], visited: false }];
+    const nodes = [{ feedUrl: '1', keywordsAndCategories: ['a'], visited: false },
+      { feedUrl: '2', keywordsAndCategories: ['c'], visited: false },
+      { feedUrl: '3', keywordsAndCategories: ['b'], visited: false }];
 
     const disjointGraphs = findAllDisjointGraphs(nodes);
     const ids = disjointGraphs.map(graph => getIdsFromGraphs(graph));
@@ -63,9 +63,9 @@ describe('findAllDisjointGraphs works correctly for', () => {
   });
 
   test('two disjoint graphs', () => {
-    const nodes = [{ subscribeUrl: '1', keywordsAndCategories: ['a'], visited: false },
-      { subscribeUrl: '2', keywordsAndCategories: ['b', 'a'], visited: false },
-      { subscribeUrl: '3', keywordsAndCategories: ['f'], visited: false }];
+    const nodes = [{ feedUrl: '1', keywordsAndCategories: ['a'], visited: false },
+      { feedUrl: '2', keywordsAndCategories: ['b', 'a'], visited: false },
+      { feedUrl: '3', keywordsAndCategories: ['f'], visited: false }];
 
     const disjointGraphs = findAllDisjointGraphs(nodes);
     const ids = disjointGraphs.map(graph => getIdsFromGraphs(graph));
@@ -80,11 +80,11 @@ describe('findAllDisjointGraphs works correctly for', () => {
   });
 
   test('two disjoint graphs each containing multiple nodes', () => {
-    const nodes = [{ subscribeUrl: '1', keywordsAndCategories: ['a', 'l'], visited: false },
-      { subscribeUrl: '2', keywordsAndCategories: ['d', 'c'], visited: false },
-      { subscribeUrl: '3', keywordsAndCategories: ['c', 'm'], visited: false },
-      { subscribeUrl: '4', keywordsAndCategories: ['l', 'z', 'a'], visited: false },
-      { subscribeUrl: '5', keywordsAndCategories: ['f', 'b', 'a'], visited: false }];
+    const nodes = [{ feedUrl: '1', keywordsAndCategories: ['a', 'l'], visited: false },
+      { feedUrl: '2', keywordsAndCategories: ['d', 'c'], visited: false },
+      { feedUrl: '3', keywordsAndCategories: ['c', 'm'], visited: false },
+      { feedUrl: '4', keywordsAndCategories: ['l', 'z', 'a'], visited: false },
+      { feedUrl: '5', keywordsAndCategories: ['f', 'b', 'a'], visited: false }];
 
     const disjointGraphs = findAllDisjointGraphs(nodes);
     const ids = disjointGraphs.map(graph => getIdsFromGraphs(graph));
@@ -119,11 +119,11 @@ describe('findAllDisjointGraphs works correctly for', () => {
 describe('computeEdgeWeight:', () => {
   const graphs : DisjointGraph[] = [
     { nodes: [
-      { subscribeUrl: 'a', keywordsAndCategories: ['key 1', 'key 2'], visited: false },
-      { subscribeUrl: 'b', keywordsAndCategories: ['key 3', 'key 2'], visited: false },
-      { subscribeUrl: 'c', keywordsAndCategories: ['key 4', 'key 1'], visited: false },
-      { subscribeUrl: 'd', keywordsAndCategories: ['key 1', 'key 5'], visited: false },
-      { subscribeUrl: 'e', keywordsAndCategories: ['key 4'], visited: false },
+      { feedUrl: 'a', keywordsAndCategories: ['key 1', 'key 2'], visited: false },
+      { feedUrl: 'b', keywordsAndCategories: ['key 3', 'key 2'], visited: false },
+      { feedUrl: 'c', keywordsAndCategories: ['key 4', 'key 1'], visited: false },
+      { feedUrl: 'd', keywordsAndCategories: ['key 1', 'key 5'], visited: false },
+      { feedUrl: 'e', keywordsAndCategories: ['key 4'], visited: false },
     ],
     sharedKeywordsAndCategories: [
       { name: 'key 1', count: 3 },
@@ -133,9 +133,9 @@ describe('computeEdgeWeight:', () => {
       { name: 'key 5', count: 1 },
     ] },
     { nodes: [
-      { subscribeUrl: 'f', keywordsAndCategories: ['comedy', 'drama'], visited: false },
-      { subscribeUrl: 'g', keywordsAndCategories: ['movie', 'game'], visited: false },
-      { subscribeUrl: 'h', keywordsAndCategories: ['art', 'painting', 'drama'], visited: false },
+      { feedUrl: 'f', keywordsAndCategories: ['comedy', 'drama'], visited: false },
+      { feedUrl: 'g', keywordsAndCategories: ['movie', 'game'], visited: false },
+      { feedUrl: 'h', keywordsAndCategories: ['art', 'painting', 'drama'], visited: false },
     ],
     sharedKeywordsAndCategories: [
       { name: 'comedy', count: 1 },

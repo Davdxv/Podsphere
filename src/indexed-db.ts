@@ -1,32 +1,48 @@
+/* eslint-disable @typescript-eslint/lines-between-class-members */
 import { IDBPDatabase, openDB } from 'idb';
 import { Podcast } from './client/interfaces';
+
+type TableSchemaV1 = {
+  tableName: string,
+  createObjectStoreParams: IDBObjectStoreParameters,
+  createIndexParams?: {
+    indexName: string,
+    keyPath: string,
+    objectParameters?: IDBIndexParameters,
+  }
+};
 
 export class IndexedDb {
   private database: string;
 
   private db: any;
 
+  public static readonly SUBSCRIPTIONS = 'subscriptions';
+  public static readonly EPISODES = 'episodes';
+  public static readonly METADATATOSYNC = 'metadataToSync';
+  public static readonly TX_HISTORY = 'transactionHistory';
+  public static readonly ID_MAPPINGS_INDEX = 'idMappings';
+
   public static readonly DB_NAME = 'Podsphere';
-
   public static readonly DB_VERSION = 1;
-
-  public static readonly DB_V1_SCHEMA : [string, IDBObjectStoreParameters][] = [
-    [
-      'subscriptions',
-      { autoIncrement: false, keyPath: 'subscribeUrl' },
-    ],
-    [
-      'episodes',
-      { autoIncrement: false, keyPath: 'subscribeUrl' },
-    ],
-    [
-      'metadataToSync',
-      { autoIncrement: false, keyPath: 'subscribeUrl' },
-    ],
-    [
-      'transactionHistory',
-      { autoIncrement: false, keyPath: 'id' },
-    ],
+  public static readonly DB_SCHEMA_V1 : TableSchemaV1[] = [
+    {
+      tableName: IndexedDb.SUBSCRIPTIONS,
+      createObjectStoreParams: { autoIncrement: false, keyPath: 'id' },
+      createIndexParams: { indexName: IndexedDb.ID_MAPPINGS_INDEX, keyPath: 'feedUrl' },
+    },
+    {
+      tableName: IndexedDb.EPISODES,
+      createObjectStoreParams: { autoIncrement: false, keyPath: 'id' },
+    },
+    {
+      tableName: IndexedDb.METADATATOSYNC,
+      createObjectStoreParams: { autoIncrement: false, keyPath: 'id' },
+    },
+    {
+      tableName: IndexedDb.TX_HISTORY,
+      createObjectStoreParams: { autoIncrement: false, keyPath: 'id' },
+    },
   ];
 
   public static readonly DB_ERROR_GENERIC_HELP_MESSAGE = [
@@ -50,15 +66,20 @@ export class IndexedDb {
   }
 
   public async initializeDBSchema() {
-    await this.createObjectStore(IndexedDb.DB_V1_SCHEMA);
+    await this.createObjectStore(IndexedDb.DB_SCHEMA_V1);
   }
 
-  private async createObjectStore(tables: [string, IDBObjectStoreParameters][]) {
+  private async createObjectStore(tables: TableSchemaV1[]) {
     try {
       this.db = await openDB(this.database, IndexedDb.DB_VERSION, {
         upgrade(db: IDBPDatabase) {
-          for (const [tableName, params] of tables) {
-            if (!db.objectStoreNames.contains(tableName)) db.createObjectStore(tableName, params);
+          for (const { tableName, createObjectStoreParams, createIndexParams } of tables) {
+            if (!db.objectStoreNames.contains(tableName)) {
+              const store = db.createObjectStore(tableName, createObjectStoreParams);
+              if (createIndexParams && createIndexParams.indexName && createIndexParams.keyPath) {
+                store.createIndex(createIndexParams.indexName, createIndexParams.keyPath);
+              }
+            }
           }
         },
       });
@@ -68,12 +89,12 @@ export class IndexedDb {
     }
   }
 
-  public async getBySubscribeUrl(tableName: string, subscribeUrl: Podcast['subscribeUrl']) {
+  public async getByPodcastId(tableName: string, podcastId: Podcast['id']) {
     await this.connectDB();
 
     const tx = this.db.transaction(tableName, 'readonly');
     const store = tx.objectStore(tableName);
-    const result = await store.get(subscribeUrl);
+    const result = await store.get(podcastId);
     return result;
   }
 
@@ -117,15 +138,34 @@ export class IndexedDb {
     return result;
   }
 
-  public async deleteSubscription(tableName: string, subscribeUrl: Podcast['subscribeUrl']) {
-    await this.connectDB();
+  public async deleteSubscription(tableName: string, id: Podcast['id']) {
+    try {
+      await this.connectDB();
 
-    const tx = this.db.transaction(tableName, 'readwrite');
-    const store = tx.objectStore(tableName);
-    const result = await store.get(subscribeUrl);
-    if (!result) return result;
+      const tx = this.db.transaction(tableName, 'readwrite');
+      const store = tx.objectStore(tableName);
+      const result = await store.delete(id);
+      return result;
+    }
+    catch (ex) {
+      console.warn('IndexedDb.deleteSubscription() encountered the following error:', ex);
+    }
+    return null;
+  }
 
-    await store.delete(subscribeUrl);
-    return subscribeUrl;
+  public async getIdFromFeedUrl(feedUrl: Podcast['feedUrl']) : Promise<string | null> {
+    let result = null;
+    try {
+      await this.connectDB();
+
+      const tx = this.db.transaction(IndexedDb.SUBSCRIPTIONS, 'readonly');
+      const store = tx.objectStore(IndexedDb.SUBSCRIPTIONS);
+      const idMappingsIndex = store.index(IndexedDb.ID_MAPPINGS_INDEX);
+      result = idMappingsIndex.getKey(feedUrl);
+    }
+    catch (ex) {
+      console.warn('IndexedDb.getIdFromFeedUrl() encountered the following error:', ex);
+    }
+    return result;
   }
 }

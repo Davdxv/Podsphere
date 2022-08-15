@@ -7,13 +7,14 @@ export type Primitive = string | boolean | number;
 export type EmptyTypes = null | undefined | {};
 
 export const MANDATORY_ARWEAVE_TAGS = [
-  'subscribeUrl',
+  'id',
+  'feedType',
+  'feedUrl',
   'title',
-  'description',
 ] as const;
 
 export const OPTIONAL_ARWEAVE_STRING_TAGS = [
-  'id',
+  'description',
   'author',
   'summary',
   'explicit',
@@ -62,6 +63,11 @@ export type AllowedTags = typeof ALLOWED_ARWEAVE_TAGS[number];
 export type AllowedTagsPluralized = typeof ALLOWED_ARWEAVE_TAGS_PLURALIZED[number];
 export type ArweaveTag = [AllowedTags, string | undefined];
 
+const FEED_TYPES = [
+  'rss2',
+] as const;
+export type FeedType = typeof FEED_TYPES[number];
+
 export interface Podcast extends PodcastTags {
   lastMutatedAt?: number; /** @see unixTimestamp() */
   episodes?: Episode[];
@@ -72,9 +78,10 @@ export interface Podcast extends PodcastTags {
 }
 
 export interface PodcastTags {
-  subscribeUrl: string;
+  id: string;
+  feedType: FeedType;
+  feedUrl: string;
   title: string;
-  id?: string;
   description?: string;
   author?: string;
   summary?: string;
@@ -107,13 +114,12 @@ export interface EpisodeDTO extends Omit<Episode, 'publishedAt'> {
   publishedAt: string;
 }
 
-export interface EpisodesDBTable extends Pick<Podcast, 'subscribeUrl'> {
+export interface EpisodesDBTable extends Pick<Podcast, 'id'> {
   episodes: Episode[];
 }
 
 export type ErrorStruct = {
   errorMessage: string;
-  // errorObj?: Error | null;
 };
 
 export interface PodcastFeedError extends ErrorStruct {}
@@ -148,8 +154,14 @@ export type BundledTxIdMapping = {
 };
 
 /**
- * @typedef {ArSyncTxStatus} ArSyncTxStatus
+ * @enum {ArSyncTxStatus} number
+ * @description
  *   An enum comprising all supported stages of an ArSyncTx object, used to track and update status.
+ * @member {0} ERRORED
+ * @member {1} INITIALIZED
+ * @member {2} POSTED
+ * @member {3} CONFIRMED
+ * @member {4} REJECTED
  */
 export enum ArSyncTxStatus {
   ERRORED,
@@ -160,24 +172,34 @@ export enum ArSyncTxStatus {
 }
 
 /**
- * @typedef {ArSyncTx} ArSyncTx
+ * @interface ArSyncTx
+ * @description
  *   Main data structure used to track an Arweave transaction through its various stages.
  *   All ArSyncTx objects with a status other than `INITIALIZED` are cached in IndexedDB, until the
  *   user chooses to clear any of them.
+ * @prop {string} id uuid of the ArSyncTx object
+ * @prop {string} podcastId uuid of the relevant podcast
+ * @prop {string} title
+ * @prop {DispatchResult | DispatchResultDTO} dispatchResult
+ * @prop {Transaction | TransactionDTO | Error} resultObj
+ * @prop {Partial<Podcast>} metadata
+ * @prop {number} numEpisodes
+ * @prop {ArSyncTxStatus} status
+ * @prop {number} timestamp
  */
 export interface ArSyncTx {
-  id: string, // uuid, not to be confused with `(resultObj as Transaction).id`
-  subscribeUrl: string, // TODO: pending T244, change to 'podcastId'
-  title?: string,
+  id: string,
+  podcastId: Podcast['id'],
+  title?: Podcast['title'],
   dispatchResult?: DispatchResult | DispatchResultDTO,
   resultObj: Transaction | TransactionDTO | Error,
   metadata: Partial<Podcast>,
   numEpisodes: number,
   status: ArSyncTxStatus,
-  // TODO: add `timestamp`
+  timestamp: Podcast['lastMutatedAt'],
 }
 
-export interface DisjointGraphFunctionNode extends Pick<Podcast, 'subscribeUrl'> {
+export interface DisjointGraphFunctionNode extends Pick<Podcast, 'feedUrl'> {
   keywordsAndCategories: string[];
   visited: boolean;
 }

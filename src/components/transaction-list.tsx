@@ -10,7 +10,7 @@ import {
   statusToString,
 } from '../client/arweave/utils';
 import style from './shared-elements.module.scss';
-import { findMetadata } from '../utils';
+import { findMetadataById } from '../utils';
 import { ArSyncTx, Podcast } from '../client/interfaces';
 import { ReactComponent as AppIcon } from '../assets/arsync-logo.svg';
 
@@ -22,7 +22,7 @@ interface Props {
   removeArSyncTxs: (ids: string[] | null) => void;
 }
 
-function TxSubheader({ numEpisodes } : { numEpisodes: number }) {
+function TxSubheader({ numEpisodes } : { numEpisodes: ArSyncTx['numEpisodes'] }) {
   return numEpisodes ? (
     <Box className={style['meta-detail']}>
       {`${numEpisodes} episodes`}
@@ -30,7 +30,7 @@ function TxSubheader({ numEpisodes } : { numEpisodes: number }) {
   ) : null;
 }
 
-function PodcastImage({ podcastImageUrl } : { podcastImageUrl: string }) {
+function PodcastImage({ podcastImageUrl } : { podcastImageUrl: Podcast['imageUrl'] }) {
   return podcastImageUrl ? <Image className={style['podcast-image']} src={podcastImageUrl} /> : (
     <Box className={style['podcast-image-whalephant']}>
       <AppIcon />
@@ -39,8 +39,8 @@ function PodcastImage({ podcastImageUrl } : { podcastImageUrl: string }) {
 }
 
 const TransactionList : React.FC<Props> = ({ subscriptions, txs, removeArSyncTxs }) => {
-  const findImageUrl = (subscribeUrl: string) => {
-    const cachedPodcast = findMetadata(subscribeUrl, subscriptions);
+  const findImageUrl = (id: Podcast['id']) => {
+    const cachedPodcast = findMetadataById(id, subscriptions);
     return cachedPodcast.imageUrl || '';
   };
 
@@ -75,7 +75,7 @@ const TransactionList : React.FC<Props> = ({ subscriptions, txs, removeArSyncTxs
           </Box>
           {
             [...txs].reverse().map(tx => {
-              const podcastImageUrl = findImageUrl(tx.subscribeUrl);
+              const podcastImageUrl = findImageUrl(tx.podcastId);
               const { numEpisodes } = tx;
 
               // TODO: add viewblock.io tx url

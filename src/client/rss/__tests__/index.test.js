@@ -1,5 +1,5 @@
 import parser from '../parser';
-import { getPodcastFeed } from '..';
+import { getPodcastRss2Feed } from '..';
 
 jest.mock('../parser');
 
@@ -162,10 +162,12 @@ const MINIMAL_PODCAST = {
   title: 'My podcast',
 };
 
-describe('getPodcastFeed', () => {
+describe('getPodcastRss2Feed', () => {
   describe('With a complete podcast feed with 3 complete episodes and 3 invalid episodes', () => {
     const expected = {
-      subscribeUrl: 'https://test_url.crypto/rss',
+      id: global.VALID_TEMP_ID,
+      feedType: 'rss2',
+      feedUrl: 'https://test_url.crypto/rss',
       title: 'My podcast',
       episodes: [
         {
@@ -227,7 +229,7 @@ describe('getPodcastFeed', () => {
       const mockFeed = { ...COMPLETE_PODCAST, items: EPISODES };
       parser.parseURL.mockResolvedValue(mockFeed);
 
-      const result = await getPodcastFeed(FEED_URL);
+      const result = await getPodcastRss2Feed(FEED_URL);
       expect(result).toEqual(expected);
     });
 
@@ -236,7 +238,7 @@ describe('getPodcastFeed', () => {
         const mockFeed = { ...COMPLETE_PODCAST_NO_ITUNES, items: EPISODES };
         parser.parseURL.mockResolvedValue(mockFeed);
 
-        const result = await getPodcastFeed(FEED_URL);
+        const result = await getPodcastRss2Feed(FEED_URL);
         expect(result).toEqual({ ...expected, categories: ['cat1', 'cat2'] });
       });
     });
@@ -247,9 +249,11 @@ describe('getPodcastFeed', () => {
       const mockFeed = { ...MINIMAL_PODCAST, items: [MINIMAL_EPISODE_3] };
       parser.parseURL.mockResolvedValue(mockFeed);
 
-      const result = await getPodcastFeed(FEED_URL);
+      const result = await getPodcastRss2Feed(FEED_URL);
       expect(result).toEqual({
-        subscribeUrl: 'https://test_url.crypto/rss',
+        id: global.VALID_TEMP_ID,
+        feedType: 'rss2',
+        feedUrl: 'https://test_url.crypto/rss',
         title: 'My podcast',
         episodes: [
           {
@@ -268,7 +272,7 @@ describe('getPodcastFeed', () => {
         const mockFeed = { title: '', items: EPISODES };
         parser.parseURL.mockResolvedValue(mockFeed);
 
-        await expect(getPodcastFeed(FEED_URL)).resolves
+        await expect(getPodcastRss2Feed(FEED_URL)).resolves
           .toMatchObject({ errorMessage: expect.stringMatching(/'title' is empty/) });
       });
     });
@@ -278,7 +282,7 @@ describe('getPodcastFeed', () => {
         const mockFeed = { title: 'Title' };
         parser.parseURL.mockResolvedValue(mockFeed);
 
-        await expect(getPodcastFeed(FEED_URL)).resolves
+        await expect(getPodcastRss2Feed(FEED_URL)).resolves
           .toMatchObject({ errorMessage: expect.stringMatching(/'episodes' is empty/) });
       });
 
@@ -286,7 +290,7 @@ describe('getPodcastFeed', () => {
         const mockFeed = { title: 'Title', items: [INVALID_EPISODE_4] };
         parser.parseURL.mockResolvedValue(mockFeed);
 
-        await expect(getPodcastFeed(FEED_URL)).resolves
+        await expect(getPodcastRss2Feed(FEED_URL)).resolves
           .toMatchObject({ errorMessage: expect.stringMatching(/'episodes' is empty/) });
       });
     });
@@ -296,7 +300,7 @@ describe('getPodcastFeed', () => {
         const mockError = new Error('Parser Error');
         parser.parseURL.mockRejectedValue(mockError);
 
-        await expect(getPodcastFeed(FEED_URL)).resolves
+        await expect(getPodcastRss2Feed(FEED_URL)).resolves
           .toMatchObject({ errorMessage: expect.stringMatching(/Parser Error/) });
       });
     });
