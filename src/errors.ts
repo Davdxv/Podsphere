@@ -9,15 +9,12 @@ export class ImplementationError extends Error {
   }
 }
 
-export function throwImplementationError(errorMessage: string) : never {
-  throw new ImplementationError(errorMessage);
-}
-
 /**
  * Throws a new unexpected `ImplementationError` indicating a development/refactoring issue.
- * @alias throwImplementationError
  * @param errorMessage
+ * @param debug send this object to console.error
  */
-export function throwDevError(errorMessage: string) : never {
+export function throwDevError(errorMessage: string, debug: any = 'myObject') : never {
+  if (debug !== 'myObject') console.error(`${ImplementationError.PREFIX}${errorMessage}`, debug);
   throw new ImplementationError(errorMessage);
 }

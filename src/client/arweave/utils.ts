@@ -10,9 +10,11 @@ import {
   ArSyncTxDTO,
   ArSyncTxStatus,
   ArweaveTag,
+  CachedArTx,
   DispatchResultDTO,
   Podcast,
   TransactionDTO,
+  TRANSACTION_KINDS,
 } from '../interfaces';
 
 const PLURAL_TAG_MAP = {
@@ -22,20 +24,15 @@ const PLURAL_TAG_MAP = {
 };
 const TAG_EXCLUDE_PREFIX = ['App-Name', 'App-Version', 'Content-Type', 'Unix-Time'];
 
-// TODO: Move this check up the CI/CD pipeline
-// function sanityCheckedTag() {
-//   const tag = process.env.REACT_APP_TAG_PREFIX;
-//   if (!tag || tag === 'undefined' || tag === 'null') {
-//    throw new Error('process.env.REACT_APP_TAG_PREFIX is not set up.
-//    Please contact our development team.');
-//   }
-//   return tag;
-// }
-
+/**
+ * @returns The given tag name prefixed with the app name and a dash.
+ *   Prefix is excluded for `'App-Name', 'App-Version', 'Content-Type', 'Unix-Time'`.
+ */
 export function toTag(name: string) {
   return TAG_EXCLUDE_PREFIX.includes(name) ? name : `${process.env.REACT_APP_TAG_PREFIX}-${name}`;
 }
 
+/** @returns The given tag name with stripped prefix */
 export function fromTag(tagName: string) {
   const a = tagName.replace(new RegExp(`^${process.env.REACT_APP_TAG_PREFIX}-`), '');
   return PLURAL_TAG_MAP[a as keyof typeof PLURAL_TAG_MAP] || a;
@@ -46,7 +43,7 @@ export function fromTag(tagName: string) {
  * @returns The size of the given Arweave tags in bytes
  */
 export function calculateTagsSize(tags: ArweaveTag[]) : number {
-  const tagPrefixesSize = tags.length * (`${process.env.REACT_APP_TAG_PREFIX}-`.length);
+  const tagPrefixesSize = tags.length * toTag('').length;
   const tagsSize = tags.flat().reduce((acc: number, str: string | undefined) => (
     acc + (str ? str.length : 0)), 0);
   return tagPrefixesSize + tagsSize;
@@ -91,6 +88,9 @@ export const isConfirmed = (tx: ArSyncTx) => tx.status === ArSyncTxStatus.CONFIR
 export const isNotConfirmed = (tx: ArSyncTx) => tx.status !== ArSyncTxStatus.CONFIRMED;
 export const isBundled = (tx: ArSyncTx) => isNotEmpty(tx.dispatchResult)
   && tx.dispatchResult.type === 'BUNDLED';
+
+export const hasValidKind = (tx: ArSyncTx | CachedArTx) => tx.kind
+  && TRANSACTION_KINDS.includes(tx.kind);
 
 /**
  * TODO: Some ArSyncTx-related functions can be refactored to return only the modified ArSyncTxs

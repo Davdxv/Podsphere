@@ -10,6 +10,10 @@ export const MANDATORY_ARWEAVE_TAGS = [
   'id',
   'feedType',
   'feedUrl',
+  'kind',
+] as const;
+
+const MANDATORY_ARWEAVE_METADATA_TAGS = [
   'title',
 ] as const;
 
@@ -51,6 +55,7 @@ const OPTIONAL_ARWEAVE_SINGULAR_TAGS = [
 
 export const ALLOWED_ARWEAVE_TAGS = [
   ...MANDATORY_ARWEAVE_TAGS,
+  ...MANDATORY_ARWEAVE_METADATA_TAGS,
   ...OPTIONAL_ARWEAVE_STRING_TAGS,
   ...OPTIONAL_ARWEAVE_BATCH_TAGS,
   ...OPTIONAL_ARWEAVE_SINGULAR_TAGS,
@@ -58,6 +63,7 @@ export const ALLOWED_ARWEAVE_TAGS = [
 
 export const ALLOWED_ARWEAVE_TAGS_PLURALIZED = [
   ...MANDATORY_ARWEAVE_TAGS,
+  ...MANDATORY_ARWEAVE_METADATA_TAGS,
   ...OPTIONAL_ARWEAVE_STRING_TAGS,
   ...OPTIONAL_ARWEAVE_BATCH_TAGS,
   ...OPTIONAL_ARWEAVE_PLURAL_TAGS,
@@ -68,10 +74,20 @@ export type AllowedTags = typeof ALLOWED_ARWEAVE_TAGS[number];
 export type AllowedTagsPluralized = typeof ALLOWED_ARWEAVE_TAGS_PLURALIZED[number];
 export type ArweaveTag = [AllowedTags, string | undefined];
 
-const FEED_TYPES = [
+export const FEED_TYPES = [
   'rss2',
 ] as const;
 export type FeedType = typeof FEED_TYPES[number];
+
+export const METADATA_TX_KINDS = [
+  'metadataBatch',
+  'customMetadata',
+] as const;
+export const TRANSACTION_KINDS = [
+  ...METADATA_TX_KINDS,
+];
+// export type MetadataTransactionKind = typeof METADATA_TX_KINDS[number];
+export type TransactionKind = typeof TRANSACTION_KINDS[number];
 
 export interface Podcast extends PodcastTags {
   lastMutatedAt?: number; /** @see unixTimestamp() */
@@ -87,6 +103,7 @@ export interface PodcastTags {
   feedType: FeedType;
   feedUrl: string;
   title: string;
+  kind?: TransactionKind;
   description?: string;
   author?: string;
   summary?: string;
@@ -106,12 +123,14 @@ export interface PodcastTags {
   lastBuildDate?: Date;
 }
 
-export interface PodcastDTO extends Omit<Podcast, 'feedType' | 'firstEpisodeDate'
-| 'lastEpisodeDate' | 'episodes' | 'lastBuildDate'> {
+export interface PodcastDTO extends Omit<Podcast, 'feedType' | 'kind' | 'firstEpisodeDate'
+| 'lastEpisodeDate' | 'metadataBatch' | 'episodes' | 'lastBuildDate'> {
   feedType: FeedType | string;
-  firstEpisodeDate?: string;
-  lastEpisodeDate?: string;
-  episodes?: EpisodeDTO[];
+  kind?: TransactionKind | string;
+  firstEpisodeDate: string;
+  lastEpisodeDate: string;
+  metadataBatch: string;
+  episodes: EpisodeDTO[];
   lastBuildDate?: string;
 }
 
@@ -184,8 +203,9 @@ export enum ArSyncTxStatus {
  *   user chooses to clear any of them.
  * @prop {string} id uuid of the ArSyncTx object
  * @prop {string} podcastId uuid of the relevant podcast
- * @prop {string} title
- * @prop {DispatchResult | DispatchResultDTO} dispatchResult
+ * @prop {TransactionKind} kind
+ * @prop {string} title?
+ * @prop {DispatchResult | DispatchResultDTO} dispatchResult?
  * @prop {Transaction | TransactionDTO | Error} resultObj
  * @prop {Partial<Podcast>} metadata
  * @prop {number} numEpisodes
@@ -195,6 +215,7 @@ export enum ArSyncTxStatus {
 export interface ArSyncTx {
   id: string,
   podcastId: Podcast['id'],
+  kind: TransactionKind,
   title?: Podcast['title'],
   dispatchResult?: DispatchResult | DispatchResultDTO,
   resultObj: Transaction | TransactionDTO | Error,
@@ -207,6 +228,38 @@ export interface ArSyncTx {
 export interface ArSyncTxDTO extends Omit<ArSyncTx, 'metadata'> {
   metadata: Partial<PodcastDTO>,
 }
+
+/**
+ * @interface CachedArTx
+ * @description
+ *   Data structure used to cache the tags of one Arweave transaction (parsed into `PodcastTags`),
+ *   also including all necessary props to compute whether to filter this transaction by means of:
+ *   1) Filtering GraphQL responses; see `./arweave/graphql-ops#filterCandidateTxs`
+ *   2) TODO: smarter `./metadata-filtering`
+ *   3) TODO: user-level block lists
+ *   4) TODO: global-level block lists (first maintained by our mods, later sharable among users)
+ * @prop {string} podcastId
+ * @prop {string} txId
+ * @prop {TransactionKind} kind?
+ * @prop {boolean} txBlocked defaults to false, but is set to true for erroneous transactions
+ * @prop {Omit<PodcastTags, 'id' | 'kind'>} tags
+ * @prop {string} ownerAddress
+ * @prop {string} txBundledIn?
+ * @prop {number} numEpisodes
+ */
+export interface CachedArTx {
+  podcastId: PodcastTags['id'];
+  txId: string;
+  kind?: TransactionKind;
+  txBlocked: boolean;
+  tags: Omit<PodcastTags, 'id' | 'kind'>;
+  ownerAddress: string;
+  txBundledIn?: string;
+  numEpisodes: number;
+}
+
+export interface GraphQLMetadata extends
+  Pick<CachedArTx, 'txId' | 'ownerAddress' | 'txBundledIn'> {}
 
 export interface DisjointGraphFunctionNode extends Pick<Podcast, 'feedUrl'> {
   keywordsAndCategories: string[];

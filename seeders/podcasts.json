@@ -3,6 +3,7 @@
     "id": "3839712a-0e1a-4769-bfbe-5f1a2b32b23f",
     "feedType": "rss2",
     "feedUrl": "https://feeds.simplecast.com/dHoohVNH",
+    "kind": "metadataBatch",
     "title": "Conan O’Brien Needs A Friend",
     "keywords": [
       "team coco & earwolf"
@@ -3790,6 +3791,7 @@
     "id": "3839712a-0e1a-4769-bfbe-5f1a2b32b23f",
     "feedType": "rss2",
     "feedUrl": "https://feeds.simplecast.com/dHoohVNH",
+    "kind": "metadataBatch",
     "keywords": [],
     "metadataBatch": 1,
     "firstEpisodeDate": "2022-06-27T04:00:00.000Z",
@@ -3802,6 +3804,7 @@
     "id": "a6102b7f-a16e-49e5-8428-5f072b5bf91b",
     "feedType": "rss2",
     "feedUrl": "https://thejimmydoreshow.libsyn.com/rss",
+    "kind": "metadataBatch",
     "title": "The Jimmy Dore Show",
     "keywords": [
       "jimmy dore",
@@ -5157,6 +5160,7 @@
     "id": "a6102b7f-a16e-49e5-8428-5f072b5bf91b",
     "feedType": "rss2",
     "feedUrl": "https://thejimmydoreshow.libsyn.com/rss",
+    "kind": "metadataBatch",
     "keywords": [],
     "metadataBatch": 1,
     "firstEpisodeDate": "2021-10-14T04:15:43.000Z",
@@ -5255,6 +5259,7 @@
     "id": "a6102b7f-a16e-49e5-8428-5f072b5bf91b",
     "feedType": "rss2",
     "feedUrl": "https://thejimmydoreshow.libsyn.com/rss",
+    "kind": "metadataBatch",
     "keywords": [],
     "metadataBatch": 2,
     "firstEpisodeDate": "2022-07-01T05:30:08.000Z",
@@ -5267,6 +5272,7 @@
     "id": "dba09274-0f67-46c7-8776-76c6ef252760",
     "feedType": "rss2",
     "feedUrl": "https://feeds.megaphone.fm/ADV2256857693",
+    "kind": "metadataBatch",
     "title": "The Jordan B. Peterson Podcast",
     "keywords": [
       "dr. jordan b. peterson"
@@ -8960,6 +8966,7 @@
     "id": "dba09274-0f67-46c7-8776-76c6ef252760",
     "feedType": "rss2",
     "feedUrl": "https://feeds.megaphone.fm/ADV2256857693",
+    "kind": "metadataBatch",
     "keywords": [],
     "metadataBatch": 1,
     "firstEpisodeDate": "2021-12-09T21:00:00.000Z",
@@ -8972,6 +8979,7 @@
     "id": "11ab1e63-71c7-44a6-9655-2b43f61b1d76",
     "feedType": "rss2",
     "feedUrl": "https://lexfridman.com/feed/podcast",
+    "kind": "metadataBatch",
     "title": "Lex Fridman Podcast",
     "keywords": [
       "lex fridman"

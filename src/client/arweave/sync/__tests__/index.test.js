@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 import { initArSyncTxs, startSync } from '..';
-import { podcastFromDTO } from '../../../../utils';
+import { podcastFromDTO, unixTimestamp } from '../../../../utils';
 import { ArSyncTxStatus } from '../../../interfaces';
 import { decompressMetadata } from '../../utils';
 import { mergeBatchMetadata } from '../diff-merge-logic';
@@ -125,6 +125,7 @@ describe('initArSyncTxs', () => {
           {
             id: global.VALID_ID,
             podcastId: unknownPodcastId,
+            kind: 'metadataBatch',
             title: 'unknown podcast newTitle',
             resultObj: mockTransaction,
             metadata: {
@@ -138,6 +139,7 @@ describe('initArSyncTxs', () => {
           {
             id: global.VALID_ID,
             podcastId: podcast2.id,
+            kind: 'metadataBatch',
             title: 'podcast2 newTitle',
             resultObj: mockTransaction2,
             metadata: {
@@ -178,6 +180,7 @@ describe('initArSyncTxs', () => {
             {
               id: global.VALID_ID,
               podcastId: podcast1.id,
+              kind: 'metadataBatch',
               title: 'newTitle',
               resultObj: mockTransaction,
               metadata: {
@@ -191,6 +194,7 @@ describe('initArSyncTxs', () => {
             {
               id: global.VALID_ID,
               podcastId: podcast2.id,
+              kind: 'metadataBatch',
               title: 'podcast2 newTitle',
               resultObj: mockTransaction2,
               metadata: {
@@ -217,6 +221,7 @@ describe('initArSyncTxs', () => {
             {
               id: global.VALID_ID,
               podcastId: podcast1.id,
+              kind: 'metadataBatch',
               title: 'newTitle',
               resultObj: mockError,
               metadata: { ...metadataToSync[0], id: removePrefixFromPodcastId(podcast1.id) },
@@ -227,6 +232,7 @@ describe('initArSyncTxs', () => {
             {
               id: global.VALID_ID,
               podcastId: podcast2.id,
+              kind: 'metadataBatch',
               title: 'podcast2 newTitle',
               resultObj: mockTransaction,
               metadata: {
@@ -253,6 +259,7 @@ describe('initArSyncTxs', () => {
             {
               id: global.VALID_ID,
               podcastId: podcast1.id,
+              kind: 'metadataBatch',
               title: 'newTitle',
               resultObj: mockError,
               metadata: { ...metadataToSync[0], id: removePrefixFromPodcastId(podcast1.id) },
@@ -263,6 +270,7 @@ describe('initArSyncTxs', () => {
             {
               id: global.VALID_ID,
               podcastId: podcast2.id,
+              kind: 'metadataBatch',
               title: 'podcast2 newTitle',
               resultObj: mockError2,
               metadata: {
@@ -305,6 +313,7 @@ describe('initArSyncTxs', () => {
           expect(result1).toStrictEqual({
             id: global.VALID_ID,
             podcastId: pod1.id,
+            kind: 'metadataBatch',
             title: 'newTitle',
             resultObj: mockTransaction,
             metadata: { ...pod1, id: removePrefixFromPodcastId(pod1.id) },
@@ -320,6 +329,7 @@ describe('initArSyncTxs', () => {
           expect(result2Ids).toEqual([...new Set(result2Ids)]);
 
           expect(result2.every(tx => tx.podcastId === pod2.id)).toBe(true);
+          expect(result2.every(tx => tx.kind === 'metadataBatch')).toBe(true);
           expect(result2.every(tx => tx.title === pod2.title)).toBe(true);
           expect(result2.every(tx => tx.resultObj === mockTransaction2)).toBe(true);
           expect(result2.every(tx => tx.numEpisodes === tx.metadata.episodes.length)).toBe(true);
@@ -355,6 +365,7 @@ describe('initArSyncTxs', () => {
           const expected2MergedMetadata = {
             ...pod2,
             id: removePrefixFromPodcastId(pod2.id),
+            kind: 'metadataBatch',
             keywords: ANYTHING,
             firstEpisodeDate: pod2.episodes[pod2.episodes.length - 1].publishedAt,
             lastEpisodeDate: pod2.episodes[0].publishedAt,
@@ -366,6 +377,7 @@ describe('initArSyncTxs', () => {
             .map(params => podcastFromDTO(decompressMetadata(params[1])));
           const result2MergedDecompressedMetadata = {
             ...mergeBatchMetadata(result2DecompressedMetadata, true),
+            kind: 'metadataBatch',
             keywords: ANYTHING,
           };
           expect(result2MergedDecompressedMetadata).toEqual(expected2MergedMetadata);
@@ -441,6 +453,9 @@ describe('startSync', () => {
   const mockMetadata1 = { feedUrl: 'https://server.dummy/podcast1' };
   const mockMetadata2 = { feedUrl: 'https://server.dummy/podcast2' };
   const mockMetadata3 = { feedUrl: 'https://server.dummy/podcast3' };
+  const id1 = global.podcastId(1);
+  const id2 = global.podcastId(2);
+  const id3 = global.podcastId(3);
 
   describe('When pendingTxs is empty', () => {
     const pendingTxs = [];
@@ -454,44 +469,52 @@ describe('startSync', () => {
   describe('When there are 2 initialized txs and 1 fails to post', () => {
     const arSyncTxs = [
       {
-        id: '1',
-        feedUrl: 'https://server.dummy/podcast1',
+        id: id1,
+        podcastId: podcast1.id,
+        kind: 'metadataBatch',
         title: 'cachedTitle',
         resultObj: mockTransaction,
         metadata: mockMetadata1,
         numEpisodes: 0,
         status: ArSyncTxStatus.INITIALIZED,
+        timestamp: unixTimestamp(),
       },
       {
-        id: '2',
-        feedUrl: 'https://server.dummy/podcast2',
+        id: id2,
+        podcastId: podcast2.id,
+        kind: 'metadataBatch',
         title: 'podcast2 cachedTitle',
         resultObj: mockTransaction,
         metadata: mockMetadata2,
         numEpisodes: 0,
         status: ArSyncTxStatus.INITIALIZED,
+        timestamp: unixTimestamp(),
       },
     ];
     const expected = (modifiers = { useArConnect: false }) => [
       {
         dispatchResult: undefined,
-        id: '1',
-        feedUrl: 'https://server.dummy/podcast1',
+        id: id1,
+        podcastId: podcast1.id,
+        kind: 'metadataBatch',
         title: 'cachedTitle',
         resultObj: mockError,
         metadata: mockMetadata1,
         numEpisodes: 0,
         status: ArSyncTxStatus.ERRORED,
+        timestamp: ANY_NUMBER,
       },
       {
         dispatchResult: modifiers.useArConnect ? mockDispatchResult : undefined,
-        id: '2',
-        feedUrl: 'https://server.dummy/podcast2',
+        id: id2,
+        podcastId: podcast2.id,
+        kind: 'metadataBatch',
         title: 'podcast2 cachedTitle',
         resultObj: mockTransaction,
         metadata: mockMetadata2,
         numEpisodes: 0,
         status: ArSyncTxStatus.POSTED,
+        timestamp: ANY_NUMBER,
       },
     ];
 
@@ -530,31 +553,37 @@ describe('startSync', () => {
   describe('When there are 1 initialized tx and 2 other txs', () => {
     const arSyncTxs = [
       {
-        id: '1',
-        feedUrl: 'https://server.dummy/podcast1',
+        id: id1,
+        podcastId: podcast1.id,
+        kind: 'customMetadata',
         title: 'cachedTitle',
         resultObj: mockTransaction,
         metadata: mockMetadata1,
         numEpisodes: 0,
         status: ArSyncTxStatus.ERRORED,
+        timestamp: unixTimestamp(),
       },
       {
-        id: '2',
-        feedUrl: 'https://server.dummy/podcast2',
+        id: id2,
+        podcastId: podcast2.id,
+        kind: 'metadataBatch',
         title: 'podcast2 cachedTitle',
         resultObj: mockTransaction2,
         metadata: mockMetadata2,
         numEpisodes: 0,
         status: ArSyncTxStatus.INITIALIZED,
+        timestamp: unixTimestamp(),
       },
       {
-        id: '3',
-        feedUrl: 'https://server.dummy/podcast3',
-        title: 'podcast3 cachedTitle',
+        id: id3,
+        podcastId: podcast2.id,
+        kind: 'metadataBatch',
+        title: 'podcast2 cachedTitle',
         resultObj: mockTransaction3,
         metadata: mockMetadata3,
-        numEpisodes: 0,
+        numEpisodes: 1,
         status: ArSyncTxStatus.CONFIRMED,
+        timestamp: unixTimestamp(),
       },
     ];
 
@@ -563,31 +592,37 @@ describe('startSync', () => {
       const result = await startSync(arSyncTxs, wallet);
       expect(result).toEqual([
         {
-          id: '1',
-          feedUrl: 'https://server.dummy/podcast1',
+          id: id1,
+          podcastId: podcast1.id,
+          kind: 'customMetadata',
           title: 'cachedTitle',
           resultObj: mockTransaction,
           metadata: mockMetadata1,
           numEpisodes: 0,
           status: ArSyncTxStatus.ERRORED,
+          timestamp: ANY_NUMBER,
         },
         {
-          id: '2',
-          feedUrl: 'https://server.dummy/podcast2',
+          id: id2,
+          podcastId: podcast2.id,
+          kind: 'metadataBatch',
           title: 'podcast2 cachedTitle',
           resultObj: mockTransaction2,
           metadata: mockMetadata2,
           numEpisodes: 0,
           status: ArSyncTxStatus.POSTED,
+          timestamp: ANY_NUMBER,
         },
         {
-          id: '3',
-          feedUrl: 'https://server.dummy/podcast3',
-          title: 'podcast3 cachedTitle',
+          id: id3,
+          podcastId: podcast2.id,
+          kind: 'metadataBatch',
+          title: 'podcast2 cachedTitle',
           resultObj: mockTransaction3,
           metadata: mockMetadata3,
-          numEpisodes: 0,
+          numEpisodes: 1,
           status: ArSyncTxStatus.CONFIRMED,
+          timestamp: ANY_NUMBER,
         },
       ]);
     });

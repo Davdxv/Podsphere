@@ -18,6 +18,8 @@ import {
 import { isValidUuid } from '../podcast-id';
 import { getPodcastId } from './arweave/cache/podcast-id';
 
+export const { pingTxIds } = arweave;
+
 type GetPodcastResult = {
   errorMessage?: string;
   newPodcastMetadata?: Podcast;
@@ -76,7 +78,7 @@ export async function fetchPodcastRss2Feed(
 
   const newPodcastMetadataToSync = rightDiff(
     feed.arweave,
-    metadataToSyncWithNewEpisodes,
+    { ...metadataToSyncWithNewEpisodes, id: '' },
     ['id', 'feedUrl', 'title'],
   );
 

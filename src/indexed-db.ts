@@ -26,6 +26,8 @@ export class IndexedDb {
   public static readonly EPISODES = 'episodes';
   public static readonly METADATATOSYNC = 'metadataToSync';
   public static readonly TX_HISTORY = 'transactionHistory';
+  public static readonly TX_CACHE = 'transactionCache';
+
   public static readonly ID_MAPPINGS_INDEX = 'idMappings';
 
   public static readonly DB_NAME = 'Podsphere';
@@ -47,6 +49,10 @@ export class IndexedDb {
     {
       tableName: IndexedDb.TX_HISTORY,
       createObjectStoreParams: { autoIncrement: false, keyPath: 'id' },
+    },
+    {
+      tableName: IndexedDb.TX_CACHE,
+      createObjectStoreParams: { autoIncrement: false, keyPath: 'txId' },
     },
   ];
 

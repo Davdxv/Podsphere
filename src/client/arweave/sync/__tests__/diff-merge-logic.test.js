@@ -279,7 +279,7 @@ describe('mergeBatchMetadata', () => {
 
   describe('When given multiple batches and parameter applyMergeSpecialTags = false', () => {
     it('categories of the latest batch holds, unless they are empty', () => {
-      expect(mergeBatchMetadata(metadataBatches)).toStrictEqual({
+      expect(mergeBatchMetadata(metadataBatches, false)).toStrictEqual({
         description: 'description1',
         imageUrl: 'https://imgurl/img.png?ver=2',
         imageTitle: 'imageTitle2',

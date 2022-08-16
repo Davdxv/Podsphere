@@ -47,7 +47,7 @@ const PodGraph : React.FC<Props> = ({ subscriptions }) => {
       },
     );
     setCy(cyto);
-    window.cy = cyto;
+    if (typeof window !== 'undefined') window.cy = cyto;
 
     return () => {
       cyto.destroy();

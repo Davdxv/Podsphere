@@ -6,8 +6,11 @@ import {
   ArweaveTag,
   Episode,
   MandatoryTags,
+  METADATA_TX_KINDS,
   OPTIONAL_ARWEAVE_STRING_TAGS,
   Podcast,
+  TransactionKind,
+  TRANSACTION_KINDS,
 } from '../interfaces';
 import { WalletDeferredToArConnect } from './wallet';
 import client from './client';
@@ -16,17 +19,23 @@ import {
   unixTimestamp,
   toISOString,
   isNotEmpty,
-  hasMetadata,
   isValidDate,
   isValidInteger,
   getFirstEpisodeDate,
   getLastEpisodeDate,
 } from '../../utils';
 import { isValidUuid, removePrefixFromPodcastId } from '../../podcast-id';
+import { getCachedBatchNumberForDate } from './cache/transactions';
 
-const MAX_TAGS = 120; // Arweave max = 128, but mind leaving some space for extra meta tags
-const MAX_TAG_NAME_SIZE = 1024; // Arweave max = 1024 bytes
-const MAX_TAG_VALUE_SIZE = 3072; // Arweave max = 3072 bytes
+/**
+ * {@linkcode https://github.com/joshbenaron/arweave-standards/blob/ans104/ans/ANS-104.md ANS-104}
+ *   Arweave standard limits max tags to 128, but mind leaving some space for extra meta tags
+ */
+const MAX_TAGS = 120;
+/** ANS-104 limits each tag name size to 1024 bytes */
+const MAX_TAG_NAME_SIZE = 1024 - toTag('').length;
+/** ANS-104 limits each tag value size to 3072 bytes */
+const MAX_TAG_VALUE_SIZE = 3072;
 
 /**
  * @param tag Tuple of two strings representing the tag name and value
@@ -46,17 +55,22 @@ const validateAndTrimTag = (tag: ArweaveTag) : ArweaveTag | null => {
 export function formatTags(
   newMetadata: Partial<Podcast>,
   cachedMetadata: Partial<Podcast> = {},
+  kind: TransactionKind = 'metadataBatch',
 ) : ArweaveTag[] {
   // An updated id is assumed to have been fetched through SubscriptionsProvider.refresh()
-  let id = newMetadata.id || cachedMetadata.id || '';
+  let id = removePrefixFromPodcastId(newMetadata.id || cachedMetadata.id || '');
   if (!isValidUuid(id)) id = '';
+  const title = newMetadata.title || cachedMetadata.title || '';
 
-  const mandatoryPodcastTags : [MandatoryTags, string | undefined][] = [
+  const mandatoryPodcastTags : [MandatoryTags | 'title', string | undefined][] = [
     ['id', removePrefixFromPodcastId(id)],
     ['feedType', newMetadata.feedType || cachedMetadata.feedType],
     ['feedUrl', newMetadata.feedUrl || cachedMetadata.feedUrl],
-    ['title', newMetadata.title || cachedMetadata.title],
+    ['kind', TRANSACTION_KINDS.includes(kind) ? kind : ''],
   ];
+  if (METADATA_TX_KINDS.includes(kind)) {
+    mandatoryPodcastTags.push(['title', title]);
+  }
 
   const getMandatoryTagsValues = (key: MandatoryTags) => mandatoryPodcastTags
     .find(element => element[0] === key)![1];
@@ -64,8 +78,7 @@ export function formatTags(
   mandatoryPodcastTags.forEach(([name, value]) => {
     if (!value) {
       throw new Error('Could not upload metadata for '
-        + `${getMandatoryTagsValues('title') || getMandatoryTagsValues('feedUrl')}: `
-        + `${name} is missing`);
+        + `${title || getMandatoryTagsValues('feedUrl')}: ${name} is missing`);
     }
   });
 
@@ -75,6 +88,7 @@ export function formatTags(
     if (val) podcastTags.push([tagName, `${val}`]);
   });
   const episodeBatchTags : ArweaveTag[] = isNotEmpty(newMetadata.episodes) ? episodeTags(
+    id,
     newMetadata.episodes,
     cachedMetadata,
     newMetadata.metadataBatch,
@@ -103,12 +117,14 @@ async function newTransaction(
     const trx = usingArConnect() ? await client.createTransaction({ data: compressedMetadata })
       : await client.createTransaction({ data: compressedMetadata }, wallet as JWKInterface);
 
-    trx.addTag('App-Name', process.env.REACT_APP_TAG_PREFIX as string);
-    trx.addTag('App-Version', process.env.REACT_APP_VERSION as string);
+    /** Add all General Purpose Tag Names suggested in:
+     * @see https://github.com/joshbenaron/arweave-standards/blob/master/best-practices/BP-105.md */
+    trx.addTag('App-Name', process.env.REACT_APP_TAG_PREFIX || '');
+    trx.addTag('App-Version', process.env.REACT_APP_VERSION || '');
     trx.addTag('Content-Type', 'application/gzip');
     trx.addTag('Unix-Time', `${unixTimestamp()}`);
-    tags.forEach(([k, v]) => {
-      trx.addTag(toTag(k), `${v}`);
+    tags.forEach(([name, value]) => {
+      trx.addTag(toTag(name), `${value}`);
     });
     return trx;
   }
@@ -187,8 +203,12 @@ export async function newTransactionFromMetadata(
   newMetadata: Partial<Podcast>,
   cachedMetadata: Partial<Podcast> = {},
 ) : Promise<Transaction> {
-  const newCompressedMetadata : Uint8Array = compressMetadata(newMetadata);
-  const tags : ArweaveTag[] = formatTags(newMetadata, cachedMetadata);
+  const id = removePrefixFromPodcastId(newMetadata.id || cachedMetadata.id || '');
+  const newMetadataWithId = { ...newMetadata, id };
+  const cachedMetadataWithId = { ...cachedMetadata, id };
+
+  const newCompressedMetadata : Uint8Array = compressMetadata(newMetadataWithId);
+  const tags : ArweaveTag[] = formatTags(newMetadataWithId, cachedMetadataWithId);
   return newTransactionFromCompressedMetadata(wallet, newCompressedMetadata, tags);
 }
 
@@ -212,10 +232,12 @@ export async function newTransactionFromCompressedMetadata(
 /**
  * @param newEpisodes
  * @param cachedMetadata
- * @param metadataBatchNumber Iff null then metadataBatch is computed by @see getMetadataBatchNumber
+ * @param metadataBatchNumber
+ *   Iff null then metadataBatch is computed by {@linkcode getMetadataBatchNumber()}.
  * @returns The metadata transaction tags for the given list of newEpisodes
  */
 function episodeTags(
+  podcastId: Podcast['id'],
   newEpisodes: Episode[] = [],
   cachedMetadata: Partial<Podcast> = {},
   metadataBatchNumber: number | null = null,
@@ -225,7 +247,7 @@ function episodeTags(
   const firstEpisodeDate = newEpisodes[newEpisodes.length - 1].publishedAt;
   const lastEpisodeDate = newEpisodes[0].publishedAt;
   const metadataBatch = (isValidInteger(metadataBatchNumber) ? metadataBatchNumber
-    : getMetadataBatchNumber(cachedMetadata, firstEpisodeDate, lastEpisodeDate));
+    : getMetadataBatchNumber(podcastId, cachedMetadata, firstEpisodeDate, lastEpisodeDate));
 
   return [
     ['firstEpisodeDate', toISOString(firstEpisodeDate)],
@@ -236,12 +258,14 @@ function episodeTags(
 
 export function withMetadataBatchNumber(
   metadata: Partial<Podcast>,
-  priorBatchMetadata: Partial<Podcast>,
+  priorBatchMetadata: Partial<Podcast> = {},
 ) : Partial<Podcast> {
   const firstEpisodeDate = getFirstEpisodeDate(metadata);
   const lastEpisodeDate = getLastEpisodeDate(metadata);
+  const podcastId = removePrefixFromPodcastId(metadata.id || priorBatchMetadata.id || '');
+
   const metadataBatch = getMetadataBatchNumber(
-    priorBatchMetadata, firstEpisodeDate, lastEpisodeDate,
+    podcastId, priorBatchMetadata, firstEpisodeDate, lastEpisodeDate,
   );
   return {
     ...metadata,
@@ -255,35 +279,53 @@ export function withMetadataBatchNumber(
  * @param cachedMetadata
  * @param firstNewEpisodeDate
  * @param lastNewEpisodeDate
- * @returns
- *   An integer denoting the batch number for the [firstNewEpisodeDate, lastNewEpisodeDate] interval
+ * @returns An integer denoting the batch number for the `[firstNewEpisodeDate, lastNewEpisodeDate]`
+ *   interval. If the interval overlaps with `cachedMetadata`, the lowest matching metadataBatch
+ *   number from the transaction cache is returned by {@linkcode getCachedBatchNumberForDate()}.
+ * @throws if the batch number could not be computed
  */
 export function getMetadataBatchNumber(
+  podcastId: Podcast['id'],
   cachedMetadata: Partial<Podcast>,
   firstNewEpisodeDate: Date,
   lastNewEpisodeDate: Date,
 ) : number {
-  if (!isValidDate(firstNewEpisodeDate) || !isValidDate(lastNewEpisodeDate)) {
-    throw new Error(`Could not upload metadata for ${cachedMetadata.title}: `
-                    + 'Invalid date found for one of its episodes.');
-  }
-  const cachedBatchNumber = cachedMetadata.metadataBatch;
+  const throwError = (msg: string) : never => {
+    throw new Error(`Could not upload metadata for ${cachedMetadata.title || podcastId}: ${msg}`);
+  };
 
-  /* First metadata batch for this podcast */
-  if (!hasMetadata(cachedMetadata) || !isValidInteger(cachedBatchNumber)) {
+  if (!isValidUuid(podcastId)) throwError('could not find Podcast id.');
+
+  if (!isValidDate(firstNewEpisodeDate) || !isValidDate(lastNewEpisodeDate)) {
+    throwError('invalid date found for one of its episodes.');
+  }
+
+  if (!isNotEmpty(cachedMetadata)) return 0;
+
+  const cachedLastBatchNr = cachedMetadata.metadataBatch;
+  const cachedFirstDate = cachedMetadata.firstEpisodeDate;
+  const cachedLastDate = cachedMetadata.lastEpisodeDate;
+
+  if (!isValidDate(cachedFirstDate) || !isValidDate(cachedLastDate)
+      || !isValidInteger(cachedLastBatchNr)) { /* First metadata batch for this podcast */
     return 0;
   }
 
-  /* Retroactive inserting of metadata */
-  // if (cachedMetadata.firstBatch.firstEpisodeDate >= lastNewEpisodeDate) {
-  //   return cachedMetadata.firstBatch.count - 1;
-  // }
+  if (firstNewEpisodeDate < cachedFirstDate) { /* Retroactive insertion of metadata */
+    // TODO: This should return a negative batch number
+    throwError('retroactive insertion of metadata is not yet implemented.');
+  }
 
-  if (cachedMetadata.lastEpisodeDate && cachedMetadata.lastEpisodeDate > lastNewEpisodeDate) {
-    // return queryMiddleMetadataBatchNumber(cachedMetadata,firstNewEpisodeDate,lastNewEpisodeDate);
-    throw new Error('Supplementing existing metadata is not implemented yet.');
+  if (lastNewEpisodeDate <= cachedLastDate) {
+    // Return the cached metadataBatch number that encompasses `firstNewEpisodeDate`
+    try {
+      return getCachedBatchNumberForDate(podcastId, firstNewEpisodeDate);
+    }
+    catch (ex) {
+      console.warn(`Could not find batch number for ${cachedMetadata.title || podcastId}.`, ex);
+    }
   }
 
   /* Next consecutive metadata batch */
-  return cachedBatchNumber + 1;
+  return cachedLastBatchNr + 1;
 }

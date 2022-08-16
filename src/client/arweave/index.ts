@@ -4,7 +4,7 @@ import client from './client';
 import { getArBundledParentIds } from './graphql-ops';
 import { getBundleTxId, getTxId, isBundled } from './utils';
 
-export { getPodcastRss2Feed } from './graphql-ops';
+export { getPodcastRss2Feed, pingTxIds } from './graphql-ops';
 export { createNewDevWallet, getWalletAddress } from './wallet';
 export {
   newTransactionFromCompressedMetadata,

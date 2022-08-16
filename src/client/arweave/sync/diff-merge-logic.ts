@@ -14,6 +14,7 @@ import {
   omitEmptyMetadata,
 } from '../../../utils';
 import { mergeArraysToLowerCase } from '../../metadata-filtering/formatting';
+import { isCandidatePodcastId, isValidUuid } from '../../../podcast-id';
 
 /**
  * @param oldEpisode
@@ -135,6 +136,7 @@ export function mergeBatchMetadata(
  * Helper function to run in the body of a reduce operation on an array of objects.
  * @returns
  *   `tags` with all non-empty tags merged, where newer batches take precedence, except for:
+ *   - id holds for the confirmed podcastId if it exists next to a candidate podcast id
  *   - min holds for firstEpisodeDate
  *   - max holds for lastEpisodeDate and metadataBatch
  *   - metadataBatch maps to an Integer
@@ -146,6 +148,11 @@ const mergeSpecialTags = (tags: Partial<PodcastTags>, metadata: Partial<PodcastT
   let acc = { ...tags };
   Object.entries(omitEmptyMetadata(metadata)).forEach(([tag, value]) => {
     switch (tag) {
+      case 'id': {
+        const bestId = [acc.id, value].find(id => isValidUuid(id) && !isCandidatePodcastId(id));
+        if (bestId) acc.id = bestId as string;
+        break;
+      }
       case 'episodes':
         break;
       case 'firstEpisodeDate':

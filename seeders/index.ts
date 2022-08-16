@@ -21,11 +21,11 @@ else {
   seed(metadataBatches);
 }
 
-async function delay(ms = 5000) {
+async function delay(ms: number) {
   return new Promise(resolve => { setTimeout(resolve, ms); });
 }
 
-export default async function seed(dtoMetadataBatches: PodcastDTO[], ms = 5000) : Promise<void> {
+export default async function seed(dtoMetadataBatches: PodcastDTO[], ms = 3000) : Promise<void> {
   await delay(ms);
   console.log('Begin seeding...');
 

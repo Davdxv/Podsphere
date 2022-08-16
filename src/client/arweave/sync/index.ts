@@ -1,7 +1,7 @@
 /**
  * @module ArSync Main module for ArSync
  *
- * Current version: v1.3.2
+ * Current version: v1.4
  *
  * ArSync comprises all necessary logic for creating, fetching and tracking Podsphere's transactions
  * on Arweave.
@@ -100,6 +100,7 @@ export async function initArSyncTxs(
     const arSyncTx : ArSyncTx = {
       id: uuid(),
       podcastId: batch.podcastId,
+      kind: 'metadataBatch',
       title: batch.title,
       resultObj: newTxResult,
       metadata: batch.metadata,
@@ -154,7 +155,7 @@ export async function startSync(
  *   An object that includes the `compressedMetadata` and `tags` params required by
  *   {@linkcode newTransactionFromCompressedMetadata}. Local precursor to an (exported) `ArSyncTx`.
  * @prop {string} podcastId uuid of the relevant podcast `= metadata.id`
- * @prop {string} title
+ * @prop {string} title?
  * @prop {Partial<Podcast>} metadata
  * @prop {number} numEpisodes
  * @prop {Uint8Array} compressedMetadata
@@ -280,7 +281,7 @@ const findNextBatch = (
 
   if (!hasMetadata(episodesToSync) || !maxBatchSize) {
     if (hasMetadata(episodesToSync)) {
-      result.metadata = withMetadataBatchNumber(result.metadata, priorBatchMetadata);
+      result.metadata = withMetadataBatchNumber(result.metadata, cachedMetadata);
     }
     result.compressedMetadata = compressMetadata(result.metadata);
     result.tags = formatTags(result.metadata, cachedMetadata);
