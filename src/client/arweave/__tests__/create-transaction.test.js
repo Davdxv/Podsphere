@@ -1,5 +1,6 @@
 import { strToU8, compressSync } from 'fflate';
-import { newTransactionFromMetadata } from '../create-transaction';
+import * as TxCache from '../cache/transactions';
+import { formatTags, newTransactionFromMetadata } from '../create-transaction';
 import { toTag } from '../utils';
 // eslint-disable-next-line import/named
 import { addTag, createTransaction } from '../client';
@@ -69,7 +70,7 @@ const BASE_CACHED_METADATA = {
   episodes: [], // ignored by newTransactionFromMetadata
 };
 const BASE_NEW_METADATA = {
-  id: PODCAST_ID,
+  id: removePrefixFromPodcastId(PODCAST_ID),
   feedType: 'rss2',
   feedUrl: 'https://server.dummy/foo',
   title: 'newTitle',
@@ -86,6 +87,30 @@ function cachedMetadata(additionalFields = {}) {
 
 function newMetadata(additionalFields = {}) {
   return { ...BASE_NEW_METADATA, ...additionalFields };
+}
+
+let countCachedArTxs = 0;
+
+function newCachedArTx(tags = null, additionalFields = {}) {
+  const defaultTags = {
+    firstEpisodeDate: new Date(ep1date),
+    lastEpisodeDate: new Date(ep2date),
+    metadataBatch: 0,
+  };
+  const defaultFields = {
+    podcastId: removePrefixFromPodcastId(PODCAST_ID),
+    txId: `txId${countCachedArTxs}`,
+    kind: 'metadataBatch',
+    txBlocked: false,
+    tags: {
+      ...(tags || defaultTags),
+    },
+    ownerAddress: 'ownerAddress',
+    numEpisodes: 0,
+  };
+  countCachedArTxs++;
+
+  return { ...defaultFields, ...additionalFields };
 }
 
 const stubbedWallet = {};
@@ -106,15 +131,18 @@ afterAll(() => {
   jest.useRealTimers();
 });
 
+beforeEach(() => {
+  countCachedArTxs = 0;
+});
+
+afterEach(() => {
+  TxCache.initializeTxCache([]);
+});
+
 /**
  * newTransactionFromCompressedMetadata() is implicitly tested through newTransactionFromMetadata()
  */
 describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () => {
-  beforeEach(() => {
-    expect(createTransaction).not.toHaveBeenCalled();
-    expect(addTag).not.toHaveBeenCalled();
-  });
-
   function assertAddTagCalls(expectedTags) {
     const formattedExpectedTags = [
       ['App-Name', 'testPodsphere'],
@@ -148,6 +176,7 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
           ['id', removePrefixFromPodcastId(PODCAST_ID)],
           ['feedType', 'rss2'],
           ['feedUrl', 'https://server.dummy/foo'],
+          ['kind', 'metadataBatch'],
           ['title', 'newTitle'],
           ['description', 'newDescription'],
           ['language', 'en-us'],
@@ -182,8 +211,8 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
     const assertTest = (modifiers = { useArConnect: false }) => {
       it('creates a transaction with the expected metadata and tags', async () => {
         const currentBatchFields = {
-          firstEpisodeDate: ep1date,
-          lastEpisodeDate: ep2date,
+          firstEpisodeDate: new Date(ep1date),
+          lastEpisodeDate: new Date(ep2date),
           metadataBatch: 0,
         };
         const expectedMetadata = newMetadata({ episodes: allEpisodes.slice(0, 2) });
@@ -191,6 +220,7 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
           ['id', removePrefixFromPodcastId(PODCAST_ID)],
           ['feedType', 'rss2'],
           ['feedUrl', 'https://server.dummy/foo'],
+          ['kind', 'metadataBatch'],
           ['title', 'newTitle'],
           ['description', 'newDescription'],
           ['language', 'en-us'],
@@ -224,16 +254,74 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
     withAndWithoutArConnect(assertTest);
   });
 
-  xdescribe('When 1 cached batch of newer metadata exists', () => {
-    // TODO: Not yet implemented
+  describe('When 1 cached batch of newer metadata exists', () => {
+    const assertTest = (modifiers = { useArConnect: false }) => {
+      it('looks up the best batch number from the Transaction Cache '
+         + 'and creates a transaction with the expected metadata and tags', async () => {
+        const currentBatchFields = {
+          firstEpisodeDate: new Date(ep1date),
+          lastEpisodeDate: new Date(ep4date),
+          metadataBatch: 1,
+        };
+        const expectedMetadata = newMetadata({ episodes: allEpisodes.slice(2, 4) });
+        const expectedTags = [
+          ['id', removePrefixFromPodcastId(PODCAST_ID)],
+          ['feedType', 'rss2'],
+          ['feedUrl', 'https://server.dummy/foo'],
+          ['kind', 'metadataBatch'],
+          ['title', 'newTitle'],
+          ['description', 'newDescription'],
+          ['language', 'en-us'],
+          ['firstEpisodeDate', ep1date],
+          ['lastEpisodeDate', ep2date],
+          ['metadataBatch', '0'],
+          ['category', 'podcat1'],
+          ['category', 'podcat2'],
+          ['keyword', 'podkey1'],
+          ['keyword', 'podkey2'],
+        ];
+
+        TxCache.initializeTxCache([
+          newCachedArTx({
+            firstEpisodeDate: new Date(ep3date),
+            lastEpisodeDate: new Date(ep4date),
+            metadataBatch: 1,
+          }),
+          newCachedArTx({
+            firstEpisodeDate: new Date(ep1date),
+            lastEpisodeDate: new Date(ep1date),
+            metadataBatch: 0,
+          }),
+        ]);
+
+        const result = await newTransactionFromMetadata(
+          stubbedWallet,
+          expectedMetadata,
+          cachedMetadata(currentBatchFields),
+        );
+        expect(result).toEqual(mockResult);
+
+        expect(strToU8).toHaveBeenCalledWith(JSON.stringify(expectedMetadata));
+        expect(compressSync).toHaveBeenCalled();
+
+        const params = modifiers.useArConnect
+          ? [{ data: MOCK_U8_METADATA }]
+          : [{ data: MOCK_U8_METADATA }, stubbedWallet];
+        expect(createTransaction).toHaveBeenCalledWith(...params);
+
+        assertAddTagCalls(expectedTags);
+      });
+    };
+
+    withAndWithoutArConnect(assertTest);
   });
 
   describe('When 2 aggregated cached batches of older metadata exist', () => {
     const assertTest = (modifiers = { useArConnect: false }) => {
       it('creates a transaction with the expected metadata and tags', async () => {
         const currentBatchFields = {
-          firstEpisodeDate: ep1date,
-          lastEpisodeDate: ep3date,
+          firstEpisodeDate: new Date(ep1date),
+          lastEpisodeDate: new Date(ep3date),
           metadataBatch: 1,
         };
         const expectedMetadata = newMetadata({ episodes: allEpisodes.slice(0, 1) });
@@ -241,6 +329,7 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
           ['id', removePrefixFromPodcastId(PODCAST_ID)],
           ['feedType', 'rss2'],
           ['feedUrl', 'https://server.dummy/foo'],
+          ['kind', 'metadataBatch'],
           ['title', 'newTitle'],
           ['description', 'newDescription'],
           ['language', 'en-us'],
@@ -275,6 +364,7 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
   });
 
   describe('Error handling', () => {
+    /** NOTE: test `return assertThrow()` to get a proper stack trace if test fails */
     const assertThrow = async (erroneousMetadata, errorRegex) => {
       await expect(newTransactionFromMetadata(stubbedWallet, erroneousMetadata, {}))
         .rejects.toThrow(errorRegex);
@@ -290,7 +380,7 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
           allEpisodes[1],
         ],
       });
-      assertThrow(erroneousMetadata, /Invalid date/);
+      return assertThrow(erroneousMetadata, /invalid date/);
     });
 
     it('throws an Error if the oldest episode has an invalid date', async () => {
@@ -300,17 +390,17 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
           { ...allEpisodes[1], publishedAt: new Date(undefined) },
         ],
       });
-      assertThrow(erroneousMetadata, /Invalid date/);
+      return assertThrow(erroneousMetadata, /invalid date/);
     });
 
-    it('throws an Error if the oldest episode has an zero date', async () => {
+    it('throws an Error if the oldest episode has a zero date', async () => {
       const erroneousMetadata = newMetadata({
         episodes: [
           allEpisodes[0],
           { ...allEpisodes[1], publishedAt: new Date(0) },
         ],
       });
-      assertThrow(erroneousMetadata, /Invalid date/);
+      return assertThrow(erroneousMetadata, /invalid date/);
     });
 
     describe('Mandatory tags', () => {
@@ -326,26 +416,34 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
           .resolves.not.toThrow();
       });
 
-      it('throws an Error if the id is missing or invalid', async () => {
-        assertThrow({ ...mandatoryMetadata, id: 'x' }, /id is missing/);
+      it('throws an Error if the id is invalid', async () => {
+        const insufficientMetadata = { ...mandatoryMetadata, id: 'x' };
+        return assertThrow(insufficientMetadata, /id is missing/);
+      });
 
+      it('throws an Error if the id is missing', async () => {
         const { id, ...insufficientMetadata } = mandatoryMetadata;
-        assertThrow(insufficientMetadata, /id is missing/);
+        return assertThrow(insufficientMetadata, /id is missing/);
       });
 
       it('throws an Error if the feedType is missing', async () => {
         const { feedType, ...insufficientMetadata } = mandatoryMetadata;
-        assertThrow(insufficientMetadata, /feedType is missing/);
+        return assertThrow(insufficientMetadata, /feedType is missing/);
       });
 
       it('throws an Error if the feedUrl is missing', async () => {
         const { feedUrl, ...insufficientMetadata } = mandatoryMetadata;
-        assertThrow(insufficientMetadata, /feedUrl is missing/);
+        return assertThrow(insufficientMetadata, /feedUrl is missing/);
+      });
+
+      it('throws an Error if the kind is missing or invalid', () => {
+        expect(() => formatTags(mandatoryMetadata, {}, 'invalidKind')).toThrow(/kind is missing/);
+        expect(() => formatTags(mandatoryMetadata, {}, 1)).toThrow(/kind is missing/);
       });
 
       it('throws an Error if the title is missing', async () => {
         const { title, ...insufficientMetadata } = mandatoryMetadata;
-        assertThrow(insufficientMetadata, /title is missing/);
+        return assertThrow(insufficientMetadata, /title is missing/);
       });
     });
   });

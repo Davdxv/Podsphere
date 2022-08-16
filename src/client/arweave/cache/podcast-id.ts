@@ -9,6 +9,7 @@ import { fetchPodcastId } from '../graphql-ops';
 
 export interface IdMapping extends Pick<Podcast, 'id' | 'feedType' | 'feedUrl'> {}
 
+/** An IndexedDb table for this is not maintained. It's simply initialized from the subscriptions */
 export const idCache : IdMapping[] = [];
 
 const isValidMapping = (mapping : IdMapping) => {

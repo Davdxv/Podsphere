@@ -7,7 +7,7 @@ const PODCAST_ID_REGEX = new RegExp(`^${PODCAST_ID_PREFIX}`);
 /**
  * @returns true if the given `id` is a valid uuid of length between 32 and 64, with only hex chars
  */
-export function isValidUuid(id: Podcast['id']) {
+export function isValidUuid(id: unknown) : id is Podcast['id'] {
   const isHex = (char: string) => '0123456789abcdef'.includes(char.toLowerCase());
 
   if (!id || typeof id !== 'string') return false;

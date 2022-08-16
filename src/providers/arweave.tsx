@@ -96,7 +96,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
   const {
     isRefreshing, refresh,
     metadataToSync, setMetadataToSync,
-    readCachedArSyncTxs, writeCachedArSyncTxs,
+    dbReadCachedArSyncTxs, dbWriteCachedArSyncTxs,
     dbStatus, setDbStatus,
   } = useContext(SubscriptionsContext);
   const toast = useContext(ToastContext);
@@ -296,6 +296,9 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
       loadingWallet.current = true;
 
       try {
+        if (typeof window === 'undefined') {
+          throw new Error('"window" interface is undefined for this browser.');
+        }
         await window.arweaveWallet.connect(
           ARCONNECT_PERMISSIONS,
           ARCONNECT_APPINFO,
@@ -331,15 +334,17 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
 
     // Setup event listeners
     eventListenersLoaded.current = true;
-    window.addEventListener('walletSwitch', event => {
-      const newAddress = event.detail.address;
-      loadNewWallet(wallet, newAddress);
-    });
+    if (typeof window !== 'undefined') {
+      window.addEventListener('walletSwitch', event => {
+        const newAddress = event.detail.address;
+        loadNewWallet(wallet, newAddress);
+      });
 
-    window.addEventListener('arweaveWalletLoaded', () => {
-      console.debug('ArConnect loaded => initializing config and permissions');
-      connectArConnect();
-    });
+      window.addEventListener('arweaveWalletLoaded', () => {
+        console.debug('ArConnect loaded => initializing config and permissions');
+        connectArConnect();
+      });
+    }
   }, [wallet, loadNewWallet, connectArConnect]);
 
   useEffect(() => {
@@ -350,7 +355,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
   useEffect(() => {
     const initializeArSyncTxs = async () => {
       try {
-        const fetchedData : ArSyncTxDTO[] = await readCachedArSyncTxs() || [];
+        const fetchedData : ArSyncTxDTO[] = await dbReadCachedArSyncTxs() || [];
         const arSyncTxsObject : ArSyncTx[] = arweave.arSyncTxsToDTO(fetchedData);
         setArSyncTxs(arSyncTxsObject);
       }
@@ -366,14 +371,14 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     };
 
     if (dbStatus === DBStatus.INITIALIZING3) initializeArSyncTxs();
-  }, [dbStatus, readCachedArSyncTxs, setDbStatus, toast]);
+  }, [dbStatus, dbReadCachedArSyncTxs, setDbStatus, toast]);
 
   useRerenderEffect(() => {
     const updateCachedArSyncTxs = async () => {
       try {
         const txsToCache = arSyncTxs.filter(isNotInitialized);
         const arSyncTxsDto : ArSyncTx[] = arweave.arSyncTxsToDTO(txsToCache as any, true);
-        await writeCachedArSyncTxs(arSyncTxsDto);
+        await dbWriteCachedArSyncTxs(arSyncTxsDto);
       }
       catch (ex) {
         const errorMessage = `Unable to save the transaction history to IndexedDB:\n${ex}\n`

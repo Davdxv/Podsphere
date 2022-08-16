@@ -3,9 +3,12 @@ import {
   Episode,
   EpisodeDTO,
   FeedType,
+  FEED_TYPES,
   Podcast,
   PodcastDTO,
   PodcastFeedError,
+  TransactionKind,
+  TRANSACTION_KINDS,
 } from './client/interfaces';
 import { initializeKeywords } from './client/metadata-filtering/generation';
 import {
@@ -43,12 +46,20 @@ export function isValidDate(date: unknown) : date is Date {
   return date instanceof Date && !!date.getTime();
 }
 
+export function isValidKind(kind: unknown) : kind is TransactionKind {
+  return typeof kind === 'string' && TRANSACTION_KINDS.some(txKind => txKind === kind);
+}
+
+export function isValidFeedType(feedType: unknown) : feedType is FeedType {
+  return typeof feedType === 'string' && FEED_TYPES.some(t => t === feedType);
+}
+
 export function datesEqual(a: Date, b: Date) {
   return a instanceof Date && b instanceof Date && a.getTime() === b.getTime();
 }
 
-export function episodesCount(metadata: Partial<Podcast>) : number {
-  return isNotEmpty(metadata.episodes) ? metadata.episodes.length : 0;
+export function episodesCount(metadata: Partial<Podcast> | Podcast | {}) : number {
+  return isNotEmpty(metadata) && isNotEmpty(metadata.episodes) ? metadata.episodes.length : 0;
 }
 
 export function getFirstEpisodeDate(metadata: Partial<Podcast>) : Date {
@@ -94,9 +105,9 @@ export function toDate(date: string | Date | undefined) : Date {
 /**
  * @param metadata
  * @returns true iff `metadata` has specific metadata other than:
- *   - `Pick<Podcast, 'id' | 'feedType' | 'feedUrl' | 'lastMutatedAt'>`
+ *   - `Podcast['id' | 'feedType' | 'feedUrl' | 'kind' | 'lastMutatedAt']`
  *   - an empty episodes list
- *   - `Pick<Episode, 'publishedAt'>`
+ *   - `Episode['publishedAt']`
  */
 export function hasMetadata<T extends Partial<Podcast>[] | Partial<Episode>[],
 K extends Partial<Podcast> | Partial<Episode>>(metadata: K | T | EmptyTypes) : metadata is T | K {
@@ -105,7 +116,7 @@ K extends Partial<Podcast> | Partial<Episode>>(metadata: K | T | EmptyTypes) : m
   if (metadata.title) return true;
 
   // @ts-ignore
-  const { id, feedType, feedUrl, lastMutatedAt, publishedAt, episodes,
+  const { id, feedType, feedUrl, kind, lastMutatedAt, publishedAt, episodes,
     ...specificMetadata } = metadata;
   if (episodes?.length) return true;
 
@@ -152,38 +163,44 @@ export function partialToPodcast(partialMetadata: Partial<Podcast>) : Podcast | 
   return result;
 }
 
+/** TODO: expand episode validation */
+export const isValidEpisode = (ep?: Episode) => isNotEmpty(ep) && isValidDate(ep.publishedAt);
+
+/** NOTE: should not throw if resulting Podcast is incomplete */
 export function podcastFromDTO(podcast: Partial<PodcastDTO>, sortEpisodes = true) : Podcast {
-  const conditionalSort = (episodes: EpisodeDTO[]) => (sortEpisodes
-    ? episodes.sort((a, b) => new Date(b.publishedAt).getTime()
-     - new Date(a.publishedAt).getTime()) : episodes);
+  const conditionalSort = (episodes: Podcast['episodes'] = []) => (sortEpisodes
+    ? episodes.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
+    : episodes);
 
   const episodes : Podcast['episodes'] = conditionalSort(
-    (podcast.episodes || []),
-  ).map(episode => ({
-    ...episode,
-    publishedAt: toDate(episode.publishedAt),
-  }));
+    (podcast.episodes || [])
+      .map(episode => ({ ...episode, publishedAt: toDate(episode.publishedAt) }))
+      .filter(isValidEpisode),
+  );
 
-  let { metadataBatch,
+  let { feedType, metadataBatch,
     // eslint-disable-next-line prefer-const
-    firstEpisodeDate, lastEpisodeDate, lastBuildDate, ...mainMetadata } : any = podcast;
+    firstEpisodeDate, lastEpisodeDate, lastBuildDate, kind, ...mainMetadata } : any = podcast;
 
-  const result : Podcast = {
-    ...mainMetadata as Podcast,
-    feedType: podcast.feedType as FeedType,
-    keywords: initializeKeywords(podcast, podcast.keywords),
-    episodes,
-  };
-
+  feedType = isValidFeedType(feedType) ? feedType : 'rss2';
   metadataBatch = Number(metadataBatch);
   firstEpisodeDate = toDate(firstEpisodeDate);
   lastEpisodeDate = toDate(lastEpisodeDate);
   lastBuildDate = toDate(lastBuildDate);
+  kind ||= 'metadataBatch';
+
+  const result : Podcast = {
+    ...mainMetadata as Podcast,
+    feedType: feedType as FeedType,
+    keywords: initializeKeywords(podcast, podcast.keywords),
+    episodes,
+  };
 
   if (isValidInteger(metadataBatch)) result.metadataBatch = metadataBatch;
   if (isValidDate(firstEpisodeDate)) result.firstEpisodeDate = firstEpisodeDate;
   if (isValidDate(lastEpisodeDate)) result.lastEpisodeDate = lastEpisodeDate;
   if (isValidDate(lastBuildDate)) result.lastBuildDate = lastBuildDate;
+  if (isValidKind(kind)) result.kind = kind;
 
   return result;
 }

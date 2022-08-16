@@ -19,22 +19,4 @@ describe('toTag, fromTag', () => {
   it('fromTag() removes prepending prefix to name', () => {
     expect(fromTag(toTag('foo'))).toBe('foo');
   });
-
-  xdescribe('sanity checks', () => {
-    afterEach(() => {
-      Object.assign(process.env, { REACT_APP_TAG_PREFIX: testTag });
-    });
-
-    it('raises an error if the REACT_APP_TAG_PREFIX is empty', () => {
-      Object.assign(process.env, { REACT_APP_TAG_PREFIX: '' });
-      expect(() => toTag('foo')).toThrow();
-      expect(() => fromTag('foo')).toThrow();
-    });
-
-    it('raises an error if the REACT_APP_TAG_PREFIX is undefined', () => {
-      Object.assign(process.env, { REACT_APP_TAG_PREFIX: undefined });
-      expect(() => toTag('foo')).toThrow();
-      expect(() => fromTag('undefined-foo')).toThrow();
-    });
-  });
 });
