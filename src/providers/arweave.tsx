@@ -296,9 +296,6 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
       loadingWallet.current = true;
 
       try {
-        if (typeof window === 'undefined') {
-          throw new Error('"window" interface is undefined for this browser.');
-        }
         await window.arweaveWallet.connect(
           ARCONNECT_PERMISSIONS,
           ARCONNECT_APPINFO,
@@ -334,17 +331,15 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
 
     // Setup event listeners
     eventListenersLoaded.current = true;
-    if (typeof window !== 'undefined') {
-      window.addEventListener('walletSwitch', event => {
-        const newAddress = event.detail.address;
-        loadNewWallet(wallet, newAddress);
-      });
+    window.addEventListener('walletSwitch', event => {
+      const newAddress = event.detail.address;
+      loadNewWallet(wallet, newAddress);
+    });
 
-      window.addEventListener('arweaveWalletLoaded', () => {
-        console.debug('ArConnect loaded => initializing config and permissions');
-        connectArConnect();
-      });
-    }
+    window.addEventListener('arweaveWalletLoaded', () => {
+      console.debug('ArConnect loaded => initializing config and permissions');
+      connectArConnect();
+    });
   }, [wallet, loadNewWallet, connectArConnect]);
 
   useEffect(() => {

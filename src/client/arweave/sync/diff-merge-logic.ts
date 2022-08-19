@@ -132,6 +132,8 @@ export function mergeBatchMetadata(
   };
 }
 
+const findBestId = (ids: string[]) => ids.find(id => isValidUuid(id) && !isCandidatePodcastId(id));
+
 /**
  * Helper function to run in the body of a reduce operation on an array of objects.
  * @returns
@@ -148,11 +150,12 @@ const mergeSpecialTags = (tags: Partial<PodcastTags>, metadata: Partial<PodcastT
   let acc = { ...tags };
   Object.entries(omitEmptyMetadata(metadata)).forEach(([tag, value]) => {
     switch (tag) {
-      case 'id': {
-        const bestId = [acc.id, value].find(id => isValidUuid(id) && !isCandidatePodcastId(id));
-        if (bestId) acc.id = bestId as string;
+      case 'id':
+        if (typeof value === 'string') {
+          const bestId = findBestId([acc.id || '', value]);
+          acc.id = (bestId || value) as string;
+        }
         break;
-      }
       case 'episodes':
         break;
       case 'firstEpisodeDate':
@@ -257,6 +260,11 @@ export function rightDiff<T extends Partial<Podcast> | Partial<Episode>>(
     const oldValue = oldMetadata[prop as keyof T];
 
     switch (prop) {
+      case 'id':
+        if (value !== oldValue) {
+          result = { ...result, id: findBestId([value, oldValue]) || value };
+        }
+        break;
       case 'firstEpisodeDate':
       case 'lastEpisodeDate':
       case 'metadataBatch':
@@ -284,7 +292,8 @@ export function rightDiff<T extends Partial<Podcast> | Partial<Episode>>(
 
   if (hasMetadata(result) && valuePresent(persistentMetadata)) {
     persistentMetadata.forEach(prop => {
-      const propValue = newMetadata[prop as keyof T] || oldMetadata[prop as keyof T];
+      const propValue = result[prop as keyof T] || newMetadata[prop as keyof T]
+        || oldMetadata[prop as keyof T];
       if (propValue) result = { ...result, [prop]: propValue };
     });
   }
