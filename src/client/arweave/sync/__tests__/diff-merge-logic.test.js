@@ -1,4 +1,5 @@
 import cloneDeep from 'lodash.clonedeep';
+import { addPrefixToPodcastId, removePrefixFromPodcastId } from '../../../../podcast-id';
 import {
   hasDiff,
   mergeEpisodeBatches,
@@ -545,7 +546,9 @@ describe('rightDiff, hasDiff', () => {
   });
 
   describe('When given 2 overlapping sets of podcast metadata', () => {
+    const id = addPrefixToPodcastId(global.podcastId('1'));
     const oldMetadata = {
+      id: removePrefixFromPodcastId(id),
       description: 'description',
       feedUrl: 'https://server.dummy/feed',
       imageUrl: 'https://imgurl/img.png?ver=0',
@@ -555,6 +558,7 @@ describe('rightDiff, hasDiff', () => {
       categories: ['samecat', 'oldcat'],
     };
     const newMetadata = {
+      id,
       description: 'description',
       feedUrl: 'https://server.dummy/feed',
       imageUrl: 'https://imgurl/img.png?ver=1',
@@ -564,9 +568,9 @@ describe('rightDiff, hasDiff', () => {
       keywords: [''],
     };
 
-    it('returns the right diff where primary key feedUrl persists for the podcast diff, '
+    it('returns the right diff where given persistentMetadata fields persist for the podcast diff, '
        + 'publishedAt persists for each episode diff and the episodes diff is sorted', () => {
-      expect(rightDiff(oldMetadata, newMetadata)).toStrictEqual({
+      expect(rightDiff(oldMetadata, newMetadata, ['id', 'feedType'])).toStrictEqual({
         imageUrl: 'https://imgurl/img.png?ver=1',
         episodes: [
           {
@@ -582,7 +586,7 @@ describe('rightDiff, hasDiff', () => {
           },
         ],
         categories: ['diffcat'],
-        feedUrl: 'https://server.dummy/feed',
+        id: removePrefixFromPodcastId(id),
       });
     });
 
@@ -590,6 +594,7 @@ describe('rightDiff, hasDiff', () => {
       it('returns a minimal right diff, ignoring the known given persistentMetadata fields', () => {
         expect(rightDiff(oldMetadata, newMetadata, ['someField', 'feedUrl'], true))
           .toStrictEqual({
+            id: removePrefixFromPodcastId(id),
             imageUrl: 'https://imgurl/img.png?ver=1',
           });
       });
