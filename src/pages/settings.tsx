@@ -53,14 +53,14 @@ const SidebarMenu : React.FC<{ activeElement: MenuElement,
       <List>
         <ListItem
           onClick={onListItemClick(MenuElement.General)}
-          className={activeElement === MenuElement.General && styles['selected-item']}
+          className={`${activeElement === MenuElement.General && styles['selected-item']}`}
         >
           <SettingsIcon className={styles['general-icon']} />
           General
         </ListItem>
         <ListItem
           onClick={onListItemClick(MenuElement.Advanced)}
-          className={activeElement === MenuElement.Advanced && styles['selected-item']}
+          className={`${activeElement === MenuElement.Advanced && styles['selected-item']}`}
         >
           <HandymanIcon className={styles['advanced-icon']} />
           Advanced

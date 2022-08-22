@@ -22,7 +22,7 @@ const podcastTagsSchema = z.object({
   episodesKeywords: z.array(z.string()).optional(),
   firstEpisodeDate: z.string().optional(),
   lastEpisodeDate: z.string().optional(),
-  metadataBatch: z.string().optional(),
+  metadataBatch: z.number().optional(),
   lastBuildDate: z.string().optional(),
 });
 
@@ -65,13 +65,17 @@ const dispatchResultDTOSchema = dispatchResultSchema.extend({
   bundledIn: z.string().optional(),
 });
 
+const transactionDtoSchema = z.object({
+  id: z.string(),
+});
+
 const arSyncTxSchema = z.object({
   id: z.string(),
   podcastId: z.string(),
   title: z.string().optional(),
   numEpisodes: z.number(),
-  dispatchResult: z.union([dispatchResultSchema, dispatchResultDTOSchema]),
-  resultObj: z.union([z.instanceof(Transaction), z.instanceof(Error)]),
+  dispatchResult: z.union([dispatchResultSchema, dispatchResultDTOSchema]).optional(),
+  resultObj: z.union([z.instanceof(Transaction), z.instanceof(Error), transactionDtoSchema]),
   metadata: podcastDtoSchema.partial(),
   status: arSyncTxStatusSchema,
   timestamp: z.number(),

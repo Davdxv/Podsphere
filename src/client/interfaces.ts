@@ -107,11 +107,10 @@ export interface PodcastTags {
 }
 
 export interface PodcastDTO extends Omit<Podcast, 'feedType' | 'firstEpisodeDate'
-| 'lastEpisodeDate' | 'metadataBatch' | 'episodes' | 'lastBuildDate'> {
+| 'lastEpisodeDate' | 'episodes' | 'lastBuildDate'> {
   feedType: FeedType | string;
   firstEpisodeDate?: string;
   lastEpisodeDate?: string;
-  metadataBatch?: string;
   episodes?: EpisodeDTO[];
   lastBuildDate?: string;
 }
