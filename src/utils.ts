@@ -1,6 +1,7 @@
 import {
   EmptyTypes,
   Episode,
+  EpisodeDTO,
   FeedType,
   Podcast,
   PodcastDTO,
@@ -151,8 +152,8 @@ export function partialToPodcast(partialMetadata: Partial<Podcast>) : Podcast | 
   return result;
 }
 
-export function podcastFromDTO(podcast: PodcastDTO, sortEpisodes = true) : Podcast {
-  const conditionalSort = (episodes: PodcastDTO['episodes']) => (sortEpisodes
+export function podcastFromDTO(podcast: Partial<PodcastDTO>, sortEpisodes = true) : Podcast {
+  const conditionalSort = (episodes: EpisodeDTO[]) => (sortEpisodes
     ? episodes.sort((a, b) => new Date(b.publishedAt).getTime()
      - new Date(a.publishedAt).getTime()) : episodes);
 
@@ -187,7 +188,7 @@ export function podcastFromDTO(podcast: PodcastDTO, sortEpisodes = true) : Podca
   return result;
 }
 
-export function podcastsFromDTO(podcasts: PodcastDTO[], sortEpisodes = true) {
+export function podcastsFromDTO(podcasts: Partial<PodcastDTO>[], sortEpisodes = true) {
   return podcasts.filter(podcast => isNotEmpty(podcast))
     .map(podcast => podcastFromDTO(podcast, sortEpisodes));
 }

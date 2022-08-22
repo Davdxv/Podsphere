@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/lines-between-class-members */
-import { IDBPDatabase, openDB } from 'idb';
+import { IDBPDatabase, openDB, unwrap } from 'idb';
+// @ts-ignore
+import IDBExportImport from 'indexeddb-export-import';
 import { Podcast } from './client/interfaces';
+import { dbSchema } from './components/settings-page/zod-schemas';
 
 type TableSchemaV1 = {
   tableName: string,
@@ -12,10 +15,12 @@ type TableSchemaV1 = {
   }
 };
 
+const verifyBackup = (backup: string) => dbSchema.safeParse(JSON.parse(backup));
+
 export class IndexedDb {
   private database: string;
 
-  private db: any;
+  private db!: IDBPDatabase;
 
   public static readonly SUBSCRIPTIONS = 'subscriptions';
   public static readonly EPISODES = 'episodes';
@@ -54,6 +59,7 @@ export class IndexedDb {
 
   constructor(database: string = IndexedDb.DB_NAME) {
     this.database = database;
+    this.initializeDBSchema();
   }
 
   private async connectDB() {
@@ -153,7 +159,7 @@ export class IndexedDb {
     return null;
   }
 
-  public async getIdFromFeedUrl(feedUrl: Podcast['feedUrl']) : Promise<string | null> {
+  public async getIdFromFeedUrl(feedUrl: Podcast['feedUrl']) {
     let result = null;
     try {
       await this.connectDB();
@@ -167,5 +173,43 @@ export class IndexedDb {
       console.warn('IndexedDb.getIdFromFeedUrl() encountered the following error:', ex);
     }
     return result;
+  }
+
+  public async exportDB() {
+    await this.connectDB();
+    const idbDatabase = unwrap(this.db); // get native IDBDatabase
+
+    // export to JSON, clear database, and import from JSON
+    return new Promise<string>((res, rej) => {
+      IDBExportImport.exportToJsonString(idbDatabase, (err: Error, jsonString: string) => {
+        if (err) {
+          rej(err);
+        } else {
+          res(jsonString);
+        }
+      });
+    });
+  }
+
+  public async importDB(backup: string) {
+    console.log(JSON.parse(backup));
+    console.log(verifyBackup(backup));
+    if (!verifyBackup(backup).success) {
+      console.error("Backup doesn't conform to the database schema");
+      return;
+    }
+    await this.connectDB();
+
+    const idbDatabase = unwrap(this.db); // get native IDBDatabase
+
+    IDBExportImport.clearDatabase(idbDatabase, (err: Error) => {
+      if (!err) { // cleared data successfully
+        IDBExportImport.importFromJsonString(idbDatabase, backup, (err2: Error) => {
+          if (!err2) {
+            console.log('Imported data successfully');
+          }
+        });
+      }
+    });
   }
 }

@@ -107,12 +107,11 @@ export interface PodcastTags {
 }
 
 export interface PodcastDTO extends Omit<Podcast, 'feedType' | 'firstEpisodeDate'
-| 'lastEpisodeDate' | 'metadataBatch' | 'episodes' | 'lastBuildDate'> {
+| 'lastEpisodeDate' | 'episodes' | 'lastBuildDate'> {
   feedType: FeedType | string;
-  firstEpisodeDate: string;
-  lastEpisodeDate: string;
-  metadataBatch: string;
-  episodes: EpisodeDTO[];
+  firstEpisodeDate?: string;
+  lastEpisodeDate?: string;
+  episodes?: EpisodeDTO[];
   lastBuildDate?: string;
 }
 
@@ -121,7 +120,7 @@ export interface EpisodeDTO extends Omit<Episode, 'publishedAt'> {
 }
 
 export interface EpisodesDBTable extends Pick<Podcast, 'id'> {
-  episodes: Episode[];
+  episodes: EpisodeDTO[];
 }
 
 export type ErrorStruct = {
@@ -203,6 +202,10 @@ export interface ArSyncTx {
   numEpisodes: number,
   status: ArSyncTxStatus,
   timestamp: Podcast['lastMutatedAt'],
+}
+
+export interface ArSyncTxDTO extends Omit<ArSyncTx, 'metadata'> {
+  metadata: Partial<PodcastDTO>,
 }
 
 export interface DisjointGraphFunctionNode extends Pick<Podcast, 'feedUrl'> {

@@ -14,7 +14,7 @@ require('dotenv').config();
 
 const ARG = process.argv.at(-1);
 if (ARG === 'some') {
-  const firstBatchesOnly = metadataBatches.filter(batch => batch.metadataBatch === '0');
+  const firstBatchesOnly = metadataBatches.filter(batch => batch.metadataBatch === 0);
   seed(firstBatchesOnly);
 }
 else {
