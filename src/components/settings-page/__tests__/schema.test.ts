@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import z from 'zod';
 import { SchemaType } from '../../../providers/subscriptions';
 import { dbSchema } from '../zod-schemas';

@@ -22,7 +22,6 @@ import {
   podcastsFromDTO,
 } from '../utils';
 import {
-  ArSyncTx,
   ArSyncTxDTO,
   CachedArTx,
   EpisodesDBTable,
@@ -64,7 +63,7 @@ interface SubscriptionContextType {
   metadataToSync: Partial<Podcast>[],
   setMetadataToSync: (value: Partial<Podcast>[]) => void,
   dbReadCachedArSyncTxs: () => Promise<ArSyncTxDTO[]>,
-  dbWriteCachedArSyncTxs: (newValue: ArSyncTx[]) => Promise<void>,
+  dbWriteCachedArSyncTxs: (newValue: ArSyncTxDTO[]) => Promise<void>,
   dbStatus: DBStatus,
   setDbStatus: (value: DBStatus) => void,
 }
@@ -342,7 +341,7 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
     return fetchedData;
   };
 
-  const dbWriteCachedArSyncTxs = async (newValue: ArSyncTx[]) => {
+  const dbWriteCachedArSyncTxs = async (newValue: ArSyncTxDTO[]) => {
     await db.clearAllValues(DB_ARSYNCTXS);
     await db.putValues(DB_ARSYNCTXS, newValue);
   };

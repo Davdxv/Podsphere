@@ -210,6 +210,32 @@ export function podcastsFromDTO(podcasts: Partial<PodcastDTO>[], sortEpisodes = 
     .map(podcast => podcastFromDTO(podcast, sortEpisodes));
 }
 
+export function podcastToDTO(podcast: Partial<Podcast>) : Partial<PodcastDTO> {
+  const result : Partial<PodcastDTO> = {};
+  const { episodes, ...metadata } = podcast;
+
+  Object.entries(metadata).forEach(([prop, value]) => {
+    switch (prop) {
+      case 'firstEpisodeDate':
+      case 'lastEpisodeDate':
+      case 'lastBuildDate':
+        if (value instanceof Date) result[prop] = isValidDate(value) ? `${value}` : '';
+        else if (typeof value === 'string') result[prop] = value;
+        break;
+      default:
+        result[prop as keyof PodcastDTO] = value as any;
+        break;
+    }
+  });
+  if (isNotEmpty(episodes)) result.episodes = episodesToDTO(episodes);
+
+  return result;
+}
+
+export function episodesToDTO(episodes: Episode[]) : EpisodeDTO[] {
+  return episodes.map(episode => ({ ...episode, publishedAt: `${episode.publishedAt}` }));
+}
+
 /**
  * @param metadata
  * @returns The `metadata` exluding props where !valuePresent(value), @see valuePresent

@@ -2,11 +2,14 @@ import Transaction from 'arweave/node/lib/transaction';
 import { z } from 'zod';
 import { ArSyncTxStatus } from '../../client/interfaces';
 
+const txKindsSchema = z.union([z.literal('metadataBatch'), z.literal('customMetadata')]);
+
 const podcastTagsSchema = z.object({
   id: z.string(),
   feedType: z.literal('rss2'),
   feedUrl: z.string(),
   title: z.string(),
+  kind: txKindsSchema.optional(),
   description: z.string().optional(),
   author: z.string().optional(),
   summary: z.string().optional(),
@@ -72,6 +75,7 @@ const transactionDtoSchema = z.object({
 const arSyncTxSchema = z.object({
   id: z.string(),
   podcastId: z.string(),
+  kind: txKindsSchema,
   title: z.string().optional(),
   numEpisodes: z.number(),
   dispatchResult: z.union([dispatchResultSchema, dispatchResultDTOSchema]).optional(),
