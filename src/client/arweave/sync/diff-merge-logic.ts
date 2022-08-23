@@ -153,7 +153,7 @@ const mergeSpecialTags = (tags: Partial<PodcastTags>, metadata: Partial<PodcastT
       case 'id':
         if (typeof value === 'string') {
           const bestId = findBestId([acc.id || '', value]);
-          acc.id = (bestId || value) as string;
+          acc.id = bestId || value;
         }
         break;
       case 'episodes':

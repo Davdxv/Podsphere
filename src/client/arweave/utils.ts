@@ -4,7 +4,7 @@ import {
   strFromU8,
   strToU8,
 } from 'fflate';
-import { isNotEmpty } from '../../utils';
+import { isNotEmpty, podcastFromDTO, podcastToDTO } from '../../utils';
 import {
   ArSyncTx,
   ArSyncTxDTO,
@@ -13,6 +13,7 @@ import {
   CachedArTx,
   DispatchResultDTO,
   Podcast,
+  PodcastDTO,
   TransactionDTO,
   TRANSACTION_KINDS,
 } from '../interfaces';
@@ -121,11 +122,10 @@ export const getBundleTxId = (tx: ArSyncTx) : string => (isNotEmpty(tx.dispatchR
  * @param arSyncTxs
  * @param throwOnError
  * @returns The given `arSyncTxs`, made DTO-ready by omitting the most-sizeable transient values.
- *   Note that each returned element's type signature is congruent with the `ArSyncTx` interface.
  *   Optimized `ArSyncTx` props may mutate in value as well as type, though.
  */
-export function arSyncTxsToDTO(arSyncTxs: ArSyncTxDTO[], throwOnError = false) : ArSyncTx[] {
-  const result : ArSyncTx[] = [];
+export function arSyncTxsToDTO(arSyncTxs: ArSyncTx[], throwOnError = false) : ArSyncTxDTO[] {
+  const result : ArSyncTxDTO[] = [];
   arSyncTxs.forEach(tx => {
     try {
       let { dispatchResult, resultObj } = tx;
@@ -141,8 +141,38 @@ export function arSyncTxsToDTO(arSyncTxs: ArSyncTxDTO[], throwOnError = false) :
         ...tx,
         dispatchResult,
         resultObj,
-        metadata,
-      } as ArSyncTx);
+        metadata: podcastToDTO(metadata),
+      });
+    }
+    catch (ex) {
+      const errorMessage = `Could not read transaction history object: ${(ex as Error).message}`;
+      console.warn(errorMessage);
+      if (throwOnError) throw new Error(errorMessage);
+    }
+  });
+
+  return result;
+}
+
+export function arSyncTxsFromDTO(arSyncTxs: ArSyncTxDTO[], throwOnError = false) : ArSyncTx[] {
+  const result : ArSyncTx[] = [];
+  arSyncTxs.forEach(tx => {
+    try {
+      let { dispatchResult, resultObj } = tx;
+      if (dispatchResult) dispatchResult = dispatchResult as DispatchResultDTO;
+      if (!(resultObj instanceof Error) && resultObj.id) {
+        resultObj = {
+          id: resultObj.id,
+        } as TransactionDTO;
+      }
+      const { episodes, ...metadata } = tx.metadata as Partial<PodcastDTO>;
+
+      result.push({
+        ...tx,
+        dispatchResult,
+        resultObj,
+        metadata: podcastFromDTO(metadata),
+      });
     }
     catch (ex) {
       const errorMessage = `Could not read transaction history object: ${(ex as Error).message}`;

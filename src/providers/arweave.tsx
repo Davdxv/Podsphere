@@ -87,7 +87,7 @@ const ARCONNECT_GATEWAY : GatewayConfig | undefined = clientApiConfig.host && cl
     port: +clientApiConfig.port,
     protocol: clientApiConfig.protocol === 'http' ? 'http' : 'https',
   } : undefined;
-/* */
+/** End */
 
 const TX_CONFIRMATION_INTERVAL = 60 * 1000;
 
@@ -351,7 +351,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     const initializeArSyncTxs = async () => {
       try {
         const fetchedData : ArSyncTxDTO[] = await dbReadCachedArSyncTxs() || [];
-        const arSyncTxsObject : ArSyncTx[] = arweave.arSyncTxsToDTO(fetchedData);
+        const arSyncTxsObject : ArSyncTx[] = arweave.arSyncTxsFromDTO(fetchedData);
         setArSyncTxs(arSyncTxsObject);
       }
       catch (ex) {
@@ -372,7 +372,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     const updateCachedArSyncTxs = async () => {
       try {
         const txsToCache = arSyncTxs.filter(isNotInitialized);
-        const arSyncTxsDto : ArSyncTx[] = arweave.arSyncTxsToDTO(txsToCache as any, true);
+        const arSyncTxsDto : ArSyncTxDTO[] = arweave.arSyncTxsToDTO(txsToCache, true);
         await dbWriteCachedArSyncTxs(arSyncTxsDto);
       }
       catch (ex) {

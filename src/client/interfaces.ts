@@ -124,13 +124,12 @@ export interface PodcastTags {
 }
 
 export interface PodcastDTO extends Omit<Podcast, 'feedType' | 'kind' | 'firstEpisodeDate'
-| 'lastEpisodeDate' | 'metadataBatch' | 'episodes' | 'lastBuildDate'> {
+| 'lastEpisodeDate' | 'episodes' | 'lastBuildDate'> {
   feedType: FeedType | string;
   kind?: TransactionKind | string;
-  firstEpisodeDate: string;
-  lastEpisodeDate: string;
-  metadataBatch: string;
-  episodes: EpisodeDTO[];
+  firstEpisodeDate?: string;
+  lastEpisodeDate?: string;
+  episodes?: EpisodeDTO[];
   lastBuildDate?: string;
 }
 
