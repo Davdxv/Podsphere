@@ -8,7 +8,7 @@ import { BackupDropzone } from '../components/settings-page/backup-dropzone';
 import { db } from '../providers/subscriptions';
 import styles from './settings.module.scss';
 
-const downloadBackup = async () => {
+export const downloadBackup = async () => {
   try {
     const FileName = 'backup.txt';
     const text = await db.exportDB();
@@ -27,12 +27,12 @@ const downloadBackup = async () => {
   }
 };
 
-const importBackup = async (file: string) => {
+export const importBackup = async (file: string) => {
   await db.importDB(file);
   window.location.href = '/';
 };
 
-enum MenuElement {
+export enum MenuElement {
   General,
   Advanced,
 }
