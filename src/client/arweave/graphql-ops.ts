@@ -171,7 +171,12 @@ export async function getPodcastRss2Feed(
 
       // /** Uncomment temporarily to generate batched arlocal seeds */
       // const batchMetadata = { ...(metadata as Podcast), ...(tags as PodcastTags) };
-      // console.debug(`PodcastDTO for batch ${batch} of ${batchMetadata.title}:`, batchMetadata);
+      // let { metadataBatch } = batchMetadata;
+      // if (isValidString(metadataBatch)) metadataBatch = parseInt(metadataBatch, 10);
+      // console.debug(`PodcastDTO for batch ${batch} of ${batchMetadata.title}:`, {
+      //   ...batchMetadata,
+      //   metadataBatch,
+      // });
     }
 
     batch++;

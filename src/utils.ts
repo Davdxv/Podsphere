@@ -211,22 +211,23 @@ export function podcastsFromDTO(podcasts: Partial<PodcastDTO>[], sortEpisodes = 
 }
 
 export function podcastToDTO(podcast: Partial<Podcast>) : Partial<PodcastDTO> {
-  const result : Partial<PodcastDTO> = {};
-  const { episodes, ...metadata } = podcast;
+  const {
+    feedType,
+    kind,
+    firstEpisodeDate,
+    lastEpisodeDate,
+    lastBuildDate,
+    episodes,
+    ...dtoCompatibleMetadata
+  } = podcast;
 
-  Object.entries(metadata).forEach(([prop, value]) => {
-    switch (prop) {
-      case 'firstEpisodeDate':
-      case 'lastEpisodeDate':
-      case 'lastBuildDate':
-        if (value instanceof Date) result[prop] = isValidDate(value) ? `${value}` : '';
-        else if (typeof value === 'string') result[prop] = value;
-        break;
-      default:
-        result[prop as keyof PodcastDTO] = value as any;
-        break;
-    }
-  });
+  const result : Partial<PodcastDTO> = { ...dtoCompatibleMetadata };
+
+  if (feedType) result.feedType = `${feedType}`;
+  if (kind) result.kind = `${kind}`;
+  if (firstEpisodeDate) result.firstEpisodeDate = `${firstEpisodeDate}`;
+  if (lastEpisodeDate) result.lastEpisodeDate = `${lastEpisodeDate}`;
+  if (lastBuildDate) result.lastBuildDate = `${lastBuildDate}`;
   if (isNotEmpty(episodes)) result.episodes = episodesToDTO(episodes);
 
   return result;
