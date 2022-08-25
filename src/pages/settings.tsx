@@ -1,36 +1,13 @@
 import {
-  Box, Button, List, ListItem, Typography,
+  Box, Button, List, ListItem, Typography, useMediaQuery, useTheme,
 } from '@mui/material';
 import React, { useState } from 'react';
 import SettingsIcon from '@mui/icons-material/Settings';
 import HandymanIcon from '@mui/icons-material/Handyman';
 import { BackupDropzone } from '../components/settings-page/backup-dropzone';
-import { db } from '../providers/subscriptions';
 import styles from './settings.module.scss';
-
-export const downloadBackup = async () => {
-  try {
-    const FileName = 'backup.txt';
-    const text = await db.exportDB();
-    const element = document.createElement('a');
-    element.setAttribute('href', `data:text/plain;charset=utf-8,${encodeURIComponent(text)}`);
-    element.setAttribute('download', FileName);
-
-    element.style.display = 'none';
-    document.body.appendChild(element);
-
-    element.click();
-
-    document.body.removeChild(element);
-  } catch (e) {
-    console.error(e);
-  }
-};
-
-export const importBackup = async (file: string) => {
-  await db.importDB(file);
-  window.location.href = '/';
-};
+import { MobileSettingsPage } from './settings-mobile';
+import { downloadBackup, importBackup } from '../components/settings-page/utils';
 
 export enum MenuElement {
   General,
@@ -78,7 +55,7 @@ const GeneralSettings : React.FC = () => (
     </Box>
     <Box>
       <Typography> Import your data: </Typography>
-      <BackupDropzone onDrop={importBackup} />
+      <BackupDropzone dropzoneText="Drag and drop your backup file here!" onDrop={importBackup} />
     </Box>
   </Box>
 );
@@ -105,11 +82,17 @@ const SettingsPage = () => {
 
   const handleChange = (activeEl: MenuElement) => setActiveElement(activeEl);
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   return (
-    <Box className={styles.main}>
-      <SidebarMenu handleChange={handleChange} activeElement={activeElement} />
-      {getActivePane(activeElement)}
-    </Box>
+    isMobile ? <MobileSettingsPage />
+      : (
+        <Box className={styles.main}>
+          <SidebarMenu handleChange={handleChange} activeElement={activeElement} />
+          {getActivePane(activeElement)}
+        </Box>
+      )
   );
 };
 

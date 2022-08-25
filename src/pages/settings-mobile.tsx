@@ -5,44 +5,57 @@ import React, { useState } from 'react';
 import SettingsIcon from '@mui/icons-material/Settings';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import HandymanIcon from '@mui/icons-material/Handyman';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { BackupDropzone } from '../components/settings-page/backup-dropzone';
 import styles from './settings-mobile.module.scss';
-import { MenuElement, downloadBackup, importBackup } from './settings';
+import { downloadBackup, importBackup } from '../components/settings-page/utils';
 
-const GeneralSettings : React.FC = () => (
-  <Box className={styles.container}>
-    <Box className={styles['export-box']}>
-      <Typography> Backup your data: </Typography>
-      <Button onClick={downloadBackup}> Backup </Button>
+export enum MobileMenuElement {
+  Main,
+  General,
+  Advanced,
+}
+
+const GeneralSettings : React.FC<{ handleChange: (activeEl:
+MobileMenuElement) => void }> = ({ handleChange }) => {
+  const onListItemClick = (element: MobileMenuElement) => () => handleChange(element);
+
+  return (
+    <Box className={styles.page}>
+      <ArrowBackIcon
+        onClick={onListItemClick(MobileMenuElement.Main)}
+        className={styles['close-button']}
+      />
+      <Box className={styles['export-box']}>
+        <Typography> Backup your data: </Typography>
+        <Button onClick={downloadBackup}> Backup </Button>
+      </Box>
+      <Box>
+        <Typography> Import your data: </Typography>
+        <BackupDropzone dropzoneText="Choose your backup file!" onDrop={importBackup} />
+      </Box>
     </Box>
-    <Box>
-      <Typography> Import your data: </Typography>
-      <BackupDropzone onDrop={importBackup} />
-    </Box>
-  </Box>
-);
-
-const AdvancedSettings : React.FC = () => (
-  <Box className={styles.container}>
-    <Typography style={{ margin: 'auto' }}> TBD! :( </Typography>
-  </Box>
-);
-
-const getActivePane = (activeEl: MenuElement) => {
-  switch (activeEl) {
-    case MenuElement.General:
-      return <GeneralSettings />;
-    case MenuElement.Advanced:
-      return <AdvancedSettings />;
-    default:
-      return <GeneralSettings />;
-  }
+  );
 };
 
-export const MobileSettingsPage = () => {
-  const [activeElement, setActiveElement] = useState(MenuElement.General);
+const AdvancedSettings : React.FC<{ handleChange: (activeEl:
+MobileMenuElement) => void }> = ({ handleChange }) => {
+  const onListItemClick = (element: MobileMenuElement) => () => handleChange(element);
 
-  const handleChange = (activeEl: MenuElement) => setActiveElement(activeEl);
+  return (
+    <Box className={styles.page}>
+      <ArrowBackIcon
+        onClick={onListItemClick(MobileMenuElement.Main)}
+        className={styles['close-button']}
+      />
+      <Typography style={{ margin: 'auto' }}> TBD! :( </Typography>
+    </Box>
+  );
+};
+
+const Menu : React.FC<{ handleChange: (activeEl:
+MobileMenuElement) => void }> = ({ handleChange }) => {
+  const onListItemClick = (element: MobileMenuElement) => () => handleChange(element);
 
   return (
     <Box className={styles.main}>
@@ -56,7 +69,7 @@ export const MobileSettingsPage = () => {
       </Box>
       <List className={styles.list}>
         <ListItem
-          // onClick={onListItemClick(MenuElement.General)}
+          onClick={onListItemClick(MobileMenuElement.General)}
           className={styles['list-item']}
         >
           <Box>
@@ -66,7 +79,7 @@ export const MobileSettingsPage = () => {
           <KeyboardArrowRightIcon className={styles.arrow} />
         </ListItem>
         <ListItem
-          // onClick={onListItemClick(MenuElement.Advanced)}
+          onClick={onListItemClick(MobileMenuElement.Advanced)}
           className={styles['list-item']}
         >
           <Box>
@@ -78,4 +91,26 @@ export const MobileSettingsPage = () => {
       </List>
     </Box>
   );
+};
+
+const ActivePane : React.FC<{ activeEl: MobileMenuElement,
+  handleChange: (activeEl: MobileMenuElement) => void }> = ({ activeEl, handleChange }) => {
+  switch (activeEl) {
+    case MobileMenuElement.Main:
+      return <Menu handleChange={handleChange} />;
+    case MobileMenuElement.General:
+      return <GeneralSettings handleChange={handleChange} />;
+    case MobileMenuElement.Advanced:
+      return <AdvancedSettings handleChange={handleChange} />;
+    default:
+      return <Menu handleChange={handleChange} />;
+  }
+};
+
+export const MobileSettingsPage = () => {
+  const [activeElement, setActiveElement] = useState(MobileMenuElement.Main);
+
+  const handleChange = (activeEl: MobileMenuElement) => setActiveElement(activeEl);
+
+  return <ActivePane activeEl={activeElement} handleChange={handleChange} />;
 };
