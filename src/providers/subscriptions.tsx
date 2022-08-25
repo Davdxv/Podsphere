@@ -263,9 +263,9 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
    *     CachedArTx.blockedTx = true.
    *   - The podcast idCache can simply be reinitialized from subscriptions.
    * @param idsToRefresh If `null`, all subscriptions are refreshed
-   * @param silent If true, toasts are skipped
+   * @param silent If `true`, toasts are skipped
    * @param maxLastRefreshAge Only refresh if the last refresh occurred over `maxLastRefreshAge`
-   *   seconds ago. If 0, refresh regardless.
+   *   seconds ago. If `0`, refresh regardless.
    * @returns An array with the resulting subscriptions and metadataToSync
    */
   const refresh = async (

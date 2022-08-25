@@ -74,8 +74,6 @@ export function getCachedTxForFeed(gqlMetadata: GraphQLMetadata, tags: PodcastTa
     if (hasMetadata(metadata)) newTx.numEpisodes = episodesCount(metadata as Podcast);
     newTx.txBlocked = !isValidTx(newTx);
 
-    console.debug('created new CachedArTx:', newTx);
-
     addNewTx(newTx);
 
     console.debug('new txCache:', txCache);

@@ -1,9 +1,6 @@
 import DOMPurify from 'isomorphic-dompurify';
 import he from 'he';
 
-/**
- * @see https://github.com/cure53/DOMPurify/blob/main/README.md#can-i-configure-dompurify
- */
 const SANITIZE_OPTIONS_NO_HTML = {
   USE_PROFILES: { html: false },
 };
@@ -12,16 +9,20 @@ const SANITIZE_OPTIONS_ALLOWED_HTML = {
   ALLOWED_ATTR: ['href'],
 };
 
+const REGEX_WHITESPACE_ONLY = /^\w+$/;
+const REGEX_ANY_TRAILING_SLASHES = /\/+$/;
+
 /**
  * TODO: expand string sanitization; revise default options above.
  * @param str
  * @param allowHtml
- * @param sanitizeOptions @see SANITIZE_OPTIONS_NO_HTML
- * @returns The sanitized string if not falsy, else: an empty string
+ * @param sanitizeOptions
+ *   See: {@link https://github.com/cure53/DOMPurify/blob/main/README.md#can-i-configure-dompurify}
+ * @returns The sanitized string if `!!str`, else: `''`
  */
 export function sanitizeString(str : string, allowHtml = false, sanitizeOptions = {}) : string {
   if (!str || typeof str !== 'string') return '';
-  if (str.match(/^\w+$/)) return str;
+  if (str.match(REGEX_WHITESPACE_ONLY)) return str;
 
   const defaultOptions = allowHtml ? SANITIZE_OPTIONS_ALLOWED_HTML : SANITIZE_OPTIONS_NO_HTML;
   const sanitized = DOMPurify.sanitize(str, { ...defaultOptions, ...sanitizeOptions }).trim();
@@ -45,6 +46,5 @@ export function sanitizeUri(uri : string, throwOnError = false) : string {
     throw new Error(`${uri} is not a valid link.`);
   }
 
-  // Remove trailing slashes
-  return sanitizedUri.replace(/\/+$/, '');
+  return sanitizedUri.replace(REGEX_ANY_TRAILING_SLASHES, '');
 }

@@ -208,7 +208,7 @@ export async function pingTxIds(ids: string[]) : Promise<string[]> {
   const candidateIds = ids.slice(0, MAX_GRAPHQL_NODES);
   if (edges.length === candidateIds.length) return [];
 
-  const onlineIds = edges.map(edge => (isValidUuid(edge?.node?.id || '') ? edge.node.id : null))
+  const onlineIds = edges.map(edge => (isValidUuid(edge?.node?.id) ? edge.node.id : null))
     .filter(x => x);
   const downIds = candidateIds.filter(id => !onlineIds.includes(id));
   console.debug(`The following id's are down: ${downIds}\nRefresh subscriptions to update txCache`);

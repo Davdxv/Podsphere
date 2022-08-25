@@ -91,7 +91,7 @@ export function concatMessages(messages : string[] = [], filterDuplicates = fals
  * @param date
  * @returns One of the following:
  *   - A new Date object, if `date` is a valid date string.
- *   - A 0 Date object, if `date` is not a valid date string.
+ *   - A `0` Date object, if `date` is not a valid date string.
  *   - `date`, if `date` is already a Date object.
  */
 export function toDate(date: string | Date | undefined) : Date {
@@ -110,7 +110,9 @@ export function toDate(date: string | Date | undefined) : Date {
  *   - `Episode['publishedAt']`
  */
 export function hasMetadata<T extends Partial<Podcast>[] | Partial<Episode>[],
-K extends Partial<Podcast> | Partial<Episode>>(metadata: K | T | EmptyTypes) : metadata is T | K {
+K extends Partial<Podcast> | Partial<Episode>>(
+  metadata: K | T | EmptyTypes,
+) : metadata is T | K {
   if (!isNotEmpty(metadata)) return false;
   if (Array.isArray(metadata)) return !!metadata.length;
   if (metadata.title) return true;
@@ -157,7 +159,7 @@ export function partialToPodcast(partialMetadata: Partial<Podcast>) : Podcast | 
   };
 
   if (!result.feedUrl) return { errorMessage: 'Feed URL is missing.' };
-  if (!result.id) return { errorMessage: `Failed to get a proper id for ${result.feedUrl}.` };
+  if (!result.id) return { errorMessage: `Feed ${result.feedUrl} is missing an id.` };
   if (!result.title) return { errorMessage: `Feed ${result.feedUrl} is missing a title.` };
 
   return result;
@@ -211,16 +213,8 @@ export function podcastsFromDTO(podcasts: Partial<PodcastDTO>[], sortEpisodes = 
 }
 
 export function podcastToDTO(podcast: Partial<Podcast>) : Partial<PodcastDTO> {
-  const {
-    feedType,
-    kind,
-    firstEpisodeDate,
-    lastEpisodeDate,
-    lastBuildDate,
-    episodes,
-    ...dtoCompatibleMetadata
-  } = podcast;
-
+  const { feedType, kind, firstEpisodeDate, lastEpisodeDate, lastBuildDate, episodes,
+    ...dtoCompatibleMetadata } = podcast;
   const result : Partial<PodcastDTO> = { ...dtoCompatibleMetadata };
 
   if (feedType) result.feedType = `${feedType}`;

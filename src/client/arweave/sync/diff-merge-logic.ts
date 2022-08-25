@@ -106,10 +106,10 @@ export function mergeEpisodeBatches(episodeBatches: PartialEpisodeWithDate[][]) 
  * NOTE: for the getPodcastRss2Feed() caller, podcast categories & keywords are still in the tags,
  * outside of this scope. Other use cases may want to enable `applyMergeSpecialTags` or refactor.
  * @param metadataBatches
- * @param applyMergeSpecialTags
- *   - If false, each non-empty metadatum of newer batches overrides the value from prior batches.
+ * @param applyMergeSpecialTags -
+ *   - If `false`, each non-empty metadatum of newer batches overrides the value from prior batches.
  *     See {@linkcode omitEmptyMetadata()}
- *   - If true, the following additional exceptions apply: see {@linkcode mergeSpecialTags()}
+ *   - If `true`, the following additional exceptions apply: see {@linkcode mergeSpecialTags()}
  * @returns A new object with merged podcast metadata, where newer batches take precedence
  *   (read above for exceptions) and episodes are merged by {@linkcode mergeEpisodeBatches()}
  */

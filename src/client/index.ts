@@ -42,8 +42,7 @@ export async function fetchPodcastById(
   feedType: Podcast['feedType'],
   subscriptions: Podcast[],
   metadataToSync: Partial<Podcast>[] = [],
-)
-  : Promise<GetPodcastResult> {
+) : Promise<GetPodcastResult> {
   if (feedType === 'rss2') {
     const { feedUrl } = findMetadataById(id, subscriptions);
     if (feedUrl) return fetchPodcastRss2Feed(feedUrl, metadataToSync);

@@ -31,8 +31,7 @@ export function metadataToIdMappings(metadata: Podcast[] = []) : IdMapping[] {
  */
 export function initializeIdCache(newIdMappings: IdMapping[]) {
   // Empty the cache first
-  idCache.splice(0, idCache.length);
-  idCache.push(...newIdMappings);
+  idCache.splice(0, idCache.length, ...newIdMappings);
   console.debug('idCache initialized to:', idCache);
 }
 

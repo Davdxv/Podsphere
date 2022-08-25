@@ -5,7 +5,9 @@ const PODCAST_ID_PREFIX = 'temp-';
 const PODCAST_ID_REGEX = new RegExp(`^${PODCAST_ID_PREFIX}`);
 
 /**
- * @returns true if the given `id` is a valid uuid of length between 32 and 64, with only hex chars
+ * Fast & loose uuid validation.
+ * @param id If the `id` has a `temp-` prefix, the prefix is excluded from the validation
+ * @returns true if the given `id` is a string comprised of 32-64 hex chars and any dashes
  */
 export function isValidUuid(id: unknown) : id is Podcast['id'] {
   const isHex = (char: string) => '0123456789abcdef'.includes(char.toLowerCase());
