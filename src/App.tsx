@@ -1,25 +1,34 @@
 import React from 'react';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
+import { ErrorBoundary, FallbackProps } from 'react-error-boundary';
 import GlobalStyles from './global-styles';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Layout from './components/layout';
-import MasterErrorBoundary from './components/master-error-boundary';
-import Routes from './routes';
+import BrowserRoutes from './routes';
 import GlobalProviders from './providers';
+
+function ErrorFallback({ error, resetErrorBoundary } : FallbackProps) {
+  return (
+    <div role="alert">
+      <p>Something went wrong:</p>
+      <pre>{error.message}</pre>
+      <button type="button" onClick={resetErrorBoundary}>Try again</button>
+    </div>
+  );
+}
 
 function App() {
   return (
     <GlobalProviders>
-      <Router>
-        <MasterErrorBoundary>
+      <BrowserRouter>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
           <GlobalStyles />
           <Layout>
-            <Routes />
+            <BrowserRoutes />
           </Layout>
-        </MasterErrorBoundary>
-      </Router>
+        </ErrorBoundary>
+      </BrowserRouter>
     </GlobalProviders>
   );
 }
-
 export default App;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Switch, Route } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import HomePage from './pages/home';
 import FavouritesPage from './pages/favourites';
 import AddUrlPage from './pages/add-url';
@@ -7,17 +7,16 @@ import HistoryPage from './pages/history';
 import SettingsPage from './pages/settings';
 import NotFoundPage from './pages/not-found';
 
-function Routes() {
+function BrowserRoutes() {
   return (
-    <Switch>
-      <Route exact path="/" component={HomePage} />
-      <Route exact path="/favourites" component={FavouritesPage} />
-      <Route exact path="/add-url" component={AddUrlPage} />
-      <Route exact path="/history" component={HistoryPage} />
-      <Route exact path="/settings" component={SettingsPage} />
-      <Route component={NotFoundPage} />
-    </Switch>
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/favourites" element={<FavouritesPage />} />
+      <Route path="/add-url" element={<AddUrlPage />} />
+      <Route path="/history" element={<HistoryPage />} />
+      <Route path="/settings" element={<SettingsPage />} />
+      <Route element={<NotFoundPage />} />
+    </Routes>
   );
 }
-
-export default Routes;
+export default BrowserRoutes;

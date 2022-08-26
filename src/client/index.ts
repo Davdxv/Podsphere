@@ -15,7 +15,7 @@ import {
   rightDiff,
   simpleDiff,
 } from './arweave/sync/diff-merge-logic';
-import { isValidUuid } from '../podcast-id';
+import { findBestId, isValidUuid } from '../podcast-id';
 import { getPodcastId } from './arweave/cache/podcast-id';
 
 export const { pingTxIds } = arweave;
@@ -75,13 +75,15 @@ export async function fetchPodcastRss2Feed(
   const newPodcastMetadata = partialToPodcast(newPartialPodcastMetadata);
   if ('errorMessage' in newPodcastMetadata) return newPodcastMetadata;
 
-  const newPodcastMetadataToSync = rightDiff(
-    feed.arweave,
-    { ...metadataToSyncWithNewEpisodes, id: '' },
-    ['id', 'feedUrl', 'title'],
-  );
+  const newPodcastMetadataToSync = {
+    ...rightDiff(feed.arweave, metadataToSyncWithNewEpisodes, ['id', 'feedUrl', 'title']),
+    id: findBestId([feed.arweave.id || '', metadataToSyncWithNewEpisodes.id || '']),
+  };
 
-  return { newPodcastMetadata: addLastMutatedAt(newPodcastMetadata), newPodcastMetadataToSync };
+  return {
+    newPodcastMetadata: addLastMutatedAt(newPodcastMetadata),
+    newPodcastMetadataToSync,
+  };
 }
 
 export interface NewIdMapping extends Pick<Podcast, 'feedType' | 'feedUrl'> {

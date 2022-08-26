@@ -14,7 +14,7 @@ import {
   omitEmptyMetadata,
 } from '../../../utils';
 import { mergeArraysToLowerCase } from '../../metadata-filtering/formatting';
-import { isCandidatePodcastId, isValidUuid } from '../../../podcast-id';
+import { findBestId } from '../../../podcast-id';
 
 /**
  * @param oldEpisode
@@ -131,8 +131,6 @@ export function mergeBatchMetadata(
     episodes: mergedEpisodes,
   };
 }
-
-const findBestId = (ids: string[]) => ids.find(id => isValidUuid(id) && !isCandidatePodcastId(id));
 
 /**
  * Helper function to run in the body of a reduce operation on an array of objects.
