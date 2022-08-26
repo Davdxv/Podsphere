@@ -1,0 +1,110 @@
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.main {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 90%;
+  height: 75vh;
+  background-color: #fffe;
+  border-radius: 10px;
+  padding: 5px;
+  animation: fadeIn 0.4s;
+}
+
+.page {
+  margin: auto;
+  width: 90%;
+  height: 75vh;
+  background-color: #fffe;
+  border-radius: 10px;
+  padding: 30px;
+  animation: fadeIn 0.4s;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  border-radius: 10px;
+  width: 95%;
+}
+
+.icon {
+  margin-right: 15px;
+}
+
+.close-button {
+  margin-bottom: 30px;
+}
+
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 20px;
+}
+
+.arrow {
+  color: #0006;
+}
+
+.list-item::after {
+  content: '';
+  display: block;
+  position: absolute;
+  bottom: 0;
+  left: 2%;
+  width: 96%;
+  border-bottom: 1px solid rgba(35, 35, 35, 0.15);
+}
+
+.list-item:last-child::after {
+  border: 0;
+}
+
+.profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 25px;
+}
+
+.profile > p {
+  color: #000;
+  font-weight: bolder;
+}
+
+.profile-picture {
+  width: 80px;
+  margin-bottom: 15px;
+  border-radius: 50%;
+}
+
+.export-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.export-box:first-child {
+  align-self: flex-start;
+}
+
+.export-box > button {
+  background-color: #31664c;
+  padding: 10px 15px;
+}
+
+.export-box > button:hover {
+  background-color: #4b9b735d;
+}

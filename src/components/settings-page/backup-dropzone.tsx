@@ -5,9 +5,10 @@ import styles from './dropzone.module.scss';
 
 interface Props {
   onDrop: (file: string) => void;
+  dropzoneText: string;
 }
 
-export const BackupDropzone : React.FC<Props> = ({ onDrop }) => {
+export const BackupDropzone : React.FC<Props> = ({ onDrop, dropzoneText }) => {
   const { getRootProps, getInputProps } = useDropzone({
     maxFiles: 1,
     accept: { 'text/*': ['.txt'] },
@@ -24,7 +25,7 @@ export const BackupDropzone : React.FC<Props> = ({ onDrop }) => {
     <Box className={styles.container}>
       <Box {...getRootProps({ className: styles.dropzone })}>
         <input {...getInputProps()} />
-        <Typography>Drag and drop your backup file here!</Typography>
+        <Typography>{dropzoneText}</Typography>
       </Box>
     </Box>
   );
