@@ -9,15 +9,13 @@ interface Props {
 }
 
 const NavButton : React.FC<Props> = ({ children, ...props }) => (
-  <li>
-    <Button
-      className={style['nav-btn']}
-      as={NavLink}
-      {...props}
-    >
-      {children}
-    </Button>
-  </li>
+  <NavLink {...props}>
+    <li>
+      <Button className={style['nav-btn']}>
+        {children}
+      </Button>
+    </li>
+  </NavLink>
 );
 
 export default NavButton;

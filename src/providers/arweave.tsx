@@ -2,7 +2,6 @@ import React, {
   createContext, useState, useContext,
   useRef, useEffect, useCallback,
 } from 'react';
-import PropTypes from 'prop-types';
 import { JWKInterface } from 'arweave/node/lib/wallet';
 import { TransactionStatusResponse } from 'arweave/node/transactions';
 import { ApiConfig } from 'arweave/node/lib/api';
@@ -407,10 +406,6 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
       {children}
     </ArweaveContext.Provider>
   );
-};
-
-ArweaveProvider.propTypes = {
-  children: PropTypes.node.isRequired,
 };
 
 export default ArweaveProvider;

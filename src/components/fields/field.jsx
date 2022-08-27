@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import { useField } from 'formik';
 import { Form } from 'react-bootstrap';
 
@@ -18,15 +17,4 @@ function Field({ children, name, label }) {
     </Form.Group>
   );
 }
-
-Field.propTypes = {
-  children: PropTypes.func.isRequired,
-  name: PropTypes.string.isRequired,
-  label: PropTypes.string,
-};
-
-Field.defaultProps = {
-  label: null,
-};
-
 export default Field;

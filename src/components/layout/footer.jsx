@@ -16,19 +16,19 @@ function LayoutFooter() {
     <Box component="footer" className={style.footer}>
       <Container as="nav">
         <Box component="ul" className={style['nav-list']}>
-          <NavButton to="/">
+          <NavButton end to="/">
             <FaHome />
           </NavButton>
-          <NavButton to="/favourites">
+          <NavButton end to="/favourites">
             <FaStar />
           </NavButton>
-          <NavButton to="/add-url">
+          <NavButton end to="/add-url">
             <FaPlus />
           </NavButton>
-          <NavButton to="/history">
+          <NavButton end to="/history">
             <FaHistory />
           </NavButton>
-          <NavButton to="/settings">
+          <NavButton end to="/settings">
             <FaCog />
           </NavButton>
         </Box>
