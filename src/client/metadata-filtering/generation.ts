@@ -21,9 +21,11 @@ export function initializeKeywords(
   keywords: string[] = [],
 ) : string[] {
   const primaryKeyword = getPrimaryKeyword(metadata);
+  const result = mergeArraysToLowerCase([primaryKeyword], keywords);
+
   // Sometimes iTunes has keywords ['jimmy', 'dore', ...]; merge these with `primaryKeyword`
   const duplicateKeywords = primaryKeyword.split(' ');
+  if (duplicateKeywords.length > 1) return result.filter(key => !duplicateKeywords.includes(key));
 
-  return mergeArraysToLowerCase([primaryKeyword], keywords)
-    .filter(keyword => !duplicateKeywords.includes(keyword));
+  return result;
 }

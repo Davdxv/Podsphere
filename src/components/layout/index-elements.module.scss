@@ -10,7 +10,7 @@
   top: 0;
   right: 0;
   left: 0;
-  z-index: 10001;
+  z-index: 100110;
   background-color: #030303;
   margin-left: auto;
   margin-right: auto;
@@ -44,14 +44,6 @@
   margin-right: 0.625rem;
 }
 
-.pod-alert {
-  border: 2px solid gray;
-  border-radius: 9999px;
-  flex-shrink: 0;
-  width: 1rem;
-  height: 1rem;
-}
-
 .form-wrapper {
   width: 100%;
 }
@@ -75,6 +67,7 @@
 // FOOTER
 
 .footer {
+  z-index: 110100;
   background-color: #0d0d0ded;
   padding: 0.625rem 1.25rem;
   border-top-left-radius: 1rem;
@@ -98,7 +91,6 @@
   padding-top: 0;
   padding-bottom: 0;
   padding-left: 0;
-  z-index: 70;
   font-size: 2rem;
 }
 

@@ -20,6 +20,7 @@ export default createGlobalStyle`
 
   /* ====== Toasts ====== */
   .toast {
+    z-index: 111111;
     width: max-content;
     min-width: 400px;
     max-width: 1000px;

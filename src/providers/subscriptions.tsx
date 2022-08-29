@@ -7,6 +7,7 @@ import React, {
 import dedent from 'dedent';
 import { ToastContext } from './toast';
 import useRerenderEffect from '../hooks/use-rerender-effect';
+import { searchPodcast } from '../client/search';
 import {
   fetchPodcastRss2Feed,
   getNewPodcastIds,
@@ -16,10 +17,11 @@ import {
   updatePodcastIds,
 } from '../client';
 import {
-  unixTimestamp,
-  hasMetadata,
   concatMessages,
+  findMetadataByFeedUrl,
+  hasMetadata,
   podcastsFromDTO,
+  unixTimestamp,
 } from '../utils';
 import {
   ArSyncTxDTO,
@@ -27,8 +29,9 @@ import {
   EpisodesDBTable,
   Podcast,
   PodcastDTO,
+  SearchPodcastResult,
 } from '../client/interfaces';
-import { sanitizeUri } from '../client/metadata-filtering';
+import { sanitizeString, sanitizeUri, isValidUrl } from '../client/metadata-filtering';
 import { usingArLocal } from '../client/arweave/utils';
 import { IndexedDb } from '../indexed-db';
 import {
@@ -56,7 +59,11 @@ interface SubscriptionContextType {
   subscriptions: Podcast[],
   isRefreshing: boolean,
   lastRefreshTime: number,
-  subscribe: (id: string) => Promise<boolean>,
+  handleSearch: (query: string) => Promise<boolean>,
+  searchResults: SearchPodcastResult[],
+  setShowSearchResults: (value: boolean) => void,
+  showSearchResults: boolean,
+  subscribe: (feedUrl: string) => Promise<boolean>,
   unsubscribe: (id: string) => Promise<void>,
   refresh: (idsToRefresh?: Podcast['id'][] | null, silent?: boolean,
     maxLastRefreshAge?: number) => Promise<[null, null] | [Podcast[], Partial<Podcast>[]]>,
@@ -80,6 +87,10 @@ export const SubscriptionsContext = createContext<SubscriptionContextType>({
   subscriptions: [],
   isRefreshing: false,
   lastRefreshTime: 0,
+  handleSearch: async () => false,
+  searchResults: [],
+  setShowSearchResults: () => {},
+  showSearchResults: false,
   subscribe: async () => false,
   unsubscribe: async () => {},
   refresh: async () => [null, null],
@@ -206,24 +217,47 @@ async function removeCachedSubscription(feedUrl: Podcast['feedUrl']) {
 // TODO: ArSync v1.5+, test me
 const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const toast = useContext(ToastContext);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchPodcastResult[]>([]);
   const [dbStatus, setDbStatus] = useState(DBStatus.UNINITIALIZED);
   const [subscriptions, setSubscriptions] = useState<Podcast[]>([]);
   const [metadataToSync, setMetadataToSync] = useState<Partial<Podcast>[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
 
+  async function handleSearch(query: string) {
+    const sanitizedQuery = sanitizeString(query);
+    if (!sanitizedQuery) return false;
+
+    if (isValidUrl(sanitizedQuery)) {
+      const subscribeResult = await subscribe(sanitizedQuery);
+      return subscribeResult;
+    }
+
+    // TODO: Include Arweave search results
+    const results = await searchPodcast(sanitizedQuery);
+    setSearchResults(results);
+    setShowSearchResults(true);
+
+    return false;
+  }
+
   async function subscribe(feedUrl: Podcast['feedUrl']) {
-    let validUrl = '';
+    let validUrl : string;
     try {
       validUrl = sanitizeUri(feedUrl, true);
     }
-    catch (ex) {
-      toast(`Unable to subscribe: ${(ex as Error).message}`, { variant: 'danger' });
+    catch (_ex) {
+      validUrl = '';
+    }
+    if (!validUrl) {
+      toast(`Unable to subscribe to ${feedUrl}: invalid URL.`, { variant: 'danger' });
       return false;
     }
 
-    if (subscriptions.some(subscription => subscription.feedUrl === validUrl)) {
-      toast(`You are already subscribed to ${validUrl}.`, { variant: 'danger' });
+    const subscription = findMetadataByFeedUrl(validUrl, 'rss2', subscriptions);
+    if (hasMetadata(subscription)) {
+      toast(`You are already subscribed to ${subscription.title}.`, { variant: 'warning' });
       return true;
     }
 
@@ -242,7 +276,7 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
     }
     if (errorMessage) toast(`${errorMessage}`, { variant: 'danger' });
 
-    return false; // TODO: don't clear text field if returns false
+    return false;
   }
 
   async function unsubscribe(feedUrl: Podcast['feedUrl']) {
@@ -437,6 +471,10 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
         subscriptions,
         isRefreshing,
         lastRefreshTime,
+        handleSearch,
+        searchResults,
+        setShowSearchResults,
+        showSearchResults,
         subscribe,
         unsubscribe,
         refresh,

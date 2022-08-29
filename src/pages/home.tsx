@@ -5,6 +5,7 @@ import {
 import { SubscriptionsContext } from '../providers/subscriptions';
 import { ArweaveContext } from '../providers/arweave';
 import PodGraph from '../components/pod-graph';
+import SearchPodcastResults from '../components/search-podcast-results';
 import HeaderComponent from '../components/layout/header-component';
 import CategoriesList from '../components/categories-list';
 import PodcastList from '../components/podcast-list';
@@ -34,7 +35,15 @@ function TabPanel(props: TabPanelProps) {
 }
 
 function HomePage() {
-  const { subscriptions, subscribe, unsubscribe } = useContext(SubscriptionsContext);
+  const {
+    handleSearch,
+    searchResults,
+    setShowSearchResults,
+    showSearchResults,
+    subscriptions,
+    subscribe,
+    unsubscribe,
+  } = useContext(SubscriptionsContext);
   const { arSyncTxs, isSyncing, removeArSyncTxs } = useContext(ArweaveContext);
 
   const [tab, setTab] = useState(0);
@@ -43,19 +52,31 @@ function HomePage() {
     setTab(newValue);
   };
 
+  const handleCloseSearchResults = (_event: React.MouseEvent<unknown>, reason = '') => {
+    if (reason !== 'backdropClick') setShowSearchResults(false);
+  };
+
+  const handleSubscribe = async (_event: React.MouseEvent<unknown>, feedUrl: string) => {
+    const subscribeResult = await subscribe(feedUrl);
+    if (subscribeResult) setShowSearchResults(false);
+  };
+
   useEffect(() => {
     if (isSyncing) setTab(1);
   }, [isSyncing]);
 
   async function search({ query } : { query: string }) {
-    subscribe(query);
+    return handleSearch(query);
   }
+
   return (
     <div className={style.container}>
       <HeaderComponent onSubmit={search} />
 
       {subscriptions && (
-        <PodGraph subscriptions={subscriptions} />
+        <div>
+          <PodGraph subscriptions={subscriptions} />
+        </div>
       )}
 
       <Box className={style.wrapper}>
@@ -82,6 +103,15 @@ function HomePage() {
             />
           </TabPanel>
         </Box>
+      </Box>
+
+      <Box>
+        <SearchPodcastResults
+          onClose={handleCloseSearchResults}
+          subscribeHandler={handleSubscribe}
+          isOpen={showSearchResults}
+          results={searchResults}
+        />
       </Box>
     </div>
   );

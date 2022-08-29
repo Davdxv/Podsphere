@@ -5,12 +5,15 @@ import { ToastContext } from '../../providers/toast';
 import RssButton from '../buttons/rss-button';
 import SyncButton from '../buttons/sync-button';
 import RefreshButton from '../buttons/refresh-button';
+import SearchButton from '../buttons/search-button';
 import style from './index-elements.module.scss';
 import { ReactComponent as AppIcon } from '../../assets/arsync-logo.svg';
 
 function HeaderComponent({ onSubmit }) {
   const toast = useContext(ToastContext);
   const [isSearching, setIsSearching] = useState(false);
+  const SEARCH_TEXT = 'Search for podcasts, episodes or enter an RSS feed URL to subscribe to';
+
   async function handleSubmit(event) {
     event.preventDefault();
     const fd = new FormData(event.target);
@@ -18,8 +21,11 @@ function HeaderComponent({ onSubmit }) {
     if (query) {
       setIsSearching(true);
       try {
-        await onSubmit({ query });
-        event.target.reset();
+        const handleSearchResult = await onSubmit({ query });
+        if (handleSearchResult) {
+          // Clear search field
+          event.target.reset();
+        }
       } catch (ex) {
         console.error(ex);
         toast('Could not find podcast.', { variant: 'danger' });
@@ -35,8 +41,8 @@ function HeaderComponent({ onSubmit }) {
         <AppIcon />
       </Box>
       <Box className={style['form-layer']}>
-        <Box className={style['pod-alert']}>
-          {/* <SiGooglepodcasts /> */}
+        <Box>
+          <SearchButton />
         </Box>
         <Box className={style['form-wrapper']}>
           <Form onSubmit={handleSubmit}>
@@ -44,8 +50,8 @@ function HeaderComponent({ onSubmit }) {
               <InputGroup>
                 <Form.Control
                   name="query"
-                  disabled={isSearching}
-                  placeholder="https://feeds.simplecast.com/dHoohVNH"
+                  style={{ paddingLeft: 0 }}
+                  placeholder={SEARCH_TEXT}
                 />
                 <RssButton disabled={isSearching} />
               </InputGroup>

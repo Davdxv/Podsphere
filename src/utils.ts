@@ -29,8 +29,17 @@ export function toISOString(date: Date) {
   try {
     return date.toISOString();
   }
-  catch (error) {
+  catch (_ex) {
     return '';
+  }
+}
+
+export function toLocaleString(date: Date) {
+  try {
+    return date.toLocaleString();
+  }
+  catch (_ex) {
+    return 'unknown';
   }
 }
 

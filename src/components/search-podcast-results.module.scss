@@ -1,0 +1,63 @@
+$min-table-width: 750px;
+
+.search-results-modal {
+  z-index: 100100;
+  margin: 5vw;
+  background-color: rgba(13, 13, 13, 1);
+  border: 2px solid rgba(38, 38, 38, 1);
+  border-radius: 1rem;
+}
+
+.search-results-table-container {
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.search-results-table-close-button {
+  position: fixed;
+  right: calc(5vw + 1.5rem);
+  padding: 0.2rem;
+  background-color: rgba(33, 33, 33, 1);
+  &:hover {
+    background-color: rgba(50, 50, 50, 1);
+  }
+}
+
+.search-results-table-head-cell {
+  font-weight: bold;
+  white-space: nowrap;
+  padding-left: 1rem;
+}
+
+.search-results-table-col-title {
+  width: 20%;
+  min-width: calc(0.2 * $min-table-width);
+  padding-left: 1rem;
+}
+
+.search-results-table-col-author {
+  width: 16%;
+  min-width: calc(0.16 * $min-table-width);
+}
+
+.search-results-table-col-date {
+  width: 10%;
+  min-width: calc(0.1 * $min-table-width);
+  white-space: pre-line;
+}
+
+.search-results-table-col-eps {
+  width: 8%;
+  min-width: calc(0.08 * $min-table-width);
+}
+
+.search-results-table-col-feed-url {
+  width: 29%;
+  min-width: calc(0.29 * $min-table-width);
+}
+
+.search-results-table-col-genres {
+  width: 16%;
+  min-width: calc(0.16 * $min-table-width);
+}

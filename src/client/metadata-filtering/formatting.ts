@@ -30,3 +30,9 @@ export function mergeArraysToLowerCase<T extends Primitive>(
   const concat = filterArray(convertToArray(list1)).concat(filterArray(convertToArray(list2)));
   return [...new Set(concat)];
 }
+
+export function truncateString(str: string, length: number = 0, ellipses = '...') : string {
+  if (!str || !length || str.length <= length) return str;
+
+  return `${str.substring(0, length - ellipses.length)}${ellipses}`;
+}
