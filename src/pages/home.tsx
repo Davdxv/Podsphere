@@ -67,7 +67,6 @@ function HomePage() {
   }, [isSyncing]);
 
   async function search({ query } : { query: string }) {
-    setSearchQuery(query);
     return handleSearch(query);
   }
 
@@ -110,9 +109,8 @@ function HomePage() {
       <Box>
         <SearchPodcastResults
           onClose={handleCloseSearchResults}
-          clickFeedHandler={handleSubscribe}
+          subscribeHandler={handleSubscribe}
           isOpen={showSearchResults}
-          searchQuery={searchQuery}
           results={searchResults}
         />
       </Box>

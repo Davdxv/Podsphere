@@ -1,9 +1,5 @@
 $min-table-width: 750px;
 
-.text-highlight {
-  color: darkorange;
-}
-
 .search-results-modal {
   z-index: 100100;
   margin: 5vw;
@@ -18,6 +14,16 @@ $min-table-width: 750px;
   overflow-y: auto;
 }
 
+.search-results-table-close-button {
+  position: fixed;
+  right: calc(5vw + 1.5rem);
+  padding: 0.2rem;
+  background-color: rgba(33, 33, 33, 1);
+  &:hover {
+    background-color: rgba(50, 50, 50, 1);
+  }
+}
+
 .search-results-table-head-cell {
   font-weight: bold;
   white-space: nowrap;
@@ -28,7 +34,6 @@ $min-table-width: 750px;
   width: 20%;
   min-width: calc(0.2 * $min-table-width);
   padding-left: 1rem;
-  font-weight: bold;
 }
 
 .search-results-table-col-author {
