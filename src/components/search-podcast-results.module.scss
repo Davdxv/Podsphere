@@ -3,14 +3,6 @@ $search-results-modal-z-index: 100100;
 $modal-bg-color: rgba(33, 33, 33, 1);
 $table-row-bg-color: rgba(20, 33, 40, 1);
 
-.text-highlight {
-  color: darkorange;
-}
-
-.search-results-close-button {
-  z-index: calc($search-results-modal-z-index + 1);
-}
-
 .search-results-modal {
   z-index: $search-results-modal-z-index;
   margin: 5vw;
@@ -25,10 +17,13 @@ $table-row-bg-color: rgba(20, 33, 40, 1);
   overflow-y: auto;
 }
 
-.search-results-table-row {
-  background-color: $table-row-bg-color;
+.search-results-table-close-button {
+  position: fixed;
+  right: calc(5vw + 1.5rem);
+  padding: 0.2rem;
+  background-color: rgba(33, 33, 33, 1);
   &:hover {
-    background-color: darkblue;
+    background-color: rgba(50, 50, 50, 1);
   }
 }
 
@@ -42,7 +37,6 @@ $table-row-bg-color: rgba(20, 33, 40, 1);
   width: 20%;
   min-width: calc(0.2 * $min-table-width);
   padding-left: 1rem;
-  font-weight: bold;
 }
 
 .search-results-table-col-author {

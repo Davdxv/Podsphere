@@ -109,20 +109,7 @@ function HomePage() {
     if (isSyncing) setTab(1);
   }, [isSyncing]);
 
-  useEffect(() => {
-    if (selectedPodcastId) {
-      const metadata = findMetadataByFeedUrl(selectedPodcastId, 'rss2', subscriptions);
-      if (hasMetadata(metadata)) {
-        setSelectedPodcastMetadata(metadata);
-        setShowPodcastDetails(true);
-      }
-    }
-  }, [selectedPodcastId, subscriptions]);
-
-  async function search(_event: React.MouseEvent<any> | React.FormEvent<any>, query: string)
-    : Promise<boolean> {
-    setShowPodcastDetails(false);
-    setSearchQuery(query);
+  async function search({ query } : { query: string }) {
     return handleSearch(query);
   }
 
@@ -169,9 +156,8 @@ function HomePage() {
       <Box>
         <SearchPodcastResults
           onClose={handleCloseSearchResults}
-          clickFeedHandler={handleFetchFeed}
+          subscribeHandler={handleSubscribe}
           isOpen={showSearchResults}
-          searchQuery={searchQuery}
           results={searchResults}
         />
       </Box>

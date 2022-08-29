@@ -17,26 +17,7 @@ interface Props {
 function HeaderComponent({ onSubmit } : Props) {
   const toast = useContext(ToastContext);
   const [isSearching, setIsSearching] = useState(false);
-  const [showClearButton, setShowClearButton] = useState(false);
   const SEARCH_TEXT = 'Search for podcasts, episodes or enter an RSS feed URL to subscribe to';
-  const searchFormRef = useRef<HTMLFormElement>(null);
-
-  const clearSearchForm = () => {
-    if (searchFormRef.current) searchFormRef.current.reset();
-    setShowClearButton(false);
-  };
-
-  const getSearchFormInput = () : string => {
-    if (searchFormRef.current) {
-      const fd = new FormData(searchFormRef.current);
-      return fd.get('query')?.toString() || '';
-    }
-    return '';
-  };
-
-  function handleChange() {
-    setShowClearButton(!!getSearchFormInput());
-  }
 
   async function handleSubmit(
     event: React.MouseEvent<HTMLFormElement> | React.FormEvent<HTMLFormElement>,
@@ -46,8 +27,11 @@ function HeaderComponent({ onSubmit } : Props) {
     if (query) {
       setIsSearching(true);
       try {
-        const handleSearchResult = await onSubmit(event, query);
-        if (handleSearchResult) clearSearchForm(); // On successful subscription to RSS feed
+        const handleSearchResult = await onSubmit({ query });
+        if (handleSearchResult) {
+          // Clear search field
+          event.target.reset();
+        }
       } catch (ex) {
         console.error(ex);
         toast('Could not find podcast.', { variant: 'danger' });
@@ -64,7 +48,7 @@ function HeaderComponent({ onSubmit } : Props) {
       </Box>
       <Box className={style['form-layer']}>
         <Box>
-          <SearchButton disabled={isSearching} form="search-form" onClick={handleSubmit} />
+          <SearchButton />
         </Box>
         <Box className={style['form-wrapper']}>
           <Form ref={searchFormRef} id="search-form" onSubmit={handleSubmit}>
@@ -72,9 +56,8 @@ function HeaderComponent({ onSubmit } : Props) {
               <InputGroup>
                 <Form.Control
                   name="query"
-                  style={{ paddingLeft: '0.2rem' }}
+                  style={{ paddingLeft: 0 }}
                   placeholder={SEARCH_TEXT}
-                  onChange={handleChange}
                 />
                 {showClearButton && <ClearButton onClick={clearSearchForm} />}
               </InputGroup>

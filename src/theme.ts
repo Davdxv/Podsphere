@@ -1,7 +1,7 @@
 import { createTheme } from '@mui/material';
 
-const TEXT_COLOR = 'rgba(255, 255, 255, 0.93)';
-const BG_COLOR = 'rgba(13, 13, 13, 1)';
+const TEXT_COLOR = '#fff';
+const BG_COLOR = '#000';
 const HOVER_COLOR = '#4b9b73';
 
 const SHARED_TABLE_STYLES = {
@@ -25,13 +25,6 @@ export const theme = createTheme({
     },
   },
   components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'unset',
-        },
-      },
-    },
     MuiPopover: {
       styleOverrides: {
         root: {
@@ -118,7 +111,7 @@ export const theme = createTheme({
           paddingRight: '0.5rem',
         },
         selectIcon: {
-          fill: `${BG_COLOR} !important`,
+          fill: BG_COLOR,
         },
       },
     },

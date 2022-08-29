@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box, Modal, Table,
   TableBody, TableCell, TableContainer,
   TableHead, TableRow, TableSortLabel,
-  TablePagination, Toolbar, Typography, DialogContent,
+  TablePagination, Toolbar, Typography,
+  IconButton,
 } from '@mui/material';
-import Highlighter from 'react-highlight-words';
-import CloseButton from './buttons/close-button';
+import CloseIcon from '@mui/icons-material/Close';
 import { SearchPodcastResult } from '../client/interfaces';
-import { metadatumToString } from '../utils';
+import { toLocaleString } from '../utils';
 import { truncateString } from '../client/metadata-filtering/formatting';
 import style from './search-podcast-results.module.scss';
 
@@ -19,10 +19,9 @@ interface OnCloseProp {
 }
 
 interface Props extends OnCloseProp {
-  clickFeedHandler: (_event: React.MouseEvent<unknown>, feedUrl: string) => Promise<void>,
+  subscribeHandler: (_event: React.MouseEvent<unknown>, feedUrl: string) => void,
   // eslint-disable-next-line react/no-unused-prop-types
   isOpen?: boolean,
-  searchQuery: string,
   results: SearchPodcastResult[],
 }
 
@@ -40,26 +39,12 @@ const rows = (results: SearchPodcastResult[]) : SearchResult[] => results.map((r
 
 const SearchPodcastResults : React.FC<Props> = ({
   onClose,
-  clickFeedHandler,
+  subscribeHandler,
   isOpen = false,
-  searchQuery = '',
   results = [],
 }: Props) => (
-  <Modal
-    disableEnforceFocus
-    disableAutoFocus
-    open={isOpen}
-    onClose={onClose}
-    className={style['search-results-modal']}
-  >
-    <DialogContent>
-      <EnhancedTable
-        clickFeedHandler={clickFeedHandler}
-        onClose={onClose}
-        searchQuery={searchQuery}
-        results={results}
-      />
-    </DialogContent>
+  <Modal open={isOpen} onClose={onClose} className={style['search-results-modal']}>
+    <EnhancedTable subscribeHandler={subscribeHandler} onClose={onClose} results={results} />
   </Modal>
 );
 export default SearchPodcastResults;
@@ -69,17 +54,20 @@ const DEFAULT_ORDER_BY = 'index';
 const DEFAULT_ROWS_PER_PAGE = 10;
 
 /** Adapted from: https://mui.com/material-ui/react-table/#sorting-amp-selecting */
-const EnhancedTable = React.forwardRef<unknown, Props>((props, ref) => {
-  const { onClose, clickFeedHandler, searchQuery, results } = props;
+function EnhancedTable(props: Props) {
+  const { onClose, subscribeHandler, results } = props;
 
-  const [order, setOrder] = useState<Order>('asc');
-  const [orderBy, setOrderBy] = useState<keyof SearchResult>(DEFAULT_ORDER_BY);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_ROWS_PER_PAGE);
+  const [order, setOrder] = React.useState<Order>('asc');
+  const [orderBy, setOrderBy] = React.useState<keyof SearchResult>(DEFAULT_ORDER_BY);
+  const [page, setPage] = React.useState(0);
+  const [rowsPerPage, setRowsPerPage] = React.useState(DEFAULT_ROWS_PER_PAGE);
 
-  const handleRequestSort = (_event: React.MouseEvent<unknown>, prop: keyof SearchResult) => {
+  const handleRequestSort = (
+    _event: React.MouseEvent<unknown>,
+    property: keyof SearchResult,
+  ) => {
     setPage(0);
-    if (orderBy === prop) {
+    if (orderBy === property) {
       if (order === 'desc') {
         // 3rd click: Revert to default sort
         setOrder('asc');
@@ -93,12 +81,12 @@ const EnhancedTable = React.forwardRef<unknown, Props>((props, ref) => {
     else {
       // 1st click
       setOrder('asc');
-      setOrderBy(prop);
+      setOrderBy(property);
     }
   };
 
-  const handleClickRow = (event: React.MouseEvent<unknown>, feedUrl: string) => {
-    clickFeedHandler(event, feedUrl);
+  const handleClick = (event: React.MouseEvent<unknown>, feedUrl: string) => {
+    subscribeHandler(event, feedUrl);
   };
 
   const handleChangePage = (_event: unknown, newPage: number) => {
@@ -109,8 +97,6 @@ const EnhancedTable = React.forwardRef<unknown, Props>((props, ref) => {
     setPage(0);
     setRowsPerPage(parseInt(event.target.value, 10));
   };
-
-  const getSearchWords = () => searchQuery.split(' ').filter(str => str.length > 1);
 
   return (
     <Box ref={ref} className={style['search-results-table-container']}>
@@ -150,8 +136,8 @@ const EnhancedTable = React.forwardRef<unknown, Props>((props, ref) => {
 
                 return (
                   <TableRow
-                    className={style['search-results-table-row']}
-                    onClick={event => handleClickRow(event, row.feedUrl)}
+                    hover
+                    onClick={event => handleClick(event, row.feedUrl)}
                     tabIndex={-1}
                     key={labelId}
                   >
@@ -163,50 +149,40 @@ const EnhancedTable = React.forwardRef<unknown, Props>((props, ref) => {
                       scope="row"
                       padding="none"
                     >
-                      <Highlighter
-                        autoEscape
-                        highlightClassName={style['text-highlight']}
-                        searchWords={getSearchWords()}
-                        textToHighlight={metadatumToString(title)}
-                      />
+                      {title /* TODO: id = labelId? */}
                     </TableCell>
                     <TableCell
                       title={author.length !== row.author.length ? row.author : undefined}
                       className={style['search-results-table-col-author']}
                       align="right"
                     >
-                      <Highlighter
-                        autoEscape
-                        highlightClassName={style['text-highlight']}
-                        searchWords={getSearchWords()}
-                        textToHighlight={metadatumToString(author)}
-                      />
+                      {author}
                     </TableCell>
                     <TableCell
                       className={style['search-results-table-col-date']}
                       align="right"
                     >
-                      {metadatumToString(lastEpisodeDate)}
+                      {toLocaleString(lastEpisodeDate)}
                     </TableCell>
                     <TableCell
                       className={style['search-results-table-col-eps']}
                       align="right"
                     >
-                      {metadatumToString(numEpisodes)}
+                      {numEpisodes}
                     </TableCell>
                     <TableCell
                       title={feedUrl.length !== row.feedUrl.length ? row.feedUrl : undefined}
                       className={style['search-results-table-col-feed-url']}
                       align="right"
                     >
-                      {metadatumToString(feedUrl)}
+                      {feedUrl}
                     </TableCell>
                     <TableCell
                       title={genres.length !== row.genres.length ? row.genres : undefined}
                       className={style['search-results-table-col-genres']}
                       align="right"
                     >
-                      {metadatumToString(genres)}
+                      {genres}
                     </TableCell>
                   </TableRow>
                 );
@@ -219,16 +195,22 @@ const EnhancedTable = React.forwardRef<unknown, Props>((props, ref) => {
 });
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
-  if (b[orderBy] < a[orderBy]) return -1;
-  if (b[orderBy] > a[orderBy]) return 1;
-
+  if (b[orderBy] < a[orderBy]) {
+    return -1;
+  }
+  if (b[orderBy] > a[orderBy]) {
+    return 1;
+  }
   return 0;
 }
 
-function getComparator<Key extends keyof SearchResult>(order: Order, orderBy: Key) : (
-  a: { [key in Key]: number | string | Date },
-  b: { [key in Key]: number | string | Date },
-) => number {
+function getComparator<Key extends keyof SearchResult>(
+  order: Order,
+  orderBy: Key,
+): (
+    a: { [key in Key]: number | string | Date },
+    b: { [key in Key]: number | string | Date },
+  ) => number {
   return order === 'desc'
     ? (a, b) => descendingComparator(a, b, orderBy)
     : (a, b) => -descendingComparator(a, b, orderBy);
@@ -289,8 +271,10 @@ interface EnhancedTableHeadProps {
 function EnhancedTableHead(props: EnhancedTableHeadProps) {
   const { onRequestSort, order, orderBy } = props;
   const createSortHandler = (property: keyof SearchResult) => (
-    (event: React.MouseEvent<unknown>) => onRequestSort(event, property)
-  );
+    event: React.MouseEvent<unknown>,
+  ) => {
+    onRequestSort(event, property);
+  };
 
   return (
     <TableHead>
@@ -318,7 +302,12 @@ function EnhancedTableHead(props: EnhancedTableHeadProps) {
 }
 
 const EnhancedTableToolbar : React.FC<OnCloseProp> = ({ onClose }) => (
-  <Toolbar sx={{ pl: { sm: 2 }, pr: { xs: 1, sm: 1 } }}>
+  <Toolbar
+    sx={{
+      pl: { sm: 2 },
+      pr: { xs: 1, sm: 1 },
+    }}
+  >
     <Typography
       sx={{ flex: '1 1 100%' }}
       variant="h6"
@@ -326,6 +315,11 @@ const EnhancedTableToolbar : React.FC<OnCloseProp> = ({ onClose }) => (
     >
       Podcast search results from iTunes
     </Typography>
-    <CloseButton classes={style['search-results-close-button']} onClick={onClose} />
+    <IconButton
+      className={style['search-results-table-close-button']}
+      onClick={event => onClose(event, 'closeButton')}
+    >
+      <CloseIcon />
+    </IconButton>
   </Toolbar>
 );
