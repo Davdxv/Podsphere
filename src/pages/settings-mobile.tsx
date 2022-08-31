@@ -1,7 +1,7 @@
 import {
   Box, Button, List, ListItem, Typography,
 } from '@mui/material';
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import SettingsIcon from '@mui/icons-material/Settings';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import HandymanIcon from '@mui/icons-material/Handyman';
@@ -9,6 +9,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { BackupDropzone } from '../components/settings-page/backup-dropzone';
 import styles from './settings-mobile.module.scss';
 import { downloadBackup, importBackup } from '../components/settings-page/utils';
+import { ToastContext } from '../providers/toast';
 
 export enum MobileMenuElement {
   Main,
@@ -19,6 +20,26 @@ export enum MobileMenuElement {
 const GeneralSettings : React.FC<{ handleChange: (activeEl:
 MobileMenuElement) => void }> = ({ handleChange }) => {
   const onListItemClick = (element: MobileMenuElement) => () => handleChange(element);
+  const toast = useContext(ToastContext);
+
+  const handleImportBackup = async (file: string) => {
+    try {
+      await importBackup(file);
+      toast('Backup successfully imported!', { variant: 'success' });
+      setTimeout(() => { window.location.href = '/'; }, 300);
+    } catch (e: any) {
+      toast(e.message, { variant: 'danger', autohideDelay: 3000 });
+    }
+  };
+
+  const handleDownloadBackup = async () => {
+    try {
+      await downloadBackup();
+      toast('Your download has started!', { variant: 'success' });
+    } catch (e: any) {
+      toast(e.message, { variant: 'danger', autohideDelay: 3000 });
+    }
+  };
 
   return (
     <Box className={styles.page}>
@@ -28,11 +49,11 @@ MobileMenuElement) => void }> = ({ handleChange }) => {
       />
       <Box className={styles['export-box']}>
         <Typography> Backup your data: </Typography>
-        <Button onClick={downloadBackup}> Backup </Button>
+        <Button onClick={handleDownloadBackup}> Backup </Button>
       </Box>
       <Box>
         <Typography> Import your data: </Typography>
-        <BackupDropzone dropzoneText="Choose your backup file!" onDrop={importBackup} />
+        <BackupDropzone dropzoneText="Choose your backup file!" onDrop={handleImportBackup} />
       </Box>
     </Box>
   );

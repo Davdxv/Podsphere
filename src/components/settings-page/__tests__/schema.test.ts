@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import z from 'zod';
+import { verifyBackup } from '../../../idb-utils';
 import { SchemaType } from '../../../providers/subscriptions';
 import { dbSchema } from '../zod-schemas';
+import { MinimalBackupString } from '../minimal-backup';
 
 /**
  * @link https://github.com/colinhacks/zod/issues/372#issuecomment-826380330
@@ -15,4 +17,9 @@ describe('db schema typescript interface is in sync with the zod schema', () => 
     // is a better place than here to put this "test" in.
     const schemaTest = schemaForType<SchemaType>()(dbSchema);
   });
+});
+
+test('verifyBackup works correctly', () => {
+  expect(verifyBackup(dbSchema, MinimalBackupString).success).toBe(true);
+  expect(() => verifyBackup(dbSchema, '')).toThrow();
 });

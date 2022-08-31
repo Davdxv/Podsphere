@@ -7,7 +7,6 @@
       "esnext"
     ],
     "types": [
-      "cypress",
       "jest",
       "node",
       "arconnect"
