@@ -1,5 +1,9 @@
 $min-table-width: 750px;
 
+.text-highlight {
+  color: darkorange;
+}
+
 .search-results-modal {
   z-index: 100100;
   margin: 5vw;
@@ -34,6 +38,7 @@ $min-table-width: 750px;
   width: 20%;
   min-width: calc(0.2 * $min-table-width);
   padding-left: 1rem;
+  font-weight: bold;
 }
 
 .search-results-table-col-author {

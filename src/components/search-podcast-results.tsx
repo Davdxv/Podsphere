@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box, Modal, Table,
   TableBody, TableCell, TableContainer,
@@ -7,6 +7,7 @@ import {
   IconButton,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import Highlighter from 'react-highlight-words';
 import { SearchPodcastResult } from '../client/interfaces';
 import { toLocaleString } from '../utils';
 import { truncateString } from '../client/metadata-filtering/formatting';
@@ -22,6 +23,7 @@ interface Props extends OnCloseProp {
   subscribeHandler: (_event: React.MouseEvent<unknown>, feedUrl: string) => void,
   // eslint-disable-next-line react/no-unused-prop-types
   isOpen?: boolean,
+  searchQuery: string,
   results: SearchPodcastResult[],
 }
 
@@ -41,10 +43,16 @@ const SearchPodcastResults : React.FC<Props> = ({
   onClose,
   subscribeHandler,
   isOpen = false,
+  searchQuery = '',
   results = [],
 }: Props) => (
   <Modal open={isOpen} onClose={onClose} className={style['search-results-modal']}>
-    <EnhancedTable subscribeHandler={subscribeHandler} onClose={onClose} results={results} />
+    <EnhancedTable
+      subscribeHandler={subscribeHandler}
+      onClose={onClose}
+      searchQuery={searchQuery}
+      results={results}
+    />
   </Modal>
 );
 export default SearchPodcastResults;
@@ -55,19 +63,16 @@ const DEFAULT_ROWS_PER_PAGE = 10;
 
 /** Adapted from: https://mui.com/material-ui/react-table/#sorting-amp-selecting */
 function EnhancedTable(props: Props) {
-  const { onClose, subscribeHandler, results } = props;
+  const { onClose, subscribeHandler, searchQuery, results } = props;
 
-  const [order, setOrder] = React.useState<Order>('asc');
-  const [orderBy, setOrderBy] = React.useState<keyof SearchResult>(DEFAULT_ORDER_BY);
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(DEFAULT_ROWS_PER_PAGE);
+  const [order, setOrder] = useState<Order>('asc');
+  const [orderBy, setOrderBy] = useState<keyof SearchResult>(DEFAULT_ORDER_BY);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_ROWS_PER_PAGE);
 
-  const handleRequestSort = (
-    _event: React.MouseEvent<unknown>,
-    property: keyof SearchResult,
-  ) => {
+  const handleRequestSort = (_event: React.MouseEvent<unknown>, prop: keyof SearchResult) => {
     setPage(0);
-    if (orderBy === property) {
+    if (orderBy === prop) {
       if (order === 'desc') {
         // 3rd click: Revert to default sort
         setOrder('asc');
@@ -81,7 +86,7 @@ function EnhancedTable(props: Props) {
     else {
       // 1st click
       setOrder('asc');
-      setOrderBy(property);
+      setOrderBy(prop);
     }
   };
 
@@ -97,6 +102,8 @@ function EnhancedTable(props: Props) {
     setPage(0);
     setRowsPerPage(parseInt(event.target.value, 10));
   };
+
+  const getSearchWords = () => searchQuery.split(' ').filter(str => str.length > 1);
 
   return (
     <Box className={style['search-results-table-container']}>
@@ -149,14 +156,24 @@ function EnhancedTable(props: Props) {
                       scope="row"
                       padding="none"
                     >
-                      {title /* TODO: id = labelId? */}
+                      <Highlighter
+                        autoEscape
+                        highlightClassName={style['text-highlight']}
+                        searchWords={getSearchWords()}
+                        textToHighlight={title}
+                      />
                     </TableCell>
                     <TableCell
                       title={author.length !== row.author.length ? row.author : undefined}
                       className={style['search-results-table-col-author']}
                       align="right"
                     >
-                      {author}
+                      <Highlighter
+                        autoEscape
+                        highlightClassName={style['text-highlight']}
+                        searchWords={getSearchWords()}
+                        textToHighlight={author}
+                      />
                     </TableCell>
                     <TableCell
                       className={style['search-results-table-col-date']}
@@ -196,22 +213,16 @@ function EnhancedTable(props: Props) {
 }
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
-  if (b[orderBy] < a[orderBy]) {
-    return -1;
-  }
-  if (b[orderBy] > a[orderBy]) {
-    return 1;
-  }
+  if (b[orderBy] < a[orderBy]) return -1;
+  if (b[orderBy] > a[orderBy]) return 1;
+
   return 0;
 }
 
-function getComparator<Key extends keyof SearchResult>(
-  order: Order,
-  orderBy: Key,
-): (
-    a: { [key in Key]: number | string | Date },
-    b: { [key in Key]: number | string | Date },
-  ) => number {
+function getComparator<Key extends keyof SearchResult>(order: Order, orderBy: Key) : (
+  a: { [key in Key]: number | string | Date },
+  b: { [key in Key]: number | string | Date },
+) => number {
   return order === 'desc'
     ? (a, b) => descendingComparator(a, b, orderBy)
     : (a, b) => -descendingComparator(a, b, orderBy);
@@ -272,10 +283,8 @@ interface EnhancedTableHeadProps {
 function EnhancedTableHead(props: EnhancedTableHeadProps) {
   const { onRequestSort, order, orderBy } = props;
   const createSortHandler = (property: keyof SearchResult) => (
-    event: React.MouseEvent<unknown>,
-  ) => {
-    onRequestSort(event, property);
-  };
+    (event: React.MouseEvent<unknown>) => onRequestSort(event, property)
+  );
 
   return (
     <TableHead>
@@ -303,12 +312,7 @@ function EnhancedTableHead(props: EnhancedTableHeadProps) {
 }
 
 const EnhancedTableToolbar : React.FC<OnCloseProp> = ({ onClose }) => (
-  <Toolbar
-    sx={{
-      pl: { sm: 2 },
-      pr: { xs: 1, sm: 1 },
-    }}
-  >
+  <Toolbar sx={{ pl: { sm: 2 }, pr: { xs: 1, sm: 1 } }}>
     <Typography
       sx={{ flex: '1 1 100%' }}
       variant="h6"

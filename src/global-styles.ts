@@ -44,6 +44,11 @@ export default createGlobalStyle`
   }
 
   /* ====== Global bootstrap ====== */
+  mark, .mark {
+    padding: unset;
+    background-color: inherit;
+  }
+
   .form-control {
     outline: 2px solid transparent;
     outline-offset: 2px;

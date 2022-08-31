@@ -47,6 +47,7 @@ function HomePage() {
   const { arSyncTxs, isSyncing, removeArSyncTxs } = useContext(ArweaveContext);
 
   const [tab, setTab] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setTab(newValue);
@@ -66,6 +67,7 @@ function HomePage() {
   }, [isSyncing]);
 
   async function search({ query } : { query: string }) {
+    setSearchQuery(query);
     return handleSearch(query);
   }
 
@@ -110,6 +112,7 @@ function HomePage() {
           onClose={handleCloseSearchResults}
           subscribeHandler={handleSubscribe}
           isOpen={showSearchResults}
+          searchQuery={searchQuery}
           results={searchResults}
         />
       </Box>
