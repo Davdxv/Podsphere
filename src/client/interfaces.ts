@@ -260,11 +260,6 @@ export interface CachedArTx {
 export interface GraphQLMetadata extends
   Pick<CachedArTx, 'txId' | 'ownerAddress' | 'txBundledIn'> {}
 
-export interface DisjointGraphFunctionNode extends Pick<Podcast, 'feedUrl'> {
-  keywordsAndCategories: string[];
-  visited: boolean;
-}
-
 /**
  * @interface SearchPodcastResult
  * @description Data structure to wrap a single podcast search result, from e.g. iTunes.

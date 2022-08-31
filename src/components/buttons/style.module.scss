@@ -109,6 +109,16 @@
   }
 }
 
+.close-button {
+  position: fixed;
+  right: calc(5vw + 1.5rem);
+  padding: 0.2rem;
+  background-color: rgba(33, 33, 33, 1);
+  &:hover {
+    background-color: rgba(50, 50, 50, 1);
+  }
+}
+
 .btn-icon-open {
   font-size: 1.25rem;
   line-height: 1.75rem;

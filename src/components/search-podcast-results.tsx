@@ -4,10 +4,9 @@ import {
   TableBody, TableCell, TableContainer,
   TableHead, TableRow, TableSortLabel,
   TablePagination, Toolbar, Typography,
-  IconButton,
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
 import Highlighter from 'react-highlight-words';
+import CloseButton from './buttons/close-button';
 import { SearchPodcastResult } from '../client/interfaces';
 import { toLocaleString } from '../utils';
 import { truncateString } from '../client/metadata-filtering/formatting';
@@ -321,11 +320,6 @@ const EnhancedTableToolbar : React.FC<OnCloseProp> = ({ onClose }) => (
     >
       Podcast search results from iTunes
     </Typography>
-    <IconButton
-      className={style['search-results-table-close-button']}
-      onClick={event => onClose(event, 'closeButton')}
-    >
-      <CloseIcon />
-    </IconButton>
+    <CloseButton onClick={onClose} />
   </Toolbar>
 );
