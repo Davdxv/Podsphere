@@ -21,16 +21,6 @@ $table-row-bg-color: rgba(20, 33, 40, 1);
   overflow-y: auto;
 }
 
-.search-results-table-close-button {
-  position: fixed;
-  right: calc(5vw + 1.5rem);
-  padding: 0.2rem;
-  background-color: rgba(33, 33, 33, 1);
-  &:hover {
-    background-color: rgba(50, 50, 50, 1);
-  }
-}
-
 .search-results-table-head-cell {
   font-weight: bold;
   white-space: nowrap;

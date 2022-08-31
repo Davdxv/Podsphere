@@ -125,43 +125,13 @@
   }
 }
 
-.float-right-fixed {
+.close-button {
   position: fixed;
   right: calc(5vw + 1.5rem);
-}
-
-.float-right {
-  position: relative;
-  float: right;
-  right: 2.5rem;
-}
-
-.close-btn {
   padding: 0.2rem;
   background-color: rgba(33, 33, 33, 1);
   &:hover {
     background-color: rgba(50, 50, 50, 1);
-  }
-}
-
-.clear-btn {
-  position: relative;
-  float: right;
-  width: fit-content;
-  height: fit-content;
-  margin-left: 0 !important;
-  margin-right: 0;
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
-  padding: 0.2rem;
-  background-color: rgba(33, 33, 33, 1);
-  &:hover {
-    background-color: rgba(50, 50, 50, 1);
-  }
-
-  svg {
-    width: 0.7em;
-    height: 0.7em;
   }
 }
 
