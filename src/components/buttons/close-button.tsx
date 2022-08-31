@@ -5,12 +5,11 @@ import style from './style.module.scss';
 
 interface Props {
   onClick: (_event: React.MouseEvent<unknown>, reason: string) => void;
-  className?: string,
 }
 
-const CloseButton : React.FC<Props> = ({ onClick, className, ...props }) => (
+const CloseButton : React.FC<Props> = ({ onClick, ...props }) => (
   <IconButton
-    className={`${style['close-btn']} ${style[className || 'float-right-fixed']}`}
+    className={style['close-button']}
     onClick={event => onClick(event, 'closeButton')}
     {...props}
   >

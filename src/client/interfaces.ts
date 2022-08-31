@@ -282,26 +282,3 @@ export interface SearchPodcastResult {
   genres: string[];
   country: string;
 }
-
-/**
- * @interface SearchPodcastResult
- * @description Data structure to wrap a single podcast search result, from e.g. iTunes.
- * @prop {number} id `iTunes.collectionId`
- * @prop {string} feedUrl `iTunes.feedUrl`
- * @prop {string} title `iTunes.collectionName|trackName`
- * @prop {string} author `iTunes.artistName`
- * @prop {number} numEpisodes `iTunes.trackCount` The number of episodes in the feed
- * @prop {Date} lastEpisodeDate `new Date(iTunes.releaseDate)`
- * @prop {string[]} genres `iTunes.genres`
- * @prop {string} country `iTunes.country`
- */
-export interface SearchPodcastResult {
-  id: number;
-  feedUrl: string;
-  title: string;
-  author: string;
-  numEpisodes: number;
-  lastEpisodeDate: Date;
-  genres: string[];
-  country: string;
-}
