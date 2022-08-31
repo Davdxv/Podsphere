@@ -3,6 +3,10 @@ $search-results-modal-z-index: 100100;
 $modal-bg-color: rgba(33, 33, 33, 1);
 $table-row-bg-color: rgba(20, 33, 40, 1);
 
+.text-highlight {
+  color: darkorange;
+}
+
 .search-results-modal {
   z-index: $search-results-modal-z-index;
   margin: 5vw;
@@ -37,6 +41,7 @@ $table-row-bg-color: rgba(20, 33, 40, 1);
   width: 20%;
   min-width: calc(0.2 * $min-table-width);
   padding-left: 1rem;
+  font-weight: bold;
 }
 
 .search-results-table-col-author {
