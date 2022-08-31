@@ -1,6 +1,6 @@
 import { createTheme } from '@mui/material';
 
-const TEXT_COLOR = '#fff';
+const TEXT_COLOR = 'rgba(255, 255, 255, 0.93)';
 const BG_COLOR = '#000';
 const HOVER_COLOR = '#4b9b73';
 
@@ -116,7 +116,7 @@ export const theme = createTheme({
           paddingRight: '0.5rem',
         },
         selectIcon: {
-          fill: BG_COLOR,
+          fill: `${BG_COLOR} !important`,
         },
       },
     },
