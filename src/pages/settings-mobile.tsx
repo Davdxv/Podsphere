@@ -22,9 +22,10 @@ MobileMenuElement) => void }> = ({ handleChange }) => {
   const onListItemClick = (element: MobileMenuElement) => () => handleChange(element);
   const toast = useContext(ToastContext);
 
-  const handleImportBackup = async (file: string) => {
+  const handleImportBackup = async (file: File) => {
     try {
-      await importBackup(file);
+      const buffer = await file.arrayBuffer();
+      await importBackup(new Uint8Array(buffer));
       toast('Backup successfully imported!', { variant: 'success' });
       setTimeout(() => { window.location.href = '/'; }, 300);
     } catch (e: any) {

@@ -3,7 +3,7 @@
  */
 import * as idbUtils from '../../../idb-utils';
 import { IndexedDb } from '../../../indexed-db';
-import { downloadBackup, importBackup } from '../utils';
+import { downloadBackup } from '../utils';
 import { MinimalBackupString } from '../minimal-backup';
 
 const verifyBackup = jest.spyOn(idbUtils, 'verifyBackup');
@@ -13,6 +13,8 @@ const { BackupConformationError } = idbUtils;
 afterAll(() => {
   jest.restoreAllMocks();
 });
+
+window.URL.createObjectURL = jest.fn();
 
 test('download backup is working correctly', async () => {
   const BackupFail = 'backup export failed';
@@ -25,15 +27,14 @@ test('download backup is working correctly', async () => {
   exportDB = jest.spyOn(IndexedDb.prototype, 'exportDB')
     .mockResolvedValueOnce(MinimalBackupString);
 
-  downloadBackup();
   expect(downloadBackup).not.toThrow();
-  expect(exportDB).toBeCalledTimes(3);
+  expect(exportDB).toBeCalledTimes(2);
 });
 
-test('import backup', async () => {
-  // @ts-ignore
-  verifyBackup.mockReturnValueOnce({ success: false });
-  await expect(importBackup).rejects.toThrowError(BackupConformationError);
+test('import database', async () => {
+  const db = new IndexedDb();
+  verifyBackup.mockReturnValueOnce({ success: false } as any);
+  await expect(db.importDB).rejects.toThrowError(BackupConformationError);
   expect(verifyBackup).toBeCalledTimes(1);
 
   const defectiveBackup = JSON.parse(MinimalBackupString);
@@ -41,6 +42,6 @@ test('import backup', async () => {
   const defectiveBackupString = JSON.stringify(defectiveBackup);
   verifyBackup.mockRestore();
 
-  await expect(() => importBackup(defectiveBackupString))
+  await expect(() => db.importDB(defectiveBackupString))
     .rejects.toThrowError(BackupConformationError);
 });

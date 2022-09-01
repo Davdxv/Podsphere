@@ -61,6 +61,7 @@ export const MinimalBackupString = `{
        "id": "32a1c142-b358-4eb5-9820-3b1797b84a3b",
        "podcastId": "temp-5468b5a7-ee94-442f-9462-4953ac69828a",
        "title": "The Jimmy Dore Show",
+       "kind": "metadataBatch",
        "resultObj": {
          "id": "Kj-NFSRYl7YaVcV5rAwqVE2vSQK6YH0fdrSErHM5c90"
        },

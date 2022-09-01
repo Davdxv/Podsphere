@@ -48,6 +48,7 @@
     "cytoscape-panzoom": "^2.5.3",
     "dayjs": "^1.11.5",
     "dedent": "^0.7.0",
+    "fake-indexeddb": "^4.0.0",
     "fflate": "^0.7.3",
     "formik": "^2.2.9",
     "he": "^1.2.0",

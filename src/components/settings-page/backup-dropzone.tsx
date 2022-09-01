@@ -4,17 +4,16 @@ import { useDropzone } from 'react-dropzone';
 import styles from './dropzone.module.scss';
 
 interface Props {
-  onDrop: (file: string) => void;
+  onDrop: (file: File) => void;
   dropzoneText: string;
 }
 
 export const BackupDropzone : React.FC<Props> = ({ onDrop, dropzoneText }) => {
   const { getRootProps, getInputProps } = useDropzone({
     maxFiles: 1,
-    accept: { 'text/*': ['.txt'] },
     onDrop: async files => {
-      const fileContent = await files[0].text();
-      onDrop(fileContent);
+      const file = files[0];
+      onDrop(file);
     },
     onDropRejected: () => {
       console.error('Error');

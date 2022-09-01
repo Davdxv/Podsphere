@@ -10,11 +10,16 @@ import { MinimalBackupString } from '../minimal-backup';
  */
 const schemaForType = <T>() => <S extends z.ZodType<T, any, any>>(arg: S) => arg;
 
+beforeAll(() => {
+  jest.restoreAllMocks();
+});
+
 describe('db schema typescript interface is in sync with the zod schema', () => {
   test('', () => {
     // Well this is not a typical test because it's essentially
     // a static typescript type-check. However I don't think there
     // is a better place than here to put this "test" in.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const schemaTest = schemaForType<SchemaType>()(dbSchema);
   });
 });
