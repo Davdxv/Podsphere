@@ -12,7 +12,26 @@ import { ReactComponent as AppIcon } from '../../assets/arsync-logo.svg';
 function HeaderComponent({ onSubmit }) {
   const toast = useContext(ToastContext);
   const [isSearching, setIsSearching] = useState(false);
+  const [showClearButton, setShowClearButton] = useState(false);
   const SEARCH_TEXT = 'Search for podcasts, episodes or enter an RSS feed URL to subscribe to';
+  const searchFormRef = useRef();
+
+  const clearSearchForm = () => {
+    if (searchFormRef.current) searchFormRef.current.reset();
+    setShowClearButton(false);
+  };
+
+  const getSearchFormInput = () => {
+    if (searchFormRef.current) {
+      const fd = new FormData(searchFormRef.current);
+      return fd.get('query') || '';
+    }
+    return '';
+  };
+
+  function handleChange() {
+    setShowClearButton(!!getSearchFormInput());
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -21,10 +40,7 @@ function HeaderComponent({ onSubmit }) {
       setIsSearching(true);
       try {
         const handleSearchResult = await onSubmit({ query });
-        if (handleSearchResult) {
-          // Clear search field
-          event.target.reset();
-        }
+        if (handleSearchResult) clearSearchForm(); // On successful subscription to RSS feed
       } catch (ex) {
         console.error(ex);
         toast('Could not find podcast.', { variant: 'danger' });
@@ -41,7 +57,7 @@ function HeaderComponent({ onSubmit }) {
       </Box>
       <Box className={style['form-layer']}>
         <Box>
-          <SearchButton />
+          <SearchButton disabled={isSearching} form="search-form" onClick={handleSubmit} />
         </Box>
         <Box className={style['form-wrapper']}>
           <Form ref={searchFormRef} id="search-form" onSubmit={handleSubmit}>
@@ -49,8 +65,9 @@ function HeaderComponent({ onSubmit }) {
               <InputGroup>
                 <Form.Control
                   name="query"
-                  style={{ paddingLeft: 0 }}
+                  style={{ paddingLeft: '0.2rem' }}
                   placeholder={SEARCH_TEXT}
+                  onChange={handleChange}
                 />
                 {showClearButton && <ClearButton onClick={clearSearchForm} />}
               </InputGroup>

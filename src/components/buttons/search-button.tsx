@@ -15,7 +15,7 @@ const SearchButton : React.FC<Props> = ({
     className={style['custom-btn']}
     style={{ marginBottom: '0.2rem' }}
     onClick={onClick}
-    disabled
+    type="submit"
     {...props}
   >
     <FaSearch />
