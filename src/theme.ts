@@ -25,6 +25,13 @@ export const theme = createTheme({
     },
   },
   components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'unset',
+        },
+      },
+    },
     MuiPopover: {
       styleOverrides: {
         root: {

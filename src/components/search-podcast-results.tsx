@@ -8,7 +8,7 @@ import {
 import Highlighter from 'react-highlight-words';
 import CloseButton from './buttons/close-button';
 import { SearchPodcastResult } from '../client/interfaces';
-import { toLocaleString } from '../utils';
+import { metadatumToString } from '../utils';
 import { truncateString } from '../client/metadata-filtering/formatting';
 import style from './search-podcast-results.module.scss';
 
@@ -19,7 +19,7 @@ interface OnCloseProp {
 }
 
 interface Props extends OnCloseProp {
-  subscribeHandler: (_event: React.MouseEvent<unknown>, feedUrl: string) => void,
+  clickFeedHandler: (_event: React.MouseEvent<unknown>, feedUrl: string) => void,
   // eslint-disable-next-line react/no-unused-prop-types
   isOpen?: boolean,
   searchQuery: string,
@@ -40,14 +40,14 @@ const rows = (results: SearchPodcastResult[]) : SearchResult[] => results.map((r
 
 const SearchPodcastResults : React.FC<Props> = ({
   onClose,
-  subscribeHandler,
+  clickFeedHandler,
   isOpen = false,
   searchQuery = '',
   results = [],
 }: Props) => (
   <Modal open={isOpen} onClose={onClose} className={style['search-results-modal']}>
     <EnhancedTable
-      subscribeHandler={subscribeHandler}
+      clickFeedHandler={clickFeedHandler}
       onClose={onClose}
       searchQuery={searchQuery}
       results={results}
@@ -62,7 +62,7 @@ const DEFAULT_ROWS_PER_PAGE = 10;
 
 /** Adapted from: https://mui.com/material-ui/react-table/#sorting-amp-selecting */
 function EnhancedTable(props: Props) {
-  const { onClose, subscribeHandler, searchQuery, results } = props;
+  const { onClose, clickFeedHandler, searchQuery, results } = props;
 
   const [order, setOrder] = useState<Order>('asc');
   const [orderBy, setOrderBy] = useState<keyof SearchResult>(DEFAULT_ORDER_BY);
@@ -89,8 +89,8 @@ function EnhancedTable(props: Props) {
     }
   };
 
-  const handleClick = (event: React.MouseEvent<unknown>, feedUrl: string) => {
-    subscribeHandler(event, feedUrl);
+  const handleClickRow = (event: React.MouseEvent<unknown>, feedUrl: string) => {
+    clickFeedHandler(event, feedUrl);
   };
 
   const handleChangePage = (_event: unknown, newPage: number) => {
@@ -143,7 +143,7 @@ function EnhancedTable(props: Props) {
                 return (
                   <TableRow
                     hover
-                    onClick={event => handleClick(event, row.feedUrl)}
+                    onClick={event => handleClickRow(event, row.feedUrl)}
                     tabIndex={-1}
                     key={labelId}
                   >
@@ -159,7 +159,7 @@ function EnhancedTable(props: Props) {
                         autoEscape
                         highlightClassName={style['text-highlight']}
                         searchWords={getSearchWords()}
-                        textToHighlight={title}
+                        textToHighlight={metadatumToString(title)}
                       />
                     </TableCell>
                     <TableCell
@@ -171,34 +171,34 @@ function EnhancedTable(props: Props) {
                         autoEscape
                         highlightClassName={style['text-highlight']}
                         searchWords={getSearchWords()}
-                        textToHighlight={author}
+                        textToHighlight={metadatumToString(author)}
                       />
                     </TableCell>
                     <TableCell
                       className={style['search-results-table-col-date']}
                       align="right"
                     >
-                      {toLocaleString(lastEpisodeDate)}
+                      {metadatumToString(lastEpisodeDate)}
                     </TableCell>
                     <TableCell
                       className={style['search-results-table-col-eps']}
                       align="right"
                     >
-                      {numEpisodes}
+                      {metadatumToString(numEpisodes)}
                     </TableCell>
                     <TableCell
                       title={feedUrl.length !== row.feedUrl.length ? row.feedUrl : undefined}
                       className={style['search-results-table-col-feed-url']}
                       align="right"
                     >
-                      {feedUrl}
+                      {metadatumToString(feedUrl)}
                     </TableCell>
                     <TableCell
                       title={genres.length !== row.genres.length ? row.genres : undefined}
                       className={style['search-results-table-col-genres']}
                       align="right"
                     >
-                      {genres}
+                      {metadatumToString(genres)}
                     </TableCell>
                   </TableRow>
                 );

@@ -31,7 +31,7 @@ export function addLastMutatedAt(subscription: Podcast) : Podcast {
 
 export function metadatumToString<K extends keyof Podcast>(field: Podcast[K]) {
   if (Array.isArray(field)) return field.join(', ');
-  if (field instanceof Date) return toLocaleString(field);
+  if ((field as unknown) instanceof Date) return toLocaleString(field as unknown as Date);
 
   return `${field}`;
 }
