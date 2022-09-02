@@ -25,6 +25,13 @@ export function addLastMutatedAt(subscription: Podcast) : Podcast {
   return { ...subscription, lastMutatedAt: unixTimestamp() };
 }
 
+export function metadatumToString<K extends keyof Podcast>(field: Podcast[K]) {
+  if (Array.isArray(field)) return field.join(', ');
+  if ((field as unknown) instanceof Date) return toLocaleString(field as unknown as Date);
+
+  return `${field}`;
+}
+
 export function toISOString(date: Date) {
   try {
     return date.toISOString();
@@ -134,17 +141,19 @@ K extends Partial<Podcast> | Partial<Episode>>(
   return !!Object.values(specificMetadata).flat().filter(x => x).length;
 }
 
-export function findMetadataByFeedUrl(
+export function findMetadataByFeedUrl<T extends Podcast | Partial<Podcast>>(
   feedUrl: Podcast['feedUrl'],
   feedType: Podcast['feedType'] = 'rss2',
-  metadataList: Partial<Podcast>[] = [],
-) : Partial<Podcast> {
+  metadataList: T[] = [],
+) : T {
   return metadataList.find(x => isNotEmpty(x) && x.feedUrl === feedUrl && x.feedType === feedType)
-    || {};
+    || {} as T;
 }
 
-export function findMetadataById(id: Podcast['id'], metadataList: Partial<Podcast>[] = [])
-  : Partial<Podcast> {
+export function findMetadataById<T extends Podcast | Partial<Podcast>>(
+  id: Podcast['id'],
+  metadataList: T[] = [],
+) : T {
   let result = metadataList.find(obj => isNotEmpty(obj) && obj.id === id);
   if (!result) {
     if (isCandidatePodcastId(id)) {
@@ -155,7 +164,7 @@ export function findMetadataById(id: Podcast['id'], metadataList: Partial<Podcas
     }
   }
 
-  return result || {};
+  return result || {} as T;
 }
 
 export function partialToPodcast(partialMetadata: Partial<Podcast>) : Podcast | PodcastFeedError {

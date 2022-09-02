@@ -110,7 +110,7 @@ function HomePage() {
       <Box>
         <SearchPodcastResults
           onClose={handleCloseSearchResults}
-          subscribeHandler={handleSubscribe}
+          clickFeedHandler={handleSubscribe}
           isOpen={showSearchResults}
           searchQuery={searchQuery}
           results={searchResults}
