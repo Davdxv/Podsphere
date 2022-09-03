@@ -1,6 +1,5 @@
-$podcast-details-modal-z-index: 100110;
 $text-color: rgba(255, 255, 255, 0.93);
-$modal-bg-color: rgba(33, 33, 33, 1);
+$podcast-details-modal-z-index: 100110;
 
 .filter-clear-button {
   position: absolute;
@@ -15,7 +14,7 @@ $modal-bg-color: rgba(33, 33, 33, 1);
 .podcast-details-modal {
   z-index: $podcast-details-modal-z-index;
   margin: 5vw;
-  background-color: $modal-bg-color;
+  background-color: rgba(13, 13, 13, 1);
   border: 2px solid rgba(38, 38, 38, 1);
   border-radius: 1rem;
 }

@@ -19,7 +19,7 @@ interface OnCloseProp {
 }
 
 interface Props extends OnCloseProp {
-  clickFeedHandler: (_event: React.MouseEvent<unknown>, feedUrl: string) => void,
+  clickFeedHandler: (_event: React.MouseEvent<unknown>, feedUrl: string) => Promise<void>,
   // eslint-disable-next-line react/no-unused-prop-types
   isOpen?: boolean,
   searchQuery: string,
@@ -318,6 +318,6 @@ const EnhancedTableToolbar : React.FC<OnCloseProp> = ({ onClose }) => (
     >
       Podcast search results from iTunes
     </Typography>
-    <CloseButton onClick={onClose} />
+    <CloseButton classes={style['search-results-close-button']} onClick={onClose} />
   </Toolbar>
 );

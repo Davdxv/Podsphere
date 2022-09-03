@@ -109,6 +109,16 @@ function HomePage() {
     if (isSyncing) setTab(1);
   }, [isSyncing]);
 
+  useEffect(() => {
+    if (selectedPodcastId) {
+      const metadata = findMetadataByFeedUrl(selectedPodcastId, 'rss2', subscriptions);
+      if (hasMetadata(metadata)) {
+        setSelectedPodcastMetadata(metadata);
+        setShowPodcastDetails(true);
+      }
+    }
+  }, [selectedPodcastId, subscriptions]);
+
   async function search({ query } : { query: string }) {
     setSearchQuery(query);
     return handleSearch(query);
@@ -157,7 +167,7 @@ function HomePage() {
       <Box>
         <SearchPodcastResults
           onClose={handleCloseSearchResults}
-          clickFeedHandler={handleSubscribe}
+          clickFeedHandler={handleFetchFeed}
           isOpen={showSearchResults}
           searchQuery={searchQuery}
           results={searchResults}
