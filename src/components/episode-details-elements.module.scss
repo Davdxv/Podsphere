@@ -1,19 +1,26 @@
-.episode-link {
-  color: #9c8f94;
+$metadata-color: rgb(255, 208, 176);
+$metadata-dark-color: rgb(210, 120, 0);
+
+.ep-link {
+  color: $metadata-color;
   padding: 0;
   margin-bottom: 0.25rem;
   display: block;
   text-decoration: none;
+  text-align: right;
+  opacity: 0.8;
   &:hover,
   &:focus {
-    color: palevioletred;
+    opacity: 1;
+    color: $metadata-color;
   }
   &:active {
-    color: red;
+    opacity: 1;
+    color: $metadata-color;
   }
 }
 
-.details-card {
+.ep-card-wrapper {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -25,27 +32,20 @@
   border-radius: 0.375rem;
 }
 
-.card-body {
+.ep-card-body {
   padding: 0.5rem 1.25rem;
   display: flex;
   min-height: 1px;
 }
 
-.episode-image {
+.ep-image-box {
   display: inline-block;
   position: relative;
   line-height: 0;
   margin-right: 1rem;
 }
 
-.content {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  width: 100%;
-}
-
-.episode-image-style {
+.ep-image {
   height: 3.125rem;
   min-height: 3.125rem;
   width: 3.125rem;
@@ -53,29 +53,42 @@
   border-radius: 50%;
 }
 
-.time-badge {
+.ep-description {
+  padding-right: 1rem;
+  color: $metadata-color;
+  width: 70%;
+  &--clickable {
+    @extend .ep-description;
+    cursor: pointer;
+  }
+}
+
+.ep-metadata {
   display: flex;
-  align-items: center;
-  line-height: 1;
-  font-size: xx-small;
-  color: #9c8f94;
+  flex-direction: column;
+  align-items: flex-end;
+  width: 30%;
 }
 
-.time-icon {
-  font-size: 12px;
-  margin: 2px;
-}
-
-.calendar-icon {
-  font-size: 12px;
-  margin: 3px;
-}
-
-.podcast-details {
+.ep-small-metadata {
   display: flex;
   align-items: flex-end;
   line-height: 1;
-  font-size: xx-small;
-  color: #9c8f94;
+  font-size: small;
+  color: $metadata-dark-color;
   margin-top: 1px;
+}
+
+.ep-metadatum {
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  font-size: small;
+  color: $metadata-dark-color;
+  padding-right: 0.5rem;
+}
+
+.ep-metadatum-icon {
+  font-size: 12px;
+  margin: 2px;
 }

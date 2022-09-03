@@ -7,6 +7,10 @@ export default createGlobalStyle`
     --color-label: #797979;
   }
 
+  :focus-visible {
+    outline: unset;
+  }
+
   html,
   body,
   #root {

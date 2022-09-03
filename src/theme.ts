@@ -42,9 +42,9 @@ export const theme = createTheme({
     MuiSvgIcon: {
       styleOverrides: {
         root: {
-          color: TEXT_COLOR,
+          color: 'white',
           '&.MuiSelect-icon': {
-            fill: TEXT_COLOR,
+            fill: 'white',
           },
         },
       },
@@ -111,7 +111,9 @@ export const theme = createTheme({
     MuiTablePagination: {
       styleOverrides: {
         root: {
-          ...SHARED_TABLE_STYLES,
+          color: 'inherit',
+          backgroundColor: 'inherit',
+          flexGrow: '1',
           '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
             margin: '0 auto',
           },
@@ -124,6 +126,32 @@ export const theme = createTheme({
         },
         selectIcon: {
           fill: `${BG_COLOR} !important`,
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          color: 'inherit',
+          '&:hover, &:focus, &:focus-visible': {
+            outline: 'inherit',
+          },
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        notchedOutline: {
+          borderColor: TEXT_COLOR,
+        },
+        root: {
+          color: 'inherit',
+          backgroundColor: 'inherit',
+        },
+        input: {
+          '&:hover, &:focus, &:focus-visible': {
+            outline: 'inherit',
+          },
         },
       },
     },

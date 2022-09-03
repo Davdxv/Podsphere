@@ -20,7 +20,7 @@ import { getPodcastId } from './arweave/cache/podcast-id';
 
 export const { pingTxIds } = arweave;
 
-type GetPodcastResult = {
+export type GetPodcastResult = {
   errorMessage?: string;
   newPodcastMetadata?: Podcast;
   newPodcastMetadataToSync?: Partial<Podcast>;

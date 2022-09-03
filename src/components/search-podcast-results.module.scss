@@ -1,11 +1,16 @@
 $min-table-width: 750px;
+$search-results-modal-z-index: 100100;
 
 .text-highlight {
   color: darkorange;
 }
 
+.search-results-close-button {
+  z-index: calc($search-results-modal-z-index + 1);
+}
+
 .search-results-modal {
-  z-index: 100100;
+  z-index: $search-results-modal-z-index;
   margin: 5vw;
   background-color: rgba(13, 13, 13, 1);
   border: 2px solid rgba(38, 38, 38, 1);

@@ -14,14 +14,19 @@ dayjs.extend(relativeTime);
 interface Props {
   subscriptions: Podcast[];
   unsubscribe: (id: string) => void;
+  clickFeedHandler: (_event: React.MouseEvent<unknown>, feedUrl: string) => Promise<void>;
 }
 
-const PodcastList : React.FC<Props> = ({ subscriptions, unsubscribe }) => (
+const PodcastList : React.FC<Props> = ({ subscriptions, unsubscribe, clickFeedHandler }) => (
   <Box className={style['list-container']}>
     { subscriptions.length ? (
       <div>
         {subscriptions.map(subscription => (
-          <Box className={style['list-item']} key={subscription.feedUrl}>
+          <Box
+            className={style['list-item']}
+            key={subscription.feedUrl}
+            onClick={e => clickFeedHandler(e, subscription.feedUrl)}
+          >
             <Box className={style['title-detail']}>
               <Image
                 className={style['podcast-image']}

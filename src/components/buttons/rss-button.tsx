@@ -1,36 +1,40 @@
 import React from 'react';
-import { Button } from 'react-bootstrap';
-import { FaRss, FaPlus, FaMinus } from 'react-icons/fa';
+import { IconButton } from '@mui/material';
+import RssIcon from '@mui/icons-material/RssFeed';
+import PlusIcon from '@mui/icons-material/Add';
+import MinusIcon from '@mui/icons-material/Remove';
 import style from './style.module.scss';
 
 interface Props {
+  handleSubscribe: (_event: React.MouseEvent<unknown>, feedUrl: string) => Promise<void>,
+  handleUnsubscribe: (_event: React.MouseEvent<unknown>, feedUrl: string) => Promise<void>,
+  feedUrl: string,
   className?: string,
-  removeButton?: boolean,
-  disabled?: boolean,
-  onClick?: () => void,
+  isSubscribed?: boolean,
 }
 
 const RssButton : React.FC<Props> = ({
-  className,
-  removeButton = false,
-  disabled = false,
-  onClick,
+  handleSubscribe,
+  handleUnsubscribe,
+  feedUrl = '',
+  className = 'float-right',
+  isSubscribed = false,
   ...props
 }) => (
-  <Button
-    className={`${style['custom-btn']} ${className}`}
-    type={onClick ? 'button' : 'submit'}
-    variant={removeButton ? 'danger' : 'info'}
-    onClick={onClick}
+  <IconButton
+    className={`${style['rss-btn']} ${style[className]}`}
+    title={isSubscribed ? 'Unsubscribe' : 'Subscribe'}
+    type="button"
+    onClick={isSubscribed ? e => handleUnsubscribe(e, feedUrl) : e => handleSubscribe(e, feedUrl)}
     {...props}
   >
-    <FaRss />
-    {removeButton ? (
-      <FaMinus className={style['minus-icon']} />
+    <RssIcon />
+    {isSubscribed ? (
+      <MinusIcon className={style['minus-icon']} />
     ) : (
-      <FaPlus className={style['plus-icon']} />
+      <PlusIcon className={style['plus-icon']} />
     )}
-  </Button>
+  </IconButton>
 );
 
 export default RssButton;
