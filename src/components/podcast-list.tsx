@@ -22,12 +22,11 @@ const PodcastList : React.FC<Props> = ({ subscriptions, unsubscribe, clickFeedHa
     { subscriptions.length ? (
       <div>
         {subscriptions.map(subscription => (
-          <Box
-            className={style['list-item']}
-            key={subscription.feedUrl}
-            onClick={e => clickFeedHandler(e, subscription.feedUrl)}
-          >
-            <Box className={style['title-detail']}>
+          <Box className={style['list-item']} key={subscription.feedUrl}>
+            <Box
+              className={style['title-detail']}
+              onClick={e => clickFeedHandler(e, subscription.feedUrl)}
+            >
               <Image
                 className={style['podcast-image']}
                 src={subscription.imageUrl}

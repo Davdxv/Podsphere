@@ -59,9 +59,11 @@
 }
 
 .title-detail {
+  cursor: pointer;
   display: flex;
   align-items: center;
-  max-width: 60%;
+  flex-grow: 999;
+  max-width: 80%;
 }
 
 .item-title {
@@ -96,7 +98,8 @@
 .call-to-action {
   display: flex;
   align-items: center;
-  margin-left: 5rem;
+  flex-grow: 0;
+  margin-left: 0;
   @media only screen and (max-width: 960px) {
     margin-left: auto;
   }
