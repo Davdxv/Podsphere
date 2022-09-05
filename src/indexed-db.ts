@@ -4,6 +4,7 @@ import { IDBPDatabase, openDB, unwrap } from 'idb';
 import IDBExportImport from 'indexeddb-export-import';
 import { Podcast } from './client/interfaces';
 import { dbSchema } from './components/settings-page/zod-schemas';
+import { BackupConformationError, verifyBackup } from './idb-utils';
 
 type TableSchemaV1 = {
   tableName: string,
@@ -14,8 +15,6 @@ type TableSchemaV1 = {
     objectParameters?: IDBIndexParameters,
   }
 };
-
-const verifyBackup = (backup: string) => dbSchema.safeParse(JSON.parse(backup));
 
 export class IndexedDb {
   private database: string;
@@ -198,24 +197,23 @@ export class IndexedDb {
   }
 
   public async importDB(backup: string) {
-    console.log(JSON.parse(backup));
-    console.log(verifyBackup(backup));
-    if (!verifyBackup(backup).success) {
-      console.error("Backup doesn't conform to the database schema");
-      return;
+    if (!verifyBackup(dbSchema, backup).success) {
+      throw new Error(BackupConformationError);
     }
     await this.connectDB();
 
     const idbDatabase = unwrap(this.db); // get native IDBDatabase
 
-    IDBExportImport.clearDatabase(idbDatabase, (err: Error) => {
-      if (!err) { // cleared data successfully
-        IDBExportImport.importFromJsonString(idbDatabase, backup, (err2: Error) => {
-          if (!err2) {
-            console.log('Imported data successfully');
-          }
-        });
-      }
+    return new Promise<void>((res, rej) => {
+      IDBExportImport.clearDatabase(idbDatabase, (err: Error) => {
+        if (!err) { // cleared data successfully
+          IDBExportImport.importFromJsonString(idbDatabase, backup, (err2: Error) => {
+            if (!err2) res();
+            else rej(err2);
+          });
+        }
+        else rej(err);
+      });
     });
   }
 }

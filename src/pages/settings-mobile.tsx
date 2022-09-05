@@ -8,7 +8,6 @@ import HandymanIcon from '@mui/icons-material/Handyman';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { BackupDropzone } from '../components/settings-page/backup-dropzone';
 import styles from './settings-mobile.module.scss';
-import { downloadBackup, importBackup } from '../components/settings-page/utils';
 
 export enum MobileMenuElement {
   Main,
@@ -16,8 +15,14 @@ export enum MobileMenuElement {
   Advanced,
 }
 
+export interface SettingsPageProps {
+  handleImportBackup: (file: File) => Promise<void>;
+  handleDownloadBackup: () => Promise<void>;
+}
+
 const GeneralSettings : React.FC<{ handleChange: (activeEl:
-MobileMenuElement) => void }> = ({ handleChange }) => {
+MobileMenuElement) => void } & SettingsPageProps> = ({ handleChange,
+  handleDownloadBackup, handleImportBackup }) => {
   const onListItemClick = (element: MobileMenuElement) => () => handleChange(element);
 
   return (
@@ -28,11 +33,11 @@ MobileMenuElement) => void }> = ({ handleChange }) => {
       />
       <Box className={styles['export-box']}>
         <Typography> Backup your data: </Typography>
-        <Button onClick={downloadBackup}> Backup </Button>
+        <Button onClick={handleDownloadBackup}> Backup </Button>
       </Box>
       <Box>
         <Typography> Import your data: </Typography>
-        <BackupDropzone dropzoneText="Choose your backup file!" onDrop={importBackup} />
+        <BackupDropzone dropzoneText="Choose your backup file!" onDrop={handleImportBackup} />
       </Box>
     </Box>
   );
@@ -94,23 +99,42 @@ MobileMenuElement) => void }> = ({ handleChange }) => {
 };
 
 const ActivePane : React.FC<{ activeEl: MobileMenuElement,
-  handleChange: (activeEl: MobileMenuElement) => void }> = ({ activeEl, handleChange }) => {
+  handleChange: (activeEl: MobileMenuElement) => void } & SettingsPageProps> = ({ activeEl,
+  handleChange, handleDownloadBackup, handleImportBackup }) => {
   switch (activeEl) {
     case MobileMenuElement.Main:
       return <Menu handleChange={handleChange} />;
     case MobileMenuElement.General:
-      return <GeneralSettings handleChange={handleChange} />;
+      return (
+        <GeneralSettings
+          handleImportBackup={handleImportBackup}
+          handleDownloadBackup={handleDownloadBackup}
+          handleChange={handleChange}
+        />
+      );
     case MobileMenuElement.Advanced:
-      return <AdvancedSettings handleChange={handleChange} />;
+      return (
+        <AdvancedSettings
+          handleChange={handleChange}
+        />
+      );
     default:
       return <Menu handleChange={handleChange} />;
   }
 };
 
-export const MobileSettingsPage = () => {
+export const MobileSettingsPage: React.FC<SettingsPageProps> = ({ handleDownloadBackup,
+  handleImportBackup }) => {
   const [activeElement, setActiveElement] = useState(MobileMenuElement.Main);
 
   const handleChange = (activeEl: MobileMenuElement) => setActiveElement(activeEl);
 
-  return <ActivePane activeEl={activeElement} handleChange={handleChange} />;
+  return (
+    <ActivePane
+      handleImportBackup={handleImportBackup}
+      handleDownloadBackup={handleDownloadBackup}
+      activeEl={activeElement}
+      handleChange={handleChange}
+    />
+  );
 };

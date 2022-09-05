@@ -1,25 +1,32 @@
-import { db } from '../../providers/subscriptions';
+import {
+  compressSync, strToU8, strFromU8, decompressSync,
+} from 'fflate';
+import { IndexedDb } from '../../indexed-db';
+
+const db = new IndexedDb();
 
 export const downloadBackup = async () => {
-  try {
-    const FileName = 'backup.txt';
-    const text = await db.exportDB();
-    const element = document.createElement('a');
-    element.setAttribute('href', `data:text/plain;charset=utf-8,${encodeURIComponent(text)}`);
-    element.setAttribute('download', FileName);
+  const FileName = 'backup.gz';
+  const text = await db.exportDB();
+  const compressedBlob = compressSync(strToU8(text));
 
-    element.style.display = 'none';
-    document.body.appendChild(element);
-
-    element.click();
-
-    document.body.removeChild(element);
-  } catch (e) {
-    console.error(e);
-  }
+  const blob = new Blob([compressedBlob], {
+    type: 'application/octet-stream',
+  });
+  const url = window.URL.createObjectURL(blob);
+  initiateDownload(url, FileName);
+  setTimeout(() => window.URL.revokeObjectURL(url), 1000);
 };
 
-export const importBackup = async (file: string) => {
-  await db.importDB(file);
-  window.location.href = '/';
+export const initiateDownload = (data: string, fileName: string) => {
+  const a = document.createElement('a');
+  a.setAttribute('href', data);
+  a.setAttribute('download', fileName);
+  document.body.appendChild(a);
+  a.style.display = 'none';
+  a.click();
+  document.body.removeChild(a);
 };
+
+export const importBackup = async (file: Uint8Array) => db
+  .importDB(strFromU8(decompressSync(file)));

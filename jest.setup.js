@@ -1,4 +1,5 @@
 import 'regenerator-runtime/runtime';
+import 'fake-indexeddb/auto';
 import '@testing-library/jest-dom';
 
 global.console = {
