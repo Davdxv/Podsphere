@@ -142,7 +142,7 @@ function EnhancedTable(props: Props) {
 
                 return (
                   <TableRow
-                    hover
+                    className={style['search-results-table-row']}
                     onClick={event => handleClickRow(event, row.feedUrl)}
                     tabIndex={-1}
                     key={labelId}

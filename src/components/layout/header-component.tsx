@@ -10,7 +10,7 @@ import style from './index-elements.module.scss';
 import { ReactComponent as AppIcon } from '../../assets/arsync-logo.svg';
 
 interface Props {
-  onSubmit: (_event: React.MouseEvent<HTMLFormElement> | React.FormEvent<HTMLFormElement>,
+  onSubmit: (_event: React.MouseEvent<any> | React.FormEvent<any>,
     query: string) => Promise<boolean>;
 }
 

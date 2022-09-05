@@ -22,6 +22,11 @@ $search-results-modal-z-index: 100100;
   overflow-x: auto;
   overflow-y: auto;
 }
+.search-results-table-row {
+  &:hover {
+    background-color: darkblue;
+  }
+}
 
 .search-results-table-head-cell {
   font-weight: bold;
