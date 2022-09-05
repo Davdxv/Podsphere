@@ -1,5 +1,7 @@
+$text-color: rgba(255, 255, 255, 0.93);
 $metadata-color: rgb(255, 208, 176);
 $metadata-dark-color: rgb(210, 120, 0);
+$ep-bg-color: rgba(20, 33, 40, 1);
 
 .ep-link {
   color: $metadata-color;
@@ -55,7 +57,7 @@ $metadata-dark-color: rgb(210, 120, 0);
 
 .ep-description {
   padding-right: 1rem;
-  color: $metadata-color;
+  color: $text-color;
   width: 70%;
   &--clickable {
     @extend .ep-description;
