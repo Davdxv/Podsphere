@@ -11,6 +11,7 @@ interface Props {
 export const BackupDropzone : React.FC<Props> = ({ onDrop, dropzoneText }) => {
   const { getRootProps, getInputProps } = useDropzone({
     maxFiles: 1,
+    accept: { 'application/gzip': ['.gz'] },
     onDrop: async files => {
       const file = files[0];
       onDrop(file);

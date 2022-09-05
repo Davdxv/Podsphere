@@ -6,7 +6,7 @@ import { IndexedDb } from '../../indexed-db';
 const db = new IndexedDb();
 
 export const downloadBackup = async () => {
-  const FileName = 'backup';
+  const FileName = 'backup.gz';
   const text = await db.exportDB();
   const compressedBlob = compressSync(strToU8(text));
 
