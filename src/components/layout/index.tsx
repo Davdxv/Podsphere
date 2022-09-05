@@ -4,7 +4,11 @@ import { Box } from '@mui/material';
 import Footer from './footer';
 import style from './index-elements.module.scss';
 
-function Layout({ children }) {
+interface Props {
+  children: React.ReactNode;
+}
+
+function Layout({ children }: Props) {
   return (
     <Box className={style.page}>
       <Container className={style['center-components']}>

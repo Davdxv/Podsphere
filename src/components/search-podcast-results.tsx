@@ -315,7 +315,6 @@ const EnhancedTableToolbar : React.FC<OnCloseProp> = ({ onClose }) => (
     <Typography
       sx={{ flex: '1 1 100%' }}
       variant="h6"
-      id="search-results-table-title"
       component="div"
     >
       Podcast search results from iTunes

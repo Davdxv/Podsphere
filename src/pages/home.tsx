@@ -119,7 +119,8 @@ function HomePage() {
     }
   }, [selectedPodcastId, subscriptions]);
 
-  async function search({ query } : { query: string }) {
+  async function search(_event: React.MouseEvent<any> | React.FormEvent<any>, query: string)
+    : Promise<boolean> {
     setShowPodcastDetails(false);
     setSearchQuery(query);
     return handleSearch(query);

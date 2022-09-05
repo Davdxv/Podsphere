@@ -9,22 +9,27 @@ import SearchButton from '../buttons/search-button';
 import style from './index-elements.module.scss';
 import { ReactComponent as AppIcon } from '../../assets/arsync-logo.svg';
 
-function HeaderComponent({ onSubmit }) {
+interface Props {
+  onSubmit: (_event: React.MouseEvent<HTMLFormElement> | React.FormEvent<HTMLFormElement>,
+    query: string) => Promise<boolean>;
+}
+
+function HeaderComponent({ onSubmit } : Props) {
   const toast = useContext(ToastContext);
   const [isSearching, setIsSearching] = useState(false);
   const [showClearButton, setShowClearButton] = useState(false);
   const SEARCH_TEXT = 'Search for podcasts, episodes or enter an RSS feed URL to subscribe to';
-  const searchFormRef = useRef();
+  const searchFormRef = useRef<HTMLFormElement>(null);
 
   const clearSearchForm = () => {
     if (searchFormRef.current) searchFormRef.current.reset();
     setShowClearButton(false);
   };
 
-  const getSearchFormInput = () => {
+  const getSearchFormInput = () : string => {
     if (searchFormRef.current) {
       const fd = new FormData(searchFormRef.current);
-      return fd.get('query') || '';
+      return fd.get('query')?.toString() || '';
     }
     return '';
   };
@@ -33,13 +38,15 @@ function HeaderComponent({ onSubmit }) {
     setShowClearButton(!!getSearchFormInput());
   }
 
-  async function handleSubmit(event) {
+  async function handleSubmit(
+    event: React.MouseEvent<HTMLFormElement> | React.FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
     const query = getSearchFormInput();
     if (query) {
       setIsSearching(true);
       try {
-        const handleSearchResult = await onSubmit({ query });
+        const handleSearchResult = await onSubmit(event, query);
         if (handleSearchResult) clearSearchForm(); // On successful subscription to RSS feed
       } catch (ex) {
         console.error(ex);

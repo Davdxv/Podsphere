@@ -1,9 +1,9 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, NavLinkProps } from 'react-router-dom';
 import { Button } from 'react-bootstrap';
 import style from './style.module.scss';
 
-interface Props {
+interface Props extends NavLinkProps {
   children: React.ReactNode;
   to: string;
 }
