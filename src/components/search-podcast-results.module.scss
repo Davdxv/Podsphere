@@ -1,5 +1,7 @@
 $min-table-width: 750px;
 $search-results-modal-z-index: 100100;
+$modal-bg-color: rgba(33, 33, 33, 1);
+$table-row-bg-color: rgba(20, 33, 40, 1);
 
 .text-highlight {
   color: darkorange;
@@ -12,7 +14,7 @@ $search-results-modal-z-index: 100100;
 .search-results-modal {
   z-index: $search-results-modal-z-index;
   margin: 5vw;
-  background-color: rgba(13, 13, 13, 1);
+  background-color: $modal-bg-color;
   border: 2px solid rgba(38, 38, 38, 1);
   border-radius: 1rem;
 }
@@ -22,7 +24,9 @@ $search-results-modal-z-index: 100100;
   overflow-x: auto;
   overflow-y: auto;
 }
+
 .search-results-table-row {
+  background-color: $table-row-bg-color;
   &:hover {
     background-color: darkblue;
   }

@@ -1,7 +1,7 @@
 import { createTheme } from '@mui/material';
 
 const TEXT_COLOR = 'rgba(255, 255, 255, 0.93)';
-const BG_COLOR = '#000';
+const BG_COLOR = 'rgba(13, 13, 13, 1)';
 const HOVER_COLOR = '#4b9b73';
 
 const SHARED_TABLE_STYLES = {
@@ -87,6 +87,7 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           color: TEXT_COLOR,
+          backgroundColor: 'inherit',
           cursor: 'default',
         },
       },

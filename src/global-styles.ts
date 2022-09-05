@@ -88,7 +88,7 @@ export default createGlobalStyle`
 
   /* Track */
   ::-webkit-scrollbar-track {
-    box-shadow: inset 0 0 5px rgb(44, 43, 43);
+    box-shadow: inset 0 0 5px rgb(43, 43, 43);
     border-radius: 0.5rem;
     margin-top: 0.5rem;
     margin-bottom: 0.5rem;
@@ -96,7 +96,7 @@ export default createGlobalStyle`
 
   /* Handle */
   ::-webkit-scrollbar-thumb {
-    background-color: #2b2c2b;
+    background-color: rgba(43, 43, 43, 1);
     border-radius: 0.5rem;
   }
 
