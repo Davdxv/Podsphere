@@ -20,6 +20,7 @@ export default createGlobalStyle`
 
   /* ====== Toasts ====== */
   .toast {
+    z-index: 111111;
     width: max-content;
     min-width: 400px;
     max-width: 1000px;
@@ -43,6 +44,11 @@ export default createGlobalStyle`
   }
 
   /* ====== Global bootstrap ====== */
+  mark, .mark {
+    padding: unset;
+    background-color: inherit;
+  }
+
   .form-control {
     outline: 2px solid transparent;
     outline-offset: 2px;

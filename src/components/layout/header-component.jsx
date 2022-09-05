@@ -1,25 +1,46 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import { InputGroup, Form, Container } from 'react-bootstrap';
 import { Box } from '@mui/material';
 import { ToastContext } from '../../providers/toast';
-import RssButton from '../buttons/rss-button';
+import ClearButton from '../buttons/clear-button';
 import SyncButton from '../buttons/sync-button';
 import RefreshButton from '../buttons/refresh-button';
+import SearchButton from '../buttons/search-button';
 import style from './index-elements.module.scss';
 import { ReactComponent as AppIcon } from '../../assets/arsync-logo.svg';
 
 function HeaderComponent({ onSubmit }) {
   const toast = useContext(ToastContext);
   const [isSearching, setIsSearching] = useState(false);
+  const [showClearButton, setShowClearButton] = useState(false);
+  const SEARCH_TEXT = 'Search for podcasts, episodes or enter an RSS feed URL to subscribe to';
+  const searchFormRef = useRef();
+
+  const clearSearchForm = () => {
+    if (searchFormRef.current) searchFormRef.current.reset();
+    setShowClearButton(false);
+  };
+
+  const getSearchFormInput = () => {
+    if (searchFormRef.current) {
+      const fd = new FormData(searchFormRef.current);
+      return fd.get('query') || '';
+    }
+    return '';
+  };
+
+  function handleChange() {
+    setShowClearButton(!!getSearchFormInput());
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
-    const fd = new FormData(event.target);
-    const query = fd.get('query');
+    const query = getSearchFormInput();
     if (query) {
       setIsSearching(true);
       try {
-        await onSubmit({ query });
-        event.target.reset();
+        const handleSearchResult = await onSubmit({ query });
+        if (handleSearchResult) clearSearchForm(); // On successful subscription to RSS feed
       } catch (ex) {
         console.error(ex);
         toast('Could not find podcast.', { variant: 'danger' });
@@ -35,19 +56,20 @@ function HeaderComponent({ onSubmit }) {
         <AppIcon />
       </Box>
       <Box className={style['form-layer']}>
-        <Box className={style['pod-alert']}>
-          {/* <SiGooglepodcasts /> */}
+        <Box>
+          <SearchButton disabled={isSearching} form="search-form" onClick={handleSubmit} />
         </Box>
         <Box className={style['form-wrapper']}>
-          <Form onSubmit={handleSubmit}>
+          <Form ref={searchFormRef} id="search-form" onSubmit={handleSubmit}>
             <Form.Group controlId="query">
               <InputGroup>
                 <Form.Control
                   name="query"
-                  disabled={isSearching}
-                  placeholder="https://feeds.simplecast.com/dHoohVNH"
+                  style={{ paddingLeft: '0.2rem' }}
+                  placeholder={SEARCH_TEXT}
+                  onChange={handleChange}
                 />
-                <RssButton disabled={isSearching} />
+                {showClearButton && <ClearButton onClick={clearSearchForm} />}
               </InputGroup>
             </Form.Group>
           </Form>

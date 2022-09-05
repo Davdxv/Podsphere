@@ -1,25 +1,24 @@
 .toast-list {
-  z-index: 10000;
-  display: flex;
+  pointer-events: none;
+  z-index: 111111;
+  display: inline-flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   position: fixed;
-  top: 1rem;
-  right: 1rem;
-  left: 1rem;
+  top: 0;
+  right: 1px;
+  left: 1px;
   list-style: none;
-  margin-top: 0;
-  margin-bottom: 0;
-  padding-left: 0;
+  padding: 0;
   line-break: auto;
   white-space: pre-wrap;
 
   > li:first-child {
-    padding-top: 3.5rem;
+    margin-top: 4rem;
   }
   > li:not(:last-of-type) {
-    margin-bottom: .5rem;
+    margin-bottom: 0.5rem;
   }
 }
 
