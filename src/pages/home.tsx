@@ -120,6 +120,7 @@ function HomePage() {
   }, [selectedPodcastId, subscriptions]);
 
   async function search({ query } : { query: string }) {
+    setShowPodcastDetails(false);
     setSearchQuery(query);
     return handleSearch(query);
   }
