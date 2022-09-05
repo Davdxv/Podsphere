@@ -6,7 +6,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import HandymanIcon from '@mui/icons-material/Handyman';
 import { BackupDropzone } from '../components/settings-page/backup-dropzone';
 import styles from './settings.module.scss';
-import { MobileSettingsPage } from './settings-mobile';
+import { MobileSettingsPage, SettingsPageProps } from './settings-mobile';
 import { downloadBackup, importBackup } from '../components/settings-page/utils';
 import { ToastContext } from '../providers/toast';
 
@@ -48,7 +48,57 @@ const SidebarMenu : React.FC<{ activeElement: MenuElement,
   );
 };
 
-const GeneralSettings : React.FC = () => {
+const GeneralSettings : React.FC<SettingsPageProps> = ({ handleDownloadBackup,
+  handleImportBackup }) => (
+    <Box className={styles.container}>
+      <Box className={styles['export-box']}>
+        <Typography> Backup your data: </Typography>
+        <Button onClick={handleDownloadBackup}> Backup </Button>
+      </Box>
+      <Box>
+        <Typography> Import your data: </Typography>
+        <BackupDropzone
+          dropzoneText="Drag and drop your backup file here!"
+          onDrop={handleImportBackup}
+        />
+      </Box>
+    </Box>
+);
+
+const AdvancedSettings : React.FC = () => (
+  <Box className={styles.container}>
+    <Typography style={{ margin: 'auto' }}> TBD! :( </Typography>
+  </Box>
+);
+
+const getActivePane = (activeEl: MenuElement,
+  handleImportBackup: SettingsPageProps['handleImportBackup'],
+  handleDownloadBackup: SettingsPageProps['handleDownloadBackup']) => {
+  switch (activeEl) {
+    case MenuElement.General:
+      return (
+        <GeneralSettings
+          handleImportBackup={handleImportBackup}
+          handleDownloadBackup={handleDownloadBackup}
+        />
+      );
+    case MenuElement.Advanced:
+      return <AdvancedSettings />;
+    default:
+      return (
+        <GeneralSettings
+          handleImportBackup={handleImportBackup}
+          handleDownloadBackup={handleDownloadBackup}
+        />
+      );
+  }
+};
+
+const SettingsPage = () => {
+  const [activeElement, setActiveElement] = useState(MenuElement.General);
+
+  const handleChange = (activeEl: MenuElement) => setActiveElement(activeEl);
+
   const toast = useContext(ToastContext);
 
   const handleImportBackup = async (file: File) => {
@@ -71,54 +121,20 @@ const GeneralSettings : React.FC = () => {
     }
   };
 
-  return (
-    <Box className={styles.container}>
-      <Box className={styles['export-box']}>
-        <Typography> Backup your data: </Typography>
-        <Button onClick={handleDownloadBackup}> Backup </Button>
-      </Box>
-      <Box>
-        <Typography> Import your data: </Typography>
-        <BackupDropzone
-          dropzoneText="Drag and drop your backup file here!"
-          onDrop={handleImportBackup}
-        />
-      </Box>
-    </Box>
-  );
-};
-
-const AdvancedSettings : React.FC = () => (
-  <Box className={styles.container}>
-    <Typography style={{ margin: 'auto' }}> TBD! :( </Typography>
-  </Box>
-);
-
-const getActivePane = (activeEl: MenuElement) => {
-  switch (activeEl) {
-    case MenuElement.General:
-      return <GeneralSettings />;
-    case MenuElement.Advanced:
-      return <AdvancedSettings />;
-    default:
-      return <GeneralSettings />;
-  }
-};
-
-const SettingsPage = () => {
-  const [activeElement, setActiveElement] = useState(MenuElement.General);
-
-  const handleChange = (activeEl: MenuElement) => setActiveElement(activeEl);
-
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   return (
-    isMobile ? <MobileSettingsPage />
+    isMobile ? (
+      <MobileSettingsPage
+        handleImportBackup={handleImportBackup}
+        handleDownloadBackup={handleDownloadBackup}
+      />
+    )
       : (
         <Box className={styles.main}>
           <SidebarMenu handleChange={handleChange} activeElement={activeElement} />
-          {getActivePane(activeElement)}
+          {getActivePane(activeElement, handleImportBackup, handleDownloadBackup)}
         </Box>
       )
   );

@@ -1,15 +1,13 @@
 import {
   Box, Button, List, ListItem, Typography,
 } from '@mui/material';
-import React, { useContext, useState } from 'react';
+import React, { useState } from 'react';
 import SettingsIcon from '@mui/icons-material/Settings';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import HandymanIcon from '@mui/icons-material/Handyman';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { BackupDropzone } from '../components/settings-page/backup-dropzone';
 import styles from './settings-mobile.module.scss';
-import { downloadBackup, importBackup } from '../components/settings-page/utils';
-import { ToastContext } from '../providers/toast';
 
 export enum MobileMenuElement {
   Main,
@@ -17,30 +15,15 @@ export enum MobileMenuElement {
   Advanced,
 }
 
+export interface SettingsPageProps {
+  handleImportBackup: (file: File) => Promise<void>;
+  handleDownloadBackup: () => Promise<void>;
+}
+
 const GeneralSettings : React.FC<{ handleChange: (activeEl:
-MobileMenuElement) => void }> = ({ handleChange }) => {
+MobileMenuElement) => void } & SettingsPageProps> = ({ handleChange,
+  handleDownloadBackup, handleImportBackup }) => {
   const onListItemClick = (element: MobileMenuElement) => () => handleChange(element);
-  const toast = useContext(ToastContext);
-
-  const handleImportBackup = async (file: File) => {
-    try {
-      const buffer = await file.arrayBuffer();
-      await importBackup(new Uint8Array(buffer));
-      toast('Backup successfully imported!', { variant: 'success' });
-      setTimeout(() => { window.location.href = '/'; }, 300);
-    } catch (e: any) {
-      toast(e.message, { variant: 'danger', autohideDelay: 3000 });
-    }
-  };
-
-  const handleDownloadBackup = async () => {
-    try {
-      await downloadBackup();
-      toast('Your download has started!', { variant: 'success' });
-    } catch (e: any) {
-      toast(e.message, { variant: 'danger', autohideDelay: 3000 });
-    }
-  };
 
   return (
     <Box className={styles.page}>
@@ -116,23 +99,42 @@ MobileMenuElement) => void }> = ({ handleChange }) => {
 };
 
 const ActivePane : React.FC<{ activeEl: MobileMenuElement,
-  handleChange: (activeEl: MobileMenuElement) => void }> = ({ activeEl, handleChange }) => {
+  handleChange: (activeEl: MobileMenuElement) => void } & SettingsPageProps> = ({ activeEl,
+  handleChange, handleDownloadBackup, handleImportBackup }) => {
   switch (activeEl) {
     case MobileMenuElement.Main:
       return <Menu handleChange={handleChange} />;
     case MobileMenuElement.General:
-      return <GeneralSettings handleChange={handleChange} />;
+      return (
+        <GeneralSettings
+          handleImportBackup={handleImportBackup}
+          handleDownloadBackup={handleDownloadBackup}
+          handleChange={handleChange}
+        />
+      );
     case MobileMenuElement.Advanced:
-      return <AdvancedSettings handleChange={handleChange} />;
+      return (
+        <AdvancedSettings
+          handleChange={handleChange}
+        />
+      );
     default:
       return <Menu handleChange={handleChange} />;
   }
 };
 
-export const MobileSettingsPage = () => {
+export const MobileSettingsPage: React.FC<SettingsPageProps> = ({ handleDownloadBackup,
+  handleImportBackup }) => {
   const [activeElement, setActiveElement] = useState(MobileMenuElement.Main);
 
   const handleChange = (activeEl: MobileMenuElement) => setActiveElement(activeEl);
 
-  return <ActivePane activeEl={activeElement} handleChange={handleChange} />;
+  return (
+    <ActivePane
+      handleImportBackup={handleImportBackup}
+      handleDownloadBackup={handleDownloadBackup}
+      activeEl={activeElement}
+      handleChange={handleChange}
+    />
+  );
 };
