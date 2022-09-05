@@ -142,7 +142,7 @@ function EnhancedTable(props: Props) {
 
                 return (
                   <TableRow
-                    hover
+                    className={style['search-results-table-row']}
                     onClick={event => handleClickRow(event, row.feedUrl)}
                     tabIndex={-1}
                     key={labelId}
@@ -189,7 +189,6 @@ function EnhancedTable(props: Props) {
                     <TableCell
                       title={feedUrl.length !== row.feedUrl.length ? row.feedUrl : undefined}
                       className={style['search-results-table-col-feed-url']}
-                      id={labelId}
                       align="right"
                     >
                       {metadatumToString(feedUrl)}

@@ -85,17 +85,9 @@ export const theme = createTheme({
     },
     MuiTableRow: {
       styleOverrides: {
-        head: {
-          '&:hover': {
-            backgroundColor: 'inherit !important',
-          },
-        },
         root: {
           color: TEXT_COLOR,
           cursor: 'default',
-          '&:hover': {
-            backgroundColor: 'darkblue !important',
-          },
         },
       },
     },
