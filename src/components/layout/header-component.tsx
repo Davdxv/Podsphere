@@ -10,7 +10,7 @@ import style from './index-elements.module.scss';
 import { ReactComponent as AppIcon } from '../../assets/arsync-logo.svg';
 
 interface Props {
-  onSubmit: (_event: React.MouseEvent<any> | React.FormEvent<any>,
+  onSubmit: (_event: React.MouseEvent<HTMLFormElement> | React.FormEvent<HTMLFormElement>,
     query: string) => Promise<boolean>;
 }
 
@@ -19,17 +19,17 @@ function HeaderComponent({ onSubmit } : Props) {
   const [isSearching, setIsSearching] = useState(false);
   const [showClearButton, setShowClearButton] = useState(false);
   const SEARCH_TEXT = 'Search for podcasts, episodes or enter an RSS feed URL to subscribe to';
-  const searchFormRef = useRef();
+  const searchFormRef = useRef<HTMLFormElement>(null);
 
   const clearSearchForm = () => {
     if (searchFormRef.current) searchFormRef.current.reset();
     setShowClearButton(false);
   };
 
-  const getSearchFormInput = () => {
+  const getSearchFormInput = () : string => {
     if (searchFormRef.current) {
       const fd = new FormData(searchFormRef.current);
-      return fd.get('query') || '';
+      return fd.get('query')?.toString() || '';
     }
     return '';
   };
@@ -46,7 +46,7 @@ function HeaderComponent({ onSubmit } : Props) {
     if (query) {
       setIsSearching(true);
       try {
-        const handleSearchResult = await onSubmit({ query });
+        const handleSearchResult = await onSubmit(event, query);
         if (handleSearchResult) clearSearchForm(); // On successful subscription to RSS feed
       } catch (ex) {
         console.error(ex);
