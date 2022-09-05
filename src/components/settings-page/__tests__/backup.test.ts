@@ -4,7 +4,7 @@
 import * as idbUtils from '../../../idb-utils';
 import { IndexedDb } from '../../../indexed-db';
 import { downloadBackup } from '../utils';
-import { MinimalBackupString } from '../minimal-backup';
+import { MinimalBackupString } from './data/minimal-backup';
 
 const verifyBackup = jest.spyOn(idbUtils, 'verifyBackup');
 

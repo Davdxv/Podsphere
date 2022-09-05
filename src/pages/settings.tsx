@@ -106,7 +106,7 @@ const SettingsPage = () => {
       const buffer = await file.arrayBuffer();
       await importBackup(new Uint8Array(buffer));
       toast('Backup successfully imported!', { variant: 'success' });
-      setTimeout(() => { window.location.href = '/'; }, 300);
+      setTimeout(() => { window.location.href = '/'; }, 500);
     } catch (e: any) {
       toast(e.message, { variant: 'danger', autohideDelay: 3000 });
     }
@@ -114,8 +114,8 @@ const SettingsPage = () => {
 
   const handleDownloadBackup = async () => {
     try {
-      await downloadBackup();
       toast('Your download has started!', { variant: 'success' });
+      await downloadBackup();
     } catch (e: any) {
       toast(e.message, { variant: 'danger', autohideDelay: 3000 });
     }

@@ -3,7 +3,7 @@ import z from 'zod';
 import { verifyBackup } from '../../../idb-utils';
 import { SchemaType } from '../../../providers/subscriptions';
 import { dbSchema } from '../zod-schemas';
-import { MinimalBackupString } from '../minimal-backup';
+import { MinimalBackupString } from './data/minimal-backup';
 
 /**
  * @link https://github.com/colinhacks/zod/issues/372#issuecomment-826380330
