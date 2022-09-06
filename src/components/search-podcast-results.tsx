@@ -61,7 +61,7 @@ const DEFAULT_ORDER_BY = 'index';
 const DEFAULT_ROWS_PER_PAGE = 10;
 
 /** Adapted from: https://mui.com/material-ui/react-table/#sorting-amp-selecting */
-function EnhancedTable(props: Props) {
+const EnhancedTable = React.forwardRef<unknown, Props>((props, ref) => {
   const { onClose, clickFeedHandler, searchQuery, results } = props;
 
   const [order, setOrder] = useState<Order>('asc');
@@ -105,7 +105,7 @@ function EnhancedTable(props: Props) {
   const getSearchWords = () => searchQuery.split(' ').filter(str => str.length > 1);
 
   return (
-    <Box className={style['search-results-table-container']}>
+    <Box ref={ref} className={style['search-results-table-container']}>
       <EnhancedTableToolbar onClose={onClose} />
       <TablePagination
         rowsPerPageOptions={[10, 25, 100]}
@@ -209,7 +209,7 @@ function EnhancedTable(props: Props) {
       </TableContainer>
     </Box>
   );
-}
+});
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) return -1;
