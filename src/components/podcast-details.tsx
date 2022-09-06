@@ -1,18 +1,18 @@
 import React, { useRef, useState } from 'react';
-import { Image } from 'react-bootstrap';
 import {
   Box, Button, Modal,
   InputLabel, FormControl, OutlinedInput,
-  TablePagination,
+  TablePagination, Link,
 } from '@mui/material';
 import { ArrowDropDown, ArrowDropUp } from '@mui/icons-material';
 import { Episode, Podcast } from '../client/interfaces';
 import { isValidInteger, metadatumToString } from '../utils';
 import { valueToLowerCase } from '../client/metadata-filtering/formatting';
-import EpisodeDetails from './episode-details';
 import RssButton from './buttons/rss-button';
 import CloseButton from './buttons/close-button';
 import ClearButton from './buttons/clear-button';
+import CachedImage from './cached-image';
+import EpisodeDetails from './episode-details';
 import style from './podcast-details.module.scss';
 
 interface Props {
@@ -142,12 +142,13 @@ const PodcastDetails : React.FC<Props> = ({
 
         <Box className={style['podcast-details-podcast-description']}>
           {imageUrl && (
-          <Image
-            fluid
-            className={style['podcast-details-podcast-image']}
-            src={imageUrl}
-            alt={imageTitle}
-          />
+          <Link href={imageUrl} title="View full-size image" target="_blank">
+            <CachedImage
+              classes={style['podcast-details-podcast-image']}
+              src={imageUrl}
+              alt={imageTitle || `${title} image`}
+            />
+          </Link>
           )}
           {description && (
           <p>{description}</p>
@@ -167,9 +168,8 @@ const PodcastDetails : React.FC<Props> = ({
         </Box>
 
         <Box className={style['episodes-toolbar']}>
-          <Button onClick={() => toggle(setShowImages)}>
-            Show images
-            {showImages ? <ArrowDropUp /> : <ArrowDropDown />}
+          <Button sx={{ width: '8em' }} onClick={() => toggle(setShowImages)}>
+            {`${showImages ? 'Hide' : 'Load'} episode images`}
           </Button>
 
           <FormControl sx={{ m: 1, width: 'auto', flexGrow: '99' }} variant="outlined">

@@ -3,11 +3,11 @@ import React from 'react';
 import { RiMapPinTimeLine } from 'react-icons/ri';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { Image } from 'react-bootstrap';
 import { Box, Typography } from '@mui/material';
-import style from './shared-elements.module.scss';
-import RemoveBtn from './buttons/remove-button';
 import { Podcast } from '../client/interfaces';
+import RemoveBtn from './buttons/remove-button';
+import CachedImage from './cached-image';
+import style from './shared-elements.module.scss';
 
 dayjs.extend(relativeTime);
 
@@ -27,8 +27,9 @@ const PodcastList : React.FC<Props> = ({ subscriptions, unsubscribe, clickFeedHa
               className={style['title-detail']}
               onClick={e => clickFeedHandler(e, subscription.feedUrl)}
             >
-              <Image
-                className={style['podcast-image']}
+              <CachedImage
+                loading="lazy"
+                classes={style['podcast-image']}
                 src={subscription.imageUrl}
                 alt={subscription.title}
               />

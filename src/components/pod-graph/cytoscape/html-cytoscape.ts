@@ -1,7 +1,8 @@
 import cytoscape from 'cytoscape';
 import nodeHtmlLabel from 'cy-node-html-label';
 import { CoreWithNodeLabel } from './interfaces';
-import { sanitizeString, sanitizeUri } from '../../../client/metadata-filtering/sanitization';
+import { sanitizeString } from '../../../client/metadata-filtering/sanitization';
+import { cacheFind } from '../../cached-image';
 
 // @ts-ignore
 nodeHtmlLabel(cytoscape);
@@ -12,11 +13,17 @@ interface CardData {
   title: string;
 }
 
+function getCachedImage(src: string) : string {
+  const cached = cacheFind({ src });
+  return cached?.tData ? cached.tData : src;
+}
+
 function cardElements(data: CardData, selected = '') {
+  // TODO: this code should not be rerendered on each pan/zoom, although this does reprobe imgCache
   return `
     <div class="card-front ${selected}" data-id="${sanitizeString(data.id)}">
       <div class="card-front__tp">
-        <img class="image-bg" src="${sanitizeUri(data.imageUrl)}" alt="" />
+        <img class="image-bg" src="${getCachedImage(data.imageUrl)}" alt="" />
         <h2 class="card-front__heading">
           ${sanitizeString(data.title)}
         </h2>

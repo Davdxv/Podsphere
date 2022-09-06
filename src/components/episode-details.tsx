@@ -4,10 +4,10 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import parse from 'html-react-parser';
 import { Box, Link } from '@mui/material';
 import { MdMoreTime, MdOutlineCloudUpload, MdOutlineAttachFile } from 'react-icons/md';
-import { Image } from 'react-bootstrap';
 import { Episode } from '../client/interfaces';
 import { getTextSelection, bytesToString } from '../utils';
 import { truncateString } from '../client/metadata-filtering/formatting';
+import CachedImage from './cached-image';
 import style from './episode-details-elements.module.scss';
 
 dayjs.extend(relativeTime);
@@ -21,6 +21,7 @@ interface Props {
 const EpisodeDetails : React.FC<Props> = ({ episode, showImage, podcastImageUrl }) => {
   const { title, publishedAt, contentHtml, summary, mediaUrl, mediaLength, duration,
     imageUrl } = episode;
+  const imgUrl = imageUrl || podcastImageUrl || '';
 
   const fullDescription = ((contentHtml || '').length > (summary || '').length ? contentHtml
     : summary) || '';
@@ -34,15 +35,12 @@ const EpisodeDetails : React.FC<Props> = ({ episode, showImage, podcastImageUrl 
     <Box className={style['ep-card-wrapper']}>
       <Box className={style['ep-card-body']}>
         <Box className={style['ep-image-box']}>
-          <Link href={imageUrl} title="View full-size image" target="_blank">
-            {showImage ? (
-              <Image
-                fluid
-                className={style['ep-image']}
-                src={imageUrl || podcastImageUrl}
-                alt={title}
-              />
-            ) : <div className="todo-placeholder-image-todo-react-thumbnail" />}
+          <Link href={imgUrl} title="View full-size image" target="_blank">
+            <CachedImage
+              className={style['ep-image']}
+              src={showImage ? imgUrl : podcastImageUrl || ''}
+              alt={title}
+            />
           </Link>
         </Box>
         <Box
