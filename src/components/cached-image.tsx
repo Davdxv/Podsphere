@@ -63,7 +63,7 @@ const CachedImage : React.FC<Props> = ({ src, alt, classes, tWidth, tHeight, ...
     if (!src) return;
 
     const cached = cacheFind({ src });
-    if (cached?.tWidth && cached.tWidth >= thumbWidth) setThumb(cached);
+    if (cached?.tData && cached?.tWidth && cached.tWidth >= thumbWidth) setThumb(cached);
     else {
       const canvas = document.createElement('canvas');
       canvas.width = thumbWidth;
@@ -74,14 +74,18 @@ const CachedImage : React.FC<Props> = ({ src, alt, classes, tWidth, tHeight, ...
       img.crossOrigin = 'anonymous';
       img.decoding = 'async';
       img.onload = () => {
-        context?.scale(thumbWidth / img.width, thumbHeight / img.height);
-        context?.drawImage(img, 0, 0);
-        const b64Url = canvas.toDataURL('image/png');
-        if (b64Url) {
-          const newCachedImg = { src, tData: b64Url, tWidth: thumbWidth, tHeight: thumbHeight };
-          cacheAdd(newCachedImg);
-          setThumb(newCachedImg);
+        let b64Url;
+        try {
+          context?.scale(thumbWidth / img.width, thumbHeight / img.height);
+          context?.drawImage(img, 0, 0);
+          b64Url = canvas.toDataURL('image/png');
         }
+        catch (_ex) {
+          b64Url = '';
+        }
+        const newCachedImg = { src, tData: b64Url, tWidth: thumbWidth, tHeight: thumbHeight };
+        if (b64Url) cacheAdd(newCachedImg);
+        setThumb(newCachedImg);
       };
       img.onerror = () => {
         setThumb({ src, tData: '', tWidth: thumbWidth, tHeight: thumbHeight });
