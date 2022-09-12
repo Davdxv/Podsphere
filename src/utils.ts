@@ -17,6 +17,10 @@ import {
   removePrefixFromPodcastId,
 } from './podcast-id';
 
+export const getTextSelection = () => (window.getSelection
+  ? (window.getSelection() || '').toString()
+  : (document.getSelection() || '').toString());
+
 export function unixTimestamp(date : Date | null = null) {
   return Math.floor(date ? date.getTime() : Date.now() / 1000);
 }
@@ -30,6 +34,23 @@ export function metadatumToString<K extends keyof Podcast>(field: Podcast[K]) {
   if (field instanceof Date) return toLocaleString(field);
 
   return `${field}`;
+}
+
+export function bytesToString(bytes: string | number) {
+  const UNITS = ['bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+  try {
+    let l = 0;
+    let n = Number(bytes) || 0;
+
+    while (n >= 1024 && ++l) {
+      n /= 1024;
+    }
+    return `${n.toFixed(n < 10 && l > 0 ? 1 : 0)} ${UNITS[l]}`;
+  }
+  catch (ex) {
+    return bytes;
+  }
 }
 
 export function toISOString(date: Date) {

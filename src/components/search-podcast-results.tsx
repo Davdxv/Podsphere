@@ -19,7 +19,7 @@ interface OnCloseProp {
 }
 
 interface Props extends OnCloseProp {
-  clickFeedHandler: (_event: React.MouseEvent<unknown>, feedUrl: string) => void,
+  clickFeedHandler: (_event: React.MouseEvent<unknown>, feedUrl: string) => Promise<void>,
   // eslint-disable-next-line react/no-unused-prop-types
   isOpen?: boolean,
   searchQuery: string,
@@ -142,7 +142,7 @@ const EnhancedTable = React.forwardRef<unknown, Props>((props, ref) => {
 
                 return (
                   <TableRow
-                    hover
+                    className={style['search-results-table-row']}
                     onClick={event => handleClickRow(event, row.feedUrl)}
                     tabIndex={-1}
                     key={labelId}
@@ -189,7 +189,6 @@ const EnhancedTable = React.forwardRef<unknown, Props>((props, ref) => {
                     <TableCell
                       title={feedUrl.length !== row.feedUrl.length ? row.feedUrl : undefined}
                       className={style['search-results-table-col-feed-url']}
-                      id={labelId}
                       align="right"
                     >
                       {metadatumToString(feedUrl)}
@@ -315,11 +314,10 @@ const EnhancedTableToolbar : React.FC<OnCloseProp> = ({ onClose }) => (
     <Typography
       sx={{ flex: '1 1 100%' }}
       variant="h6"
-      id="search-results-table-title"
       component="div"
     >
       Podcast search results from iTunes
     </Typography>
-    <CloseButton onClick={onClose} />
+    <CloseButton classes={style['search-results-close-button']} onClick={onClose} />
   </Toolbar>
 );

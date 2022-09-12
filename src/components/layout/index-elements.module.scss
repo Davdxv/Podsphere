@@ -1,6 +1,7 @@
 // HEADER COMPONENTS
 
 .header-container {
+  z-index: 110100;
   display: flex;
   color: white;
   align-items: center;
@@ -10,7 +11,6 @@
   top: 0;
   right: 0;
   left: 0;
-  z-index: 100110;
   background-color: #030303;
   margin-left: auto;
   margin-right: auto;

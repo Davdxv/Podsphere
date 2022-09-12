@@ -5,19 +5,15 @@ import applyPanzoom from './panzoom';
 import applyEvents from './events';
 import applyNodeGroups from './node-groups';
 import applyHtmlLabel from './html-cytoscape';
-import { ExtendedCore } from './interfaces';
+import { CytoscapeDependencies, ExtendedCore } from './interfaces';
 
 cytoscape.use(dagre);
-
-type Deps = {
-  setSelectedPodcastId: (id: string) => void;
-};
 
 export default function createCytoscape(
   container: CytoscapeOptions['container'],
   layout: DagreLayoutOptions,
   elements: CytoscapeOptions['elements'],
-  deps: Deps,
+  deps: CytoscapeDependencies,
 ) {
   const cy = cytoscape({
     container,

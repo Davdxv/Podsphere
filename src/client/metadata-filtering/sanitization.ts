@@ -5,7 +5,7 @@ const SANITIZE_OPTIONS_NO_HTML = {
   USE_PROFILES: { html: false },
 };
 const SANITIZE_OPTIONS_ALLOWED_HTML = {
-  ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a'],
+  ALLOWED_TAGS: ['b', 'i', 'em', 'u', 'strong', 'a', 'p'],
   ALLOWED_ATTR: ['href'],
 };
 

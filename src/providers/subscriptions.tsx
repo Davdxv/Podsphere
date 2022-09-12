@@ -11,6 +11,7 @@ import { searchPodcast } from '../client/search';
 import {
   fetchPodcastRss2Feed,
   getNewPodcastIds,
+  GetPodcastResult,
   NewIdMapping,
   pingTxIds,
   refreshSubscriptions,
@@ -60,11 +61,12 @@ interface SubscriptionContextType {
   isRefreshing: boolean,
   lastRefreshTime: number,
   handleSearch: (query: string) => Promise<boolean>,
+  handleFetchPodcastRss2Feed: (feedUrl: string) => Promise<GetPodcastResult>,
   searchResults: SearchPodcastResult[],
   setShowSearchResults: (value: boolean) => void,
   showSearchResults: boolean,
   subscribe: (feedUrl: string) => Promise<boolean>,
-  unsubscribe: (id: string) => Promise<void>,
+  unsubscribe: (feedUrl: string) => Promise<void>,
   refresh: (idsToRefresh?: Podcast['id'][] | null, silent?: boolean,
     maxLastRefreshAge?: number) => Promise<[null, null] | [Podcast[], Partial<Podcast>[]]>,
   metadataToSync: Partial<Podcast>[],
@@ -88,6 +90,7 @@ export const SubscriptionsContext = createContext<SubscriptionContextType>({
   isRefreshing: false,
   lastRefreshTime: 0,
   handleSearch: async () => false,
+  handleFetchPodcastRss2Feed: async () => ({}) as GetPodcastResult,
   searchResults: [],
   setShowSearchResults: () => {},
   showSearchResults: false,
@@ -242,7 +245,8 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
     return false;
   }
 
-  async function subscribe(feedUrl: Podcast['feedUrl']) {
+  async function handleFetchPodcastRss2Feed(feedUrl: Podcast['feedUrl'])
+    : Promise<GetPodcastResult> {
     let validUrl : string;
     try {
       validUrl = sanitizeUri(feedUrl, true);
@@ -251,9 +255,16 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
       validUrl = '';
     }
     if (!validUrl) {
-      toast(`Unable to subscribe to ${feedUrl}: invalid URL.`, { variant: 'danger' });
-      return false;
+      return { errorMessage: `Unable to fetch ${feedUrl}: invalid URL.` };
     }
+
+    const result = await fetchPodcastRss2Feed(validUrl, metadataToSync);
+    if (result.errorMessage) toast(`${result.errorMessage}`, { variant: 'danger' });
+    return result;
+  }
+
+  async function subscribe(feedUrl: Podcast['feedUrl']) {
+    const validUrl = sanitizeUri(feedUrl, false);
 
     const subscription = findMetadataByFeedUrl(validUrl, 'rss2', subscriptions);
     if (hasMetadata(subscription)) {
@@ -263,7 +274,7 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
 
     const { errorMessage,
       newPodcastMetadata,
-      newPodcastMetadataToSync } = await fetchPodcastRss2Feed(validUrl, metadataToSync);
+      newPodcastMetadataToSync } = await handleFetchPodcastRss2Feed(validUrl);
 
     if (hasMetadata(newPodcastMetadata)) {
       toast(`Successfully subscribed to ${newPodcastMetadata.title}.`, { variant: 'success' });
@@ -282,10 +293,12 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
   async function unsubscribe(feedUrl: Podcast['feedUrl']) {
     // TODO: warn if feedUrl has pending metadataToSync
     //       currently, any pending metadataToSync is left but does not survive a refresh
-    if (subscriptions.every(subscription => subscription.feedUrl !== feedUrl)) {
+    const sub = findMetadataByFeedUrl(feedUrl, 'rss2', subscriptions);
+    if (!hasMetadata(sub)) {
       toast(`You are not subscribed to ${feedUrl}.`, { variant: 'danger' });
     }
     else {
+      toast(`Successfully unsubscribed from ${sub.title}.`, { variant: 'success' });
       await removeCachedSubscription(feedUrl);
       setSubscriptions(prev => prev.filter(podcast => podcast.feedUrl !== feedUrl));
     }
@@ -472,6 +485,7 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
         isRefreshing,
         lastRefreshTime,
         handleSearch,
+        handleFetchPodcastRss2Feed,
         searchResults,
         setShowSearchResults,
         showSearchResults,

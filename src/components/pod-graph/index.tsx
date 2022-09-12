@@ -2,39 +2,31 @@ import React, { useRef, useEffect, useState } from 'react';
 import {
   Box, useMediaQuery, useTheme,
 } from '@mui/material';
+import { Podcast } from '../../client/interfaces';
+import { CytoscapeDependencies, ExtendedCore } from './cytoscape/interfaces';
 import createCytoscape from './cytoscape';
 import getElementsFromSubscriptions from './get-elements-from-subscriptions';
-import PodcastDetails from '../podcast-details';
-import ToggleBtn from '../buttons/toggle-button'; // This button can be used for another fn
-import { Podcast } from '../../client/interfaces';
-import style from './style.module.scss';
-import { ExtendedCore } from './cytoscape/interfaces';
+// import ToggleBtn from '../buttons/toggle-button';
 import { mobileLayout, desktopLayout } from './cytoscape/layout';
+import style from './style.module.scss';
 
-interface Props {
+interface Props extends CytoscapeDependencies {
   subscriptions: Podcast[];
 }
 
 declare global {
   interface Window {
-    cy : ExtendedCore;
+    cy: ExtendedCore;
   }
 }
 
-const PodGraph : React.FC<Props> = ({ subscriptions }) => {
+const PodGraph : React.FC<Props> = ({ subscriptions, setSelectedPodcastId }) => {
   const el = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [cy, setCy] = useState<ExtendedCore>();
-  const [selectedPodcastId, setSelectedPodcastId] = useState<string | null>(null);
-  const selectedPodcast = subscriptions
-    .find(subscription => subscription.feedUrl === selectedPodcastId);
 
   const theme = useTheme();
   const isSm = useMediaQuery(theme.breakpoints.down('sm'));
-
-  if (selectedPodcastId && !selectedPodcast) {
-    console.warn('Could not find a podcast with the selected ID. You should not be seeing this :)');
-  }
 
   useEffect(() => {
     const layout = isSm ? mobileLayout : desktopLayout;
@@ -52,20 +44,12 @@ const PodGraph : React.FC<Props> = ({ subscriptions }) => {
     return () => {
       cyto.destroy();
     };
-  }, [subscriptions, isSm]);
+  }, [isSm, subscriptions, setSelectedPodcastId]);
 
   return (
     <Box className={style['pod-graph-container']}>
       <Box className={style['pod-graph-inner-container']} ref={el} />
-      {selectedPodcast && (
-        <PodcastDetails
-          {...selectedPodcast}
-          isOpen={!!selectedPodcast}
-          close={() => setSelectedPodcastId(null)}
-        />
-      )}
-      { /* @ts-ignore  */}
-      <ToggleBtn />  {/* this btn has no fn yet,it can be added later */}
+      {/* <ToggleBtn /> TODO: Cytoscape toolbar */}
     </Box>
   );
 };

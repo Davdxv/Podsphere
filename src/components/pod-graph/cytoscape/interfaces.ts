@@ -1,5 +1,9 @@
 import { Core } from 'cytoscape';
 
+export interface CytoscapeDependencies {
+  setSelectedPodcastId: (id: string) => void;
+}
+
 interface PanzoomOptions {
   fitSelector?: string;
   animateOnFit?: boolean;
