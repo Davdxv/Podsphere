@@ -61,7 +61,7 @@ const DEFAULT_ORDER_BY = 'index';
 const DEFAULT_ROWS_PER_PAGE = 10;
 
 /** Adapted from: https://mui.com/material-ui/react-table/#sorting-amp-selecting */
-function EnhancedTable(props: Props) {
+const EnhancedTable = React.forwardRef<unknown, Props>((props, ref) => {
   const { onClose, clickFeedHandler, searchQuery, results } = props;
 
   const [order, setOrder] = useState<Order>('asc');
