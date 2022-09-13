@@ -3,7 +3,7 @@ import {
   Box, Modal, Table,
   TableBody, TableCell, TableContainer,
   TableHead, TableRow, TableSortLabel,
-  TablePagination, Toolbar, Typography,
+  TablePagination, Toolbar, Typography, DialogContent,
 } from '@mui/material';
 import Highlighter from 'react-highlight-words';
 import CloseButton from './buttons/close-button';
@@ -45,13 +45,21 @@ const SearchPodcastResults : React.FC<Props> = ({
   searchQuery = '',
   results = [],
 }: Props) => (
-  <Modal open={isOpen} onClose={onClose} className={style['search-results-modal']}>
-    <EnhancedTable
-      clickFeedHandler={clickFeedHandler}
-      onClose={onClose}
-      searchQuery={searchQuery}
-      results={results}
-    />
+  <Modal
+    disableEnforceFocus
+    disableAutoFocus
+    open={isOpen}
+    onClose={onClose}
+    className={style['search-results-modal']}
+  >
+    <DialogContent>
+      <EnhancedTable
+        clickFeedHandler={clickFeedHandler}
+        onClose={onClose}
+        searchQuery={searchQuery}
+        results={results}
+      />
+    </DialogContent>
   </Modal>
 );
 export default SearchPodcastResults;
