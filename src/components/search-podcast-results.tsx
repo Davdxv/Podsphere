@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import {
-  Box, Modal, Table,
+  Box, Modal, DialogContent,
+  Toolbar, Typography, Table,
   TableBody, TableCell, TableContainer,
   TableHead, TableRow, TableSortLabel,
-  TablePagination, Toolbar, Typography, DialogContent,
+  TablePagination,
 } from '@mui/material';
 import Highlighter from 'react-highlight-words';
 import CloseButton from './buttons/close-button';

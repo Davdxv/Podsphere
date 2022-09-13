@@ -4,6 +4,7 @@ module.exports = {
     browser: true,
   },
   rules: {
+    quotes: [2, 'single'],
     '@typescript-eslint/brace-style': 'off',
     '@typescript-eslint/no-use-before-define': 'off',
     'function-paren-newline': ['error', 'consistent'],
