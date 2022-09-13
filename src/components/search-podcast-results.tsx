@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import {
-  Box, Modal, Table,
+  Box, Modal, DialogContent,
+  Toolbar, Typography, Table,
   TableBody, TableCell, TableContainer,
   TableHead, TableRow, TableSortLabel,
-  TablePagination, Toolbar, Typography,
+  TablePagination,
 } from '@mui/material';
 import Highlighter from 'react-highlight-words';
 import CloseButton from './buttons/close-button';
@@ -45,13 +46,21 @@ const SearchPodcastResults : React.FC<Props> = ({
   searchQuery = '',
   results = [],
 }: Props) => (
-  <Modal open={isOpen} onClose={onClose} className={style['search-results-modal']}>
-    <EnhancedTable
-      clickFeedHandler={clickFeedHandler}
-      onClose={onClose}
-      searchQuery={searchQuery}
-      results={results}
-    />
+  <Modal
+    disableEnforceFocus
+    disableAutoFocus
+    open={isOpen}
+    onClose={onClose}
+    className={style['search-results-modal']}
+  >
+    <DialogContent>
+      <EnhancedTable
+        clickFeedHandler={clickFeedHandler}
+        onClose={onClose}
+        searchQuery={searchQuery}
+        results={results}
+      />
+    </DialogContent>
   </Modal>
 );
 export default SearchPodcastResults;
@@ -61,7 +70,7 @@ const DEFAULT_ORDER_BY = 'index';
 const DEFAULT_ROWS_PER_PAGE = 10;
 
 /** Adapted from: https://mui.com/material-ui/react-table/#sorting-amp-selecting */
-function EnhancedTable(props: Props) {
+const EnhancedTable = React.forwardRef<unknown, Props>((props, ref) => {
   const { onClose, clickFeedHandler, searchQuery, results } = props;
 
   const [order, setOrder] = useState<Order>('asc');
