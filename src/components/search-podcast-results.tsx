@@ -46,6 +46,7 @@ const SearchPodcastResults : React.FC<Props> = ({
   results = [],
 }: Props) => (
   <Modal
+    disableEnforceFocus
     disableAutoFocus
     open={isOpen}
     onClose={onClose}
