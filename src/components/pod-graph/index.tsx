@@ -6,7 +6,6 @@ import { Podcast } from '../../client/interfaces';
 import { CytoscapeDependencies, ExtendedCore } from './cytoscape/interfaces';
 import createCytoscape from './cytoscape';
 import getElementsFromSubscriptions from './get-elements-from-subscriptions';
-// import ToggleBtn from '../buttons/toggle-button';
 import { mobileLayout, desktopLayout } from './cytoscape/layout';
 import style from './style.module.scss';
 

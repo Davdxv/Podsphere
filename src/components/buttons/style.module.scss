@@ -59,22 +59,16 @@
   border-radius: 50%;
   background: transparent !important;
   border: 1px solid transparent !important;
-  color: #fff ;
+  color: #fff;
   box-shadow: none !important;
-  &:hover {
-    color: #4b9b73;
-    background: transparent;
-    border: 1px solid transparent !important;
-  }
-  &:focus {
-    color: #4b9b73;
-    background: transparent;
-    border: 1px solid transparent !important;
-  }
-}
 
-.nav-btn > svg {
-  font-size: 32px;
+  svg {
+    font-size: 2rem;
+
+    &:hover, &:focus {
+      color: #4b9b73;
+    }
+  }
 }
 
 .spin-button {
@@ -94,6 +88,8 @@
         transform: rotate(360deg);
       }
     }
+    margin: 1px auto;
+    font-size: 1.5rem;
     transition: all .3s ease;
     opacity: 1;
     fill: #fff;
@@ -116,12 +112,12 @@
   border-radius: 50%;
   background: transparent;
   border: 1px solid transparent;
-  color: #bd0c0c ;
-  box-shadow: none !important;
-  &:hover {
-    color: #641c0f;
-    background: transparent;
-    border: 1px solid transparent;
+  svg {
+    color: #bd0c0c;
+    opacity: 0.7;
+    &:hover {
+      opacity: 1;
+    }
   }
 }
 

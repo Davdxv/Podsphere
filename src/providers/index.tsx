@@ -1,5 +1,4 @@
 import React from 'react';
-import ToastProvider from './toast';
 import SubscriptionsProvider from './subscriptions';
 import ArweaveProvider from './arweave';
 import CytoscapeProvider from './cytoscape';
@@ -9,15 +8,13 @@ interface Props {
 }
 
 const GlobalProviders : React.FC<Props> = ({ children }) => (
-  <ToastProvider>
-    <SubscriptionsProvider>
-      <ArweaveProvider>
-        <CytoscapeProvider>
-          {children}
-        </CytoscapeProvider>
-      </ArweaveProvider>
-    </SubscriptionsProvider>
-  </ToastProvider>
+  <SubscriptionsProvider>
+    <ArweaveProvider>
+      <CytoscapeProvider>
+        {children}
+      </CytoscapeProvider>
+    </ArweaveProvider>
+  </SubscriptionsProvider>
 );
 
 export default GlobalProviders;

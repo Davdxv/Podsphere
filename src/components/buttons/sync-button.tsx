@@ -1,9 +1,9 @@
 import React, { useContext } from 'react';
-import { Button } from 'react-bootstrap';
-import style from './style.module.scss';
+import { IconButton } from '@mui/material';
 import { ReactComponent as ArSyncIcon } from '../../assets/arsync-logo.svg';
 import { SubscriptionsContext } from '../../providers/subscriptions';
 import { ArweaveContext } from '../../providers/arweave';
+import style from './style.module.scss';
 
 const SyncButton : React.FC = () => {
   const { isRefreshing } = useContext(SubscriptionsContext);
@@ -20,7 +20,7 @@ const SyncButton : React.FC = () => {
   }
 
   return (
-    <Button
+    <IconButton
       disabled={disabled}
       className={`${style['spin-button']} ${hasPendingTxs ? style['sync-initialized'] : ''} ${
         isSyncing ? style.spinning : ''}`}
@@ -31,7 +31,7 @@ const SyncButton : React.FC = () => {
         width="1.5rem"
         height="1.5rem"
       />
-    </Button>
+    </IconButton>
   );
 };
 

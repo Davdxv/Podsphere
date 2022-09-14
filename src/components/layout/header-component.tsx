@@ -1,7 +1,8 @@
-import React, { useState, useContext, useRef } from 'react';
-import { InputGroup, Form, Container } from 'react-bootstrap';
-import { Box } from '@mui/material';
-import { ToastContext } from '../../providers/toast';
+import React, { useState, useRef } from 'react';
+import {
+  Box, FormControl, TextField,
+} from '@mui/material';
+import { toast } from 'react-toastify';
 import ClearButton from '../buttons/clear-button';
 import SyncButton from '../buttons/sync-button';
 import RefreshButton from '../buttons/refresh-button';
@@ -15,24 +16,17 @@ interface Props {
 }
 
 function HeaderComponent({ onSubmit } : Props) {
-  const toast = useContext(ToastContext);
-  const [isSearching, setIsSearching] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showClearButton, setShowClearButton] = useState(false);
   const SEARCH_TEXT = 'Search for podcasts, episodes or enter an RSS feed URL to subscribe to';
-  const searchFormRef = useRef<HTMLFormElement>(null);
+  const searchFormRef = useRef<HTMLInputElement>(null);
 
   const clearSearchForm = () => {
-    if (searchFormRef.current) searchFormRef.current.reset();
+    if (searchFormRef.current?.value) searchFormRef.current.value = '';
     setShowClearButton(false);
   };
 
-  const getSearchFormInput = () : string => {
-    if (searchFormRef.current) {
-      const fd = new FormData(searchFormRef.current);
-      return fd.get('query')?.toString() || '';
-    }
-    return '';
-  };
+  const getSearchFormInput = () : string => searchFormRef.current?.value || '';
 
   function handleChange() {
     setShowClearButton(!!getSearchFormInput());
@@ -43,51 +37,55 @@ function HeaderComponent({ onSubmit } : Props) {
   ) {
     event.preventDefault();
     const query = getSearchFormInput();
-    if (query) {
-      setIsSearching(true);
+    if (query && !isSubmitting) {
+      setIsSubmitting(true);
       try {
         const handleSearchResult = await onSubmit(event, query);
         if (handleSearchResult) clearSearchForm(); // On successful subscription to RSS feed
       } catch (ex) {
         console.error(ex);
-        toast('Could not find podcast.', { variant: 'danger' });
+        toast.error('Could not find podcast.');
       } finally {
-        setIsSearching(false);
+        setIsSubmitting(false);
       }
     }
   }
 
   return (
-    <Container className={style['header-container']}>
+    <Box className={style['header-container']}>
       <Box className={style['whalephant-wrapper']}>
         <AppIcon />
       </Box>
       <Box className={style['form-layer']}>
         <Box>
-          <SearchButton disabled={isSearching} form="search-form" onClick={handleSubmit} />
+          <SearchButton disabled={isSubmitting} form="search-form" onClick={handleSubmit} />
         </Box>
         <Box className={style['form-wrapper']}>
-          <Form ref={searchFormRef} id="search-form" onSubmit={handleSubmit}>
-            <Form.Group controlId="query">
-              <InputGroup>
-                <Form.Control
-                  name="query"
-                  style={{ paddingLeft: '0.2rem' }}
-                  placeholder={SEARCH_TEXT}
-                  onChange={handleChange}
-                />
-                {showClearButton && <ClearButton onClick={clearSearchForm} />}
-              </InputGroup>
-            </Form.Group>
-          </Form>
+          <FormControl
+            className={style['search-form']}
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{ m: 0 }}
+            variant="filled"
+          >
+            <TextField
+              inputRef={searchFormRef}
+              className={style['search-field']}
+              placeholder={SEARCH_TEXT}
+              onChange={handleChange}
+              variant="filled"
+            />
+            {showClearButton && (
+            <ClearButton classes={style['clear-button']} onClick={clearSearchForm} />
+            )}
+          </FormControl>
         </Box>
       </Box>
       <Box className={style['call-to-actions']}>
         <SyncButton />
         <RefreshButton />
       </Box>
-    </Container>
-
+    </Box>
   );
 }
 

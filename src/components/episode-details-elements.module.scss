@@ -90,7 +90,8 @@ $ep-bg-color: rgba(20, 33, 40, 1);
   padding-right: 0.5rem;
 }
 
-.ep-metadatum-icon {
-  font-size: 12px;
-  margin: 2px;
+svg.ep-metadatum-icon {
+  margin: 0.1rem;
+  font-size: 1em;
+  fill: $metadata-dark-color;
 }

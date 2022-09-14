@@ -2,7 +2,7 @@ import React from 'react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { Box } from '@mui/material';
-import { Image } from 'react-bootstrap';
+import CachedImage from './cached-image';
 import RemoveBtn from './buttons/remove-button';
 import {
   isNotInitialized,
@@ -12,7 +12,6 @@ import {
 import style from './shared-elements.module.scss';
 import { findMetadataById } from '../utils';
 import { ArSyncTx, Podcast } from '../client/interfaces';
-import { ReactComponent as AppIcon } from '../assets/arsync-logo.svg';
 
 dayjs.extend(relativeTime);
 
@@ -28,14 +27,6 @@ function TxSubheader({ numEpisodes } : { numEpisodes: ArSyncTx['numEpisodes'] })
       {`${numEpisodes} episodes`}
     </Box>
   ) : null;
-}
-
-function PodcastImage({ podcastImageUrl } : { podcastImageUrl: Podcast['imageUrl'] }) {
-  return podcastImageUrl ? <Image className={style['podcast-image']} src={podcastImageUrl} /> : (
-    <Box className={style['podcast-image-whalephant']}>
-      <AppIcon />
-    </Box>
-  );
 }
 
 const TransactionList : React.FC<Props> = ({ subscriptions, txs, removeArSyncTxs }) => {
@@ -76,20 +67,24 @@ const TransactionList : React.FC<Props> = ({ subscriptions, txs, removeArSyncTxs
           {
             [...txs].reverse().map(tx => {
               const podcastImageUrl = findImageUrl(tx.podcastId);
-              const { numEpisodes } = tx;
+              const { numEpisodes, title } = tx;
 
               // TODO: add viewblock.io tx url
               return (
                 <Box className={style['list-item']} key={tx.id}>
                   <Box className={style['title-detail']}>
-                    <PodcastImage podcastImageUrl={podcastImageUrl} />
-
-                    <div>
-                      <Box className={style['title-header']}>
+                    <CachedImage
+                      loading="lazy"
+                      classes={style['podcast-image']}
+                      src={podcastImageUrl}
+                      alt={title || ''}
+                    />
+                    <Box className={style['item-title']}>
+                      <Box title={tx.title} component="h5" className={style['title-header']}>
                         {tx.title}
                       </Box>
                       <TxSubheader numEpisodes={numEpisodes} />
-                    </div>
+                    </Box>
                   </Box>
 
                   <Box className={style['call-to-action']}>

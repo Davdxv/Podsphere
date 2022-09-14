@@ -7,7 +7,7 @@ import { TransactionStatusResponse } from 'arweave/node/transactions';
 import { ApiConfig } from 'arweave/node/lib/api';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { AppInfo, GatewayConfig, PermissionType } from 'arconnect';
-import { ToastContext } from './toast';
+import { toast } from 'react-toastify';
 import useRerenderEffect from '../hooks/use-rerender-effect';
 import { IndexedDb } from '../indexed-db';
 import { DBStatus, SubscriptionsContext } from './subscriptions';
@@ -19,6 +19,7 @@ import {
 import {
   isErrored,
   isInitialized,
+  isNotErrored,
   isNotInitialized,
   isPosted,
   mergeArSyncTxs,
@@ -98,7 +99,6 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     dbReadCachedArSyncTxs, dbWriteCachedArSyncTxs,
     dbStatus, setDbStatus,
   } = useContext(SubscriptionsContext);
-  const toast = useContext(ToastContext);
   const [wallet, setWallet] = useState<JWKInterface | WalletDeferredToArConnect>({});
   const [walletAddress, setWalletAddress] = useState('');
   const loadingWallet = useRef(false);
@@ -109,6 +109,8 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
   function hasPendingTxs() {
     return arSyncTxs.some(isInitialized);
   }
+
+  const pluralize = (array: any[]) => (array.length > 1 ? 's' : '');
 
   async function prepareSync() {
     if (!isNotEmpty(wallet) && !usingArConnect()) return cancelSync('Wallet is undefined');
@@ -150,23 +152,25 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
       // All transactions failed to create; probably due to invalid wallet or disconnectivity
       return cancelSync(`Failed to sync with Arweave: ${failedTxs[0].resultObj}`);
     }
+    const successfulTxs = newTxs.filter(isNotErrored);
+    toast.success(`${successfulTxs.length} transaction${pluralize(successfulTxs)} initialized.\n`
+                  + 'Click the Sync button again to post pending transactions.');
 
-    // TODO: pending T252, add txs to transaction cache
     setArSyncTxs(prev => prev.concat(newTxs));
     setIsSyncing(false);
   }
 
-  async function cancelSync(toastMessage = '', variant = 'danger') {
+  async function cancelSync(toastMessage = '', toastVariant = 'danger') {
     setIsSyncing(false);
 
-    let firstMessage = toastMessage;
-    if (firstMessage) {
-      if (variant === 'danger') firstMessage += '\nPlease try to sync again.';
-      toast(firstMessage, { variant });
+    if (toastMessage) {
+      if (toastVariant === 'danger') {
+        toast.error(`${toastMessage}\nPlease try to sync again.`, { autoClose: 15000 });
+      }
+      else toast.info(toastMessage);
     }
     if (hasPendingTxs()) {
-      toast('Pending transactions have been cleared, but their data is still cached.',
-        { variant: 'warning' });
+      toast.warn('Pending transactions have been cleared, but their data is still cached.');
       setArSyncTxs(arSyncTxs.filter(isNotInitialized));
     }
   }
@@ -191,19 +195,19 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     const syncResultTxs = allTxs.filter(tx => txsToSyncIds.includes(tx.id));
     const postedTxs = syncResultTxs.filter(isPosted);
     const erroredTxs = syncResultTxs.filter(isErrored);
-    const pluralize = (array: any[]) => (array.length > 1 ? 's' : '');
+
     try {
       if (isNotEmpty(postedTxs)) {
         const message = concatMessages(postedTxs
           .map(elem => `${elem.title} (${elem.numEpisodes} new episodes)`));
-        toast(`${postedTxs.length} Transaction${pluralize(postedTxs)} successfully posted to `
-          + `Arweave with metadata for:\n${message}`, { autohideDelay: 10000, variant: 'success' });
+        toast.success(`${postedTxs.length} Transaction${pluralize(postedTxs)} successfully posted `
+          + `to Arweave with metadata for:\n${message}`, { autoClose: 8000 });
       }
       if (isNotEmpty(erroredTxs)) {
         const message = concatMessages(erroredTxs
           .map(elem => `${elem.title}, reason:\n${elem.resultObj}\n`));
-        toast(`${erroredTxs.length} Transaction${pluralize(erroredTxs)} failed to post to `
-          + `Arweave with metadata for:\n${message}`, { autohideDelay: 0, variant: 'danger' });
+        toast.error(`${erroredTxs.length} Transaction${pluralize(erroredTxs)} failed to post to `
+          + `Arweave with metadata for:\n${message}`, { autoClose: false });
       }
       setMetadataToSync(arsync.formatNewMetadataToSync(allTxs, metadataToSync));
     }
@@ -303,8 +307,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
         const allowedPermissions : PermissionType[] = await window.arweaveWallet.getPermissions();
         if (!ARCONNECT_PERMISSIONS.every(perm => allowedPermissions.includes(perm))) {
           // TODO: explain to the user why we need these permissions
-          toast('Insufficient permissions! Please try to connect your ArConnect wallet again.',
-            { autohideDelay: 5000, variant: 'danger' });
+          toast.error('Insufficient permissions! Please try reconnecting your ArConnect wallet.');
           await window.arweaveWallet.disconnect();
           setTimeout(connectArConnect, 5000); // User can click 'cancel' to break this loop
         }
@@ -314,15 +317,14 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
         }
       }
       catch (ex) {
-        toast(`Unable to connect to the ArConnect wallet browser extension: ${ex}`,
-          { autohideDelay: 5000, variant: 'danger' });
+        toast.error(`Unable to connect to the ArConnect wallet browser extension: ${ex}`);
         console.warn(`Unable to connect to the ArConnect wallet browser extension: ${ex}`);
       }
       finally {
         loadingWallet.current = false;
       }
     }
-  }, [toast, loadNewWallet]);
+  }, [loadNewWallet]);
 
   useEffect(() => {
     if (usingArLocal()) loadNewWallet(wallet);
@@ -357,7 +359,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
         const errorMessage = `Unable to read the cached transaction history:\n${ex}\n`
           + `${IndexedDb.DB_ERROR_GENERIC_HELP_MESSAGE}`;
         console.error(errorMessage);
-        toast(errorMessage, { autohideDelay: 0, variant: 'danger' });
+        toast.error(errorMessage);
       }
       finally {
         setDbStatus(DBStatus.INITIALIZED);
@@ -365,7 +367,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     };
 
     if (dbStatus === DBStatus.INITIALIZING3) initializeArSyncTxs();
-  }, [dbStatus, dbReadCachedArSyncTxs, setDbStatus, toast]);
+  }, [dbStatus, dbReadCachedArSyncTxs, setDbStatus]);
 
   useRerenderEffect(() => {
     const updateCachedArSyncTxs = async () => {
@@ -378,7 +380,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
         const errorMessage = `Unable to save the transaction history to IndexedDB:\n${ex}\n`
           + `${IndexedDb.DB_ERROR_GENERIC_HELP_MESSAGE}`;
         console.error(errorMessage);
-        toast(errorMessage, { autohideDelay: 0, variant: 'danger' });
+        toast.error(errorMessage, { autoClose: false });
       }
     };
 

@@ -1,14 +1,14 @@
 import {
   Box, Button, List, ListItem, Typography, useMediaQuery, useTheme,
 } from '@mui/material';
-import React, { useContext, useState } from 'react';
+import React, { useState } from 'react';
 import SettingsIcon from '@mui/icons-material/Settings';
 import HandymanIcon from '@mui/icons-material/Handyman';
+import { toast } from 'react-toastify';
 import { BackupDropzone } from '../components/settings-page/backup-dropzone';
 import styles from './settings.module.scss';
 import { MobileSettingsPage, SettingsPageProps } from './settings-mobile';
 import { downloadBackup, importBackup } from '../components/settings-page/utils';
-import { ToastContext } from '../providers/toast';
 
 export enum MenuElement {
   General,
@@ -99,25 +99,23 @@ const SettingsPage = () => {
 
   const handleChange = (activeEl: MenuElement) => setActiveElement(activeEl);
 
-  const toast = useContext(ToastContext);
-
   const handleImportBackup = async (file: File) => {
     try {
       const buffer = await file.arrayBuffer();
       await importBackup(new Uint8Array(buffer));
-      toast('Backup successfully imported!', { variant: 'success' });
+      toast.success('Backup successfully imported!');
       setTimeout(() => { window.location.href = '/'; }, 500);
     } catch (e: any) {
-      toast(e.message, { variant: 'danger', autohideDelay: 3000 });
+      toast.error((e as Error).message);
     }
   };
 
   const handleDownloadBackup = async () => {
     try {
-      toast('Your download has started!', { variant: 'success' });
+      toast.success('Your download has started!');
       await downloadBackup();
     } catch (e: any) {
-      toast(e.message, { variant: 'danger', autohideDelay: 3000 });
+      toast.error((e as Error).message);
     }
   };
 

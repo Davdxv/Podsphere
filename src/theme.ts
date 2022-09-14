@@ -132,6 +132,20 @@ export const theme = createTheme({
         },
       },
     },
+    MuiFilledInput: {
+      styleOverrides: {
+        root: {
+          color: 'inherit',
+          '&:hover, &:focus, &:focus-visible': {
+            outline: 'inherit',
+          },
+        },
+        input: {
+          paddingLeft: '2px',
+          paddingRight: '2px',
+        },
+      },
+    },
     MuiOutlinedInput: {
       styleOverrides: {
         notchedOutline: {

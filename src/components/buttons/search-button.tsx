@@ -12,7 +12,6 @@ const SearchButton : React.FC<Props> = ({
 }) => (
   <IconButton
     className={style['custom-btn']}
-    style={{ marginBottom: '0.2rem' }}
     onClick={onClick}
     type="submit"
     {...props}

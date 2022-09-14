@@ -1,11 +1,11 @@
 import React from 'react';
-import { Container } from 'react-bootstrap';
+import { Box } from '@mui/material';
 
 function NotFoundPage() {
   return (
-    <Container>
+    <Box>
       <h1>Not Found!</h1>
-    </Container>
+    </Box>
   );
 }
 

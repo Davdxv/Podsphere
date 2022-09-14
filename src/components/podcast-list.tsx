@@ -1,9 +1,8 @@
-// @ts-nocheck
 import React from 'react';
-import { RiMapPinTimeLine } from 'react-icons/ri';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
+import DurationIcon from '@mui/icons-material/MoreTime';
 import { Podcast } from '../client/interfaces';
 import RemoveBtn from './buttons/remove-button';
 import CachedImage from './cached-image';
@@ -30,21 +29,17 @@ const PodcastList : React.FC<Props> = ({ subscriptions, unsubscribe, clickFeedHa
               <CachedImage
                 loading="lazy"
                 classes={style['podcast-image']}
-                src={subscription.imageUrl}
+                src={subscription.imageUrl || ''}
                 alt={subscription.title}
               />
-              <Box className={style[['item-title']]}>
-                <Typography
-                  title={subscription.title}
-                  component="h5"
-                  className={style['title-header']}
-                >
+              <Box className={style['item-title']}>
+                <Box title={subscription.title} component="h5" className={style['title-header']}>
                   {subscription.title}
-                </Typography>
+                </Box>
                 <Box className={style['meta-detail']}>
                   <Box className={style['latest-release']}>
-                    <RiMapPinTimeLine />
                     <Box component="small" className={style['time-release']}>
+                      <DurationIcon />
                       {dayjs(subscription.firstEpisodeDate).fromNow()}
                     </Box>
 
