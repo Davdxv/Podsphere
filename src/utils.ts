@@ -347,8 +347,8 @@ export function corsApiHeaders() {
 }
 
 export function corsProxyURL() {
-  // return 'https://corsanywhere.herokuapp.com/';
-  return 'https://cors-anywhere.herokuapp.com/';
+  // return 'https://cors-anywhere.herokuapp.com/';
+  return 'https://cors-anywhere-podsphere.onrender.com/';
 }
 
 export function withCorsProxy(url: string) {

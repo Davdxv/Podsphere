@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import parse from 'html-react-parser';
 import { Box, Link } from '@mui/material';
 import { MdMoreTime, MdOutlineCloudUpload, MdOutlineAttachFile } from 'react-icons/md';
+import { parseHtml } from './utils';
 import { Episode } from '../client/interfaces';
 import { getTextSelection, bytesToString } from '../utils';
 import { truncateString } from '../client/metadata-filtering/formatting';
@@ -31,6 +31,12 @@ const EpisodeDetails : React.FC<Props> = ({ episode, showImage, podcastImageUrl 
 
   const [expandDescription, setExpandDescription] = useState(false);
 
+  const handleClick = (event: React.MouseEvent<unknown>) => {
+    // Don't toggle episode expand/collapse if user clicks a metadata link
+    if (event?.target instanceof HTMLAnchorElement) return;
+    if (isTruncated && !getTextSelection()) setExpandDescription(prev => !prev);
+  };
+
   return (
     <Box className={style['ep-card-wrapper']}>
       <Box className={style['ep-card-body']}>
@@ -45,9 +51,9 @@ const EpisodeDetails : React.FC<Props> = ({ episode, showImage, podcastImageUrl 
         </Box>
         <Box
           className={style[`ep-description${(isTruncated ? '--clickable' : '')}`]}
-          onClick={() => isTruncated && !getTextSelection() && setExpandDescription(prev => !prev)}
+          onClick={handleClick}
         >
-          {expandDescription ? parse(fullDescription) : parse(truncatedDescription)}
+          {expandDescription ? parseHtml(fullDescription) : parseHtml(truncatedDescription)}
         </Box>
         <Box className={style['ep-metadata']}>
           <Link className={style['ep-link']} href={mediaUrl} title={mediaUrl} target="_blank">
