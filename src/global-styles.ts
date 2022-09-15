@@ -2,9 +2,14 @@ import { createGlobalStyle } from 'styled-components';
 import 'cytoscape-panzoom/cytoscape.js-panzoom.css';
 
 export default createGlobalStyle`
+
   :root {
+    /* ====== Global CSS Variables ====== */
     --color-body: #000000fc;
     --color-label: #797979;
+    --color-metadata: rgb(255, 208, 176);
+    --color-metadata-medium: rgb(255, 150, 80);
+    --color-metadata-dark: rgb(255, 150, 0);
   }
 
   :focus-visible {
@@ -25,6 +30,20 @@ export default createGlobalStyle`
   mark, .mark {
     padding: unset;
     background-color: inherit;
+  }
+
+  a {
+    text-decoration: none;
+
+    &:link {
+      color: var(--color-metadata-dark);
+    }
+    &:active {
+      color: var(--color-metadata-dark);
+    }
+    &:visited {
+      color: var(--color-metadata-medium);
+    }
   }
 
   /* ====== Toasts ====== */
@@ -77,7 +96,7 @@ export default createGlobalStyle`
     }
 
     &__toast--warning {
-      background-color: #b3ecae;
+      background-color: #e9c98a;
     }
 
     &__toast--info {

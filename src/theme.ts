@@ -106,6 +106,7 @@ export const theme = createTheme({
         root: {
           color: 'inherit',
           backgroundColor: 'inherit',
+          overflow: 'hidden',
           flexGrow: '1',
           '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
             margin: '0 auto',
@@ -143,6 +144,7 @@ export const theme = createTheme({
         input: {
           paddingLeft: '2px',
           paddingRight: '2px',
+          width: '95%',
         },
       },
     },

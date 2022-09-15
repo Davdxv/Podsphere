@@ -359,7 +359,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
         const errorMessage = `Unable to read the cached transaction history:\n${ex}\n`
           + `${IndexedDb.DB_ERROR_GENERIC_HELP_MESSAGE}`;
         console.error(errorMessage);
-        toast.error(errorMessage);
+        toast.error(errorMessage, { autoClose: false });
       }
       finally {
         setDbStatus(DBStatus.INITIALIZED);

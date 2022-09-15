@@ -1,10 +1,8 @@
 $text-color: rgba(255, 255, 255, 0.93);
-$metadata-color: rgb(255, 208, 176);
-$metadata-dark-color: rgb(210, 120, 0);
 $ep-bg-color: rgba(20, 33, 40, 1);
 
 .ep-link {
-  color: $metadata-color;
+  color: var(--color-metadata);
   padding: 0;
   margin-bottom: 0.25rem;
   display: block;
@@ -14,11 +12,11 @@ $ep-bg-color: rgba(20, 33, 40, 1);
   &:hover,
   &:focus {
     opacity: 1;
-    color: $metadata-color;
+    color: var(--color-metadata);
   }
   &:active {
     opacity: 1;
-    color: $metadata-color;
+    color: var(--color-metadata);
   }
 }
 
@@ -74,11 +72,16 @@ $ep-bg-color: rgba(20, 33, 40, 1);
 
 .ep-small-metadata {
   display: flex;
-  align-items: flex-end;
+  flex-direction: row;
+  align-items: flex-start;
   line-height: 1;
   font-size: small;
-  color: $metadata-dark-color;
+  color: var(--color-metadata);
   margin-top: 1px;
+
+  @media only screen and (max-width: 960px) {
+    flex-direction: column;
+  }
 }
 
 .ep-metadatum {
@@ -86,12 +89,12 @@ $ep-bg-color: rgba(20, 33, 40, 1);
   align-items: center;
   line-height: 1;
   font-size: small;
-  color: $metadata-dark-color;
-  padding-right: 0.5rem;
+  color: var(--color-metadata);
+  padding-left: 0.5rem;
 }
 
 svg.ep-metadatum-icon {
-  margin: 0.1rem;
+  margin: 0.2rem;
   font-size: 1em;
-  fill: $metadata-dark-color;
+  fill: var(--color-metadata);
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import Linkify from 'react-linkify';
+import Linkify, { Props as LinkifyProps } from 'react-linkify';
 import parse, {
   attributesToProps,
   domToReact,
@@ -20,7 +20,7 @@ const PARSE_HTML_OPTIONS : HTMLReactParserOptions = {
   },
 };
 
-export const parseHtml = (source = '', options: HTMLReactParserOptions = {}) => (
+export const Linkified : React.FC<LinkifyProps> = ({ children }) => React.useMemo(() => (
   <Linkify
     componentDecorator={(decoratedHref, decoratedText, key) => (
       <a rel="noreferrer" target="_blank" href={decoratedHref} key={key}>
@@ -28,6 +28,12 @@ export const parseHtml = (source = '', options: HTMLReactParserOptions = {}) => 
       </a>
     )}
   >
-    {parse(source, { ...PARSE_HTML_OPTIONS, ...options })}
+    {children}
   </Linkify>
+), [children]);
+
+export const parseHtml = (source = '', options: HTMLReactParserOptions = {}) => (
+  <Linkified>
+    {parse(source, { ...PARSE_HTML_OPTIONS, ...options })}
+  </Linkified>
 );

@@ -343,9 +343,10 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
 
       if (!silent) {
         if (errorMessages.length) {
-          toast.warn(`Refresh completed with some errors:\n${concatMessages(errorMessages)}`);
+          toast.warn(`Refresh completed with some errors:\n${concatMessages(errorMessages)}`,
+            { autoClose: 10000 });
         }
-        else toast.success('Refresh completed.');
+        else toast.success('Refreshed all subscriptions.', { autoClose: 1500 });
       }
 
       return [newSubscriptions, newMetadataToSync];

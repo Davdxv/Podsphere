@@ -57,7 +57,7 @@
 }
 
 .search-field {
-  width: 97%;
+  width: 100%;
 }
 
 .call-to-actions {
@@ -73,8 +73,6 @@
   }
 }
 
-// FOOTER
-
 .footer {
   z-index: 110100;
   background-color: rgba(13, 13, 13, 0.85);
@@ -89,19 +87,15 @@
 }
 
 .nav-list {
+  overflow: hidden;
   align-items: center;
   justify-content: center;
   width: 100%;
   display: flex;
   list-style: none;
-  margin-bottom: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-  padding-left: 0;
-  font-size: 2rem;
+  margin: 0;
+  padding-top: 0.25rem;
 }
-
-// MAIN LAYOUT
 
 .page {
   display: contents;
@@ -109,6 +103,7 @@
 }
 
 .center-components {
+  overflow-x: hidden;
   display: flex;
   justify-content: center;
   margin-left: auto;
