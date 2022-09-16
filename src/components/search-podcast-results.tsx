@@ -48,12 +48,11 @@ const SearchPodcastResults : React.FC<Props> = ({
 }: Props) => (
   <Modal
     disableEnforceFocus
-    disableAutoFocus
     open={isOpen}
     onClose={onClose}
     className={style['search-results-modal']}
   >
-    <DialogContent>
+    <DialogContent className={style['search-results-table-container']}>
       <EnhancedTable
         clickFeedHandler={clickFeedHandler}
         onClose={onClose}
@@ -114,7 +113,7 @@ const EnhancedTable = React.forwardRef<unknown, Props>((props, ref) => {
   const getSearchWords = () => searchQuery.split(' ').filter(str => str.length > 1);
 
   return (
-    <Box ref={ref} className={style['search-results-table-container']}>
+    <Box ref={ref}>
       <EnhancedTableToolbar onClose={onClose} />
       <TablePagination
         rowsPerPageOptions={[10, 25, 100]}

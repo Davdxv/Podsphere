@@ -3,7 +3,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { ErrorBoundary, FallbackProps } from 'react-error-boundary';
 import { StyledEngineProvider, ThemeProvider } from '@mui/material/styles';
 import GlobalStyles from './global-styles';
-import 'bootstrap/dist/css/bootstrap.min.css';
+import 'react-toastify/dist/ReactToastify.css';
 import Layout from './components/layout';
 import BrowserRoutes from './routes';
 import GlobalProviders from './providers';

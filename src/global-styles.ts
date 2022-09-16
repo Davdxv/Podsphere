@@ -2,9 +2,14 @@ import { createGlobalStyle } from 'styled-components';
 import 'cytoscape-panzoom/cytoscape.js-panzoom.css';
 
 export default createGlobalStyle`
+
   :root {
+    /* ====== Global CSS Variables ====== */
     --color-body: #000000fc;
     --color-label: #797979;
+    --color-metadata: rgb(255, 208, 176);
+    --color-metadata-medium: rgb(255, 150, 80);
+    --color-metadata-dark: rgb(255, 150, 0);
   }
 
   :focus-visible {
@@ -22,61 +27,84 @@ export default createGlobalStyle`
     background-color: var(--color-body);
   }
 
-  /* ====== Toasts ====== */
-  .toast {
-    z-index: 111111;
-    width: max-content;
-    min-width: 400px;
-    max-width: 1000px;
-    background-color: #ddd;
-  }
-
-  .toast-primary, .toast-info {
-    background-color: #ddd;
-  }
-
-  .toast-success {
-    background-color: #b3ecae;
-  }
-
-  .toast-danger {
-    background-color: #e98a8a;
-  }
-
-  .toast-warning {
-    background-color: #e9c98a;
-  }
-
-  /* ====== Global bootstrap ====== */
   mark, .mark {
     padding: unset;
     background-color: inherit;
   }
 
-  .form-control {
-    outline: 2px solid transparent;
-    outline-offset: 2px;
-    color: #fff;
-    font-size: 0.75rem;
-    line-height: 1rem;
-    background-color: rgba(26, 26, 26, 0);
-    border-style: none;
-    border-color: #6b7280;
-    border-width: 1px;
-    border-radius: 0px;
-    padding-top: 0.5rem;
-    padding-right: 0.75rem;
-    padding-bottom: 0.5rem;
-    padding-left: 0.75rem;
-    appearance: none;
-    text-overflow: ellipsis;
-    box-shadow: none;
-    &:focus {
-      outline: 0;
-      box-shadow: none;
-      color: #fff;
-      background-color: rgba(26, 26, 26, 0);
-      border: none;
+  a {
+    text-decoration: none;
+    opacity: 0.9;
+
+    &:hover {
+      opacity: 1;
+    }
+    &:link {
+      color: var(--color-metadata-dark);
+    }
+    &:active {
+      color: var(--color-metadata-dark);
+    }
+    &:visited {
+      color: var(--color-metadata-medium);
+    }
+  }
+
+  /* ====== Toasts ====== */
+  .Toastify {
+    &__toast-container {
+      z-index: 111111;
+      pointer-events: none;
+
+      width: auto;
+      max-width: 60%;
+      position: fixed;
+      padding: 0;
+      line-break: auto;
+      white-space: pre-wrap;
+
+      > div:first-child {
+        margin-top: 3rem;
+      }
+
+      > div:not(:last-of-type) {
+        margin-bottom: 0.5rem;
+      }
+    }
+
+    &__toast {
+      display: flex;
+    }
+
+    &__toast-icon {
+      width: 1.5rem;
+      height: 1.5rem;
+    }
+
+    &__close-button {
+      pointer-events: auto;
+    }
+
+    &__toast-body {
+      pointer-events: auto;
+      align-items: flex-start;
+      color: #000;
+    }
+
+    &__toast--success {
+      background-color: #b3ecae;
+    }
+
+    &__toast--error {
+      background-color: #e98a8a;
+    }
+
+    &__toast--warning {
+      background-color: #e9c98a;
+    }
+
+    &__toast--info {
+      background-color: #ddd;
     }
   }
 

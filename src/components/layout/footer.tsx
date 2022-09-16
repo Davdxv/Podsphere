@@ -1,40 +1,30 @@
 import React from 'react';
-import { Container } from 'react-bootstrap';
-import {
-  FaHome,
-  FaStar,
-  FaPlus,
-  FaHistory,
-  FaCog,
-} from 'react-icons/fa';
 import { Box } from '@mui/material';
-import style from './index-elements.module.scss';
+import HomeIcon from '@mui/icons-material/Home';
+import BookmarksIcon from '@mui/icons-material/Bookmarks';
+import HistoryIcon from '@mui/icons-material/History';
+import SettingsIcon from '@mui/icons-material/Settings';
 import NavButton from '../buttons/nav-button';
+import style from './index-elements.module.scss';
 
 function LayoutFooter() {
   return (
     <Box component="footer" className={style.footer}>
-      <Container as="nav">
-        <Box component="ul" className={style['nav-list']}>
-          <NavButton end to="/">
-            <FaHome />
-          </NavButton>
-          <NavButton end to="/favourites">
-            <FaStar />
-          </NavButton>
-          <NavButton end to="/add-url">
-            <FaPlus />
-          </NavButton>
-          <NavButton end to="/history">
-            <FaHistory />
-          </NavButton>
-          <NavButton end to="/settings">
-            <FaCog />
-          </NavButton>
-        </Box>
-      </Container>
+      <Box component="ul" className={style['nav-list']}>
+        <NavButton end to="/">
+          <HomeIcon />
+        </NavButton>
+        <NavButton end to="/favourites">
+          <BookmarksIcon />
+        </NavButton>
+        <NavButton end to="/history">
+          <HistoryIcon />
+        </NavButton>
+        <NavButton end to="/settings">
+          <SettingsIcon />
+        </NavButton>
+      </Box>
     </Box>
   );
 }
-
 export default LayoutFooter;

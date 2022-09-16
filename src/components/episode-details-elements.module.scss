@@ -1,31 +1,25 @@
 $text-color: rgba(255, 255, 255, 0.93);
-$metadata-color: rgb(255, 208, 176);
-$metadata-dark-color: rgb(210, 120, 0);
 $ep-bg-color: rgba(20, 33, 40, 1);
 
 .ep-link {
-  color: $metadata-color;
+  color: var(--color-metadata-medium) !important;
   padding: 0;
   margin-bottom: 0.25rem;
   display: block;
   text-decoration: none;
   text-align: right;
   opacity: 0.8;
-  &:hover,
-  &:focus {
+  &:hover, &:focus, &:active {
     opacity: 1;
-    color: $metadata-color;
-  }
-  &:active {
-    opacity: 1;
-    color: $metadata-color;
   }
 }
 
 .ep-card-wrapper {
+  width: 100%;
   position: relative;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   min-width: 0;
   word-wrap: break-word;
   background-color: $ep-bg-color;
@@ -35,16 +29,19 @@ $ep-bg-color: rgba(20, 33, 40, 1);
 }
 
 .ep-card-body {
-  padding: 0.5rem 1.25rem;
+  width: calc(100% - 1rem);
+  padding: 0.5rem;
   display: flex;
+  flex-direction: row;
   min-height: 1px;
 }
 
 .ep-image-box {
+  flex-grow: 0;
   display: inline-block;
   position: relative;
   line-height: 0;
-  margin-right: 1rem;
+  padding-right: 0.5rem;
 }
 
 .ep-image {
@@ -56,29 +53,54 @@ $ep-bg-color: rgba(20, 33, 40, 1);
 }
 
 .ep-description {
-  padding-right: 1rem;
+  max-width: 70%;
+  display: inline-block;
+  white-space: normal;
+  flex-direction: column;
+  flex-grow: 33;
   color: $text-color;
-  width: 70%;
+
+  > p {
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+  }
+
   &--clickable {
     @extend .ep-description;
     cursor: pointer;
   }
+
+  &--expanded {
+    white-space: pre-line;
+    display: inline-flex;
+  }
 }
 
 .ep-metadata {
+  max-width: 27%;
   display: flex;
   flex-direction: column;
+  flex-grow: 99;
   align-items: flex-end;
-  width: 30%;
+  padding-left: 1rem;
+
+  @media only screen and (max-width: 960px) {
+    padding-left: 0.5rem;
+  }
 }
 
 .ep-small-metadata {
   display: flex;
-  align-items: flex-end;
+  flex-direction: row;
+  align-items: flex-start;
   line-height: 1;
   font-size: small;
-  color: $metadata-dark-color;
+  color: var(--color-metadata);
   margin-top: 1px;
+
+  @media only screen and (max-width: 960px) {
+    flex-direction: column;
+  }
 }
 
 .ep-metadatum {
@@ -86,11 +108,12 @@ $ep-bg-color: rgba(20, 33, 40, 1);
   align-items: center;
   line-height: 1;
   font-size: small;
-  color: $metadata-dark-color;
-  padding-right: 0.5rem;
+  color: var(--color-metadata);
+  padding-left: 0.5rem;
 }
 
-.ep-metadatum-icon {
-  font-size: 12px;
-  margin: 2px;
+svg.ep-metadatum-icon {
+  margin: 0.2rem;
+  font-size: 1em;
+  fill: var(--color-metadata);
 }

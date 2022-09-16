@@ -4,7 +4,7 @@ $modal-bg-color: rgba(33, 33, 33, 1);
 $table-row-bg-color: rgba(20, 33, 40, 1);
 
 .text-highlight {
-  color: darkorange;
+  color: var(--color-metadata-dark);
 }
 
 .search-results-close-button {
@@ -13,14 +13,18 @@ $table-row-bg-color: rgba(20, 33, 40, 1);
 
 .search-results-modal {
   z-index: $search-results-modal-z-index;
-  margin: 5vw;
+  margin: 6vh 5vw;
   background-color: $modal-bg-color;
   border: 2px solid rgba(38, 38, 38, 1);
   border-radius: 1rem;
+
+  @media only screen and (max-width: 960px) {
+    margin-top: 9vh;
+  }
 }
 
 .search-results-table-container {
-  height: 100%;
+  height: 95%;
   overflow-x: auto;
   overflow-y: auto;
 }

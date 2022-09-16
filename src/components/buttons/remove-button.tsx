@@ -1,6 +1,6 @@
 import React from 'react';
-import { Button } from 'react-bootstrap';
-import { CgTrash } from 'react-icons/cg';
+import { IconButton } from '@mui/material';
+import TrashIcon from '@mui/icons-material/DeleteRounded';
 import style from './style.module.scss';
 
 interface Props {
@@ -11,13 +11,13 @@ const RemoveBtn : React.FC<Props> = ({
   onClick,
   ...props
 }) => (
-  <Button
+  <IconButton
     className={style['delete-btn']}
     onClick={onClick}
     {...props}
   >
-    <CgTrash />
-  </Button>
+    <TrashIcon />
+  </IconButton>
 );
 
 export default RemoveBtn;

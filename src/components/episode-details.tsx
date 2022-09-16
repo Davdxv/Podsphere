@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { Box, Link } from '@mui/material';
-import { MdMoreTime, MdOutlineCloudUpload, MdOutlineAttachFile } from 'react-icons/md';
-import { parseHtml } from './utils';
+import {
+  Box,
+  Link,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
+import AttachmentIcon from '@mui/icons-material/AttachFile';
+import DurationIcon from '@mui/icons-material/MoreTime';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { Episode } from '../client/interfaces';
 import { getTextSelection, bytesToString } from '../utils';
 import { truncateString } from '../client/metadata-filtering/formatting';
+import { parseHtml } from './utils';
 import CachedImage from './cached-image';
 import style from './episode-details-elements.module.scss';
 
@@ -29,6 +36,9 @@ const EpisodeDetails : React.FC<Props> = ({ episode, showImage, podcastImageUrl 
   const isTruncated = !!truncatedDescription.match(/\.\.\.$/);
   if (!isTruncated && contentHtml) truncatedDescription = truncateString(contentHtml, 300);
 
+  const theme = useTheme();
+  const isSm = useMediaQuery(theme.breakpoints.down('sm'));
+
   const [expandDescription, setExpandDescription] = useState(false);
 
   const handleClick = (event: React.MouseEvent<unknown>) => {
@@ -37,10 +47,16 @@ const EpisodeDetails : React.FC<Props> = ({ episode, showImage, podcastImageUrl 
     if (isTruncated && !getTextSelection()) setExpandDescription(prev => !prev);
   };
 
+  const epDescriptionClasses = () => {
+    const classes = style[`ep-description${(isTruncated ? '--clickable' : '')}`];
+    return `${classes} ${expandDescription ? style['ep-description--expanded'] : ''}`;
+  };
+
   return (
     <Box className={style['ep-card-wrapper']}>
       <Box className={style['ep-card-body']}>
         <Box className={style['ep-image-box']}>
+          {(!isSm || showImage) && (
           <Link href={imgUrl} title="View full-size image" target="_blank">
             <CachedImage
               className={style['ep-image']}
@@ -48,30 +64,28 @@ const EpisodeDetails : React.FC<Props> = ({ episode, showImage, podcastImageUrl 
               alt={title}
             />
           </Link>
+          )}
         </Box>
-        <Box
-          className={style[`ep-description${(isTruncated ? '--clickable' : '')}`]}
-          onClick={handleClick}
-        >
+        <Box className={epDescriptionClasses()} onClick={handleClick}>
           {expandDescription ? parseHtml(fullDescription) : parseHtml(truncatedDescription)}
         </Box>
         <Box className={style['ep-metadata']}>
           <Link className={style['ep-link']} href={mediaUrl} title={mediaUrl} target="_blank">
-            <h5>{title}</h5>
+            <b>{title}</b>
           </Link>
           <Box className={style['ep-small-metadata']}>
             {mediaLength && mediaLength !== '0' && (
               <Box component="small" className={style['ep-metadatum']}>
-                <MdOutlineAttachFile className={style['ep-metadatum-icon']} />
+                <AttachmentIcon className={style['ep-metadatum-icon']} />
                 {bytesToString(mediaLength)}
               </Box>
             )}
             <Box component="small" className={style['ep-metadatum']}>
-              <MdMoreTime className={style['ep-metadatum-icon']} />
+              <DurationIcon className={style['ep-metadatum-icon']} />
               {duration}
             </Box>
             <Box component="small" className={style['ep-metadatum']}>
-              <MdOutlineCloudUpload className={style['ep-metadatum-icon']} />
+              <CloudUploadIcon className={style['ep-metadatum-icon']} />
               {publishedAt ? dayjs(publishedAt).fromNow() : 'unknown'}
             </Box>
           </Box>

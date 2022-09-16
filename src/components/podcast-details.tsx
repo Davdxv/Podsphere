@@ -12,6 +12,7 @@ import RssButton from './buttons/rss-button';
 import CloseButton from './buttons/close-button';
 import ClearButton from './buttons/clear-button';
 import CachedImage from './cached-image';
+import { Linkified } from './utils';
 import EpisodeDetails from './episode-details';
 import style from './podcast-details.module.scss';
 
@@ -76,7 +77,9 @@ const PodcastDetails : React.FC<Props> = ({
         rows.push((
           <tr key={key}>
             <td key={`${key}-tag`}>{tag}</td>
-            <td key={`${key}-value`}>{metadatumToString(val)}</td>
+            <td key={`${key}-value`}>
+              <Linkified>{metadatumToString(val)}</Linkified>
+            </td>
           </tr>
         ));
       }
@@ -138,13 +141,13 @@ const PodcastDetails : React.FC<Props> = ({
           handleUnsubscribe={handleUnsubscribe}
         />
         <CloseButton classes={style['podcast-details-close-button']} onClick={onClose} />
-        <Box component="h4">{title}</Box>
+        <Box component="h4" className={style['podcast-details-title']}>{title}</Box>
 
-        <Box className={style['podcast-details-podcast-description']}>
+        <Box className={style['podcast-details-description']}>
           {imageUrl && (
           <Link href={imageUrl} title="View full-size image" target="_blank">
             <CachedImage
-              classes={style['podcast-details-podcast-image']}
+              classes={style['podcast-details-image']}
               src={imageUrl}
               alt={imageTitle || `${title} image`}
             />
@@ -159,9 +162,9 @@ const PodcastDetails : React.FC<Props> = ({
           Metadata
           {showPodcastMetadata ? <ArrowDropUp /> : <ArrowDropDown />}
         </Button>
-        <Box className={style['podcast-details-podcast-metadata-table-container']}>
+        <Box className={style['podcast-details-metadata-table-container']}>
           {showPodcastMetadata && (
-          <table id={style['podcast-details-podcast-metadata-table']}>
+          <table id={style['podcast-details-metadata-table']}>
             <tbody>{metadataRows()}</tbody>
           </table>
           )}

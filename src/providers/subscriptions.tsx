@@ -1,11 +1,6 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
+import React, { createContext, useEffect, useState } from 'react';
 import dedent from 'dedent';
-import { ToastContext } from './toast';
+import { toast } from 'react-toastify';
 import useRerenderEffect from '../hooks/use-rerender-effect';
 import { searchPodcast } from '../client/search';
 import {
@@ -219,7 +214,6 @@ async function removeCachedSubscription(feedUrl: Podcast['feedUrl']) {
 
 // TODO: ArSync v1.5+, test me
 const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const toast = useContext(ToastContext);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchPodcastResult[]>([]);
   const [dbStatus, setDbStatus] = useState(DBStatus.UNINITIALIZED);
@@ -259,7 +253,7 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     const result = await fetchPodcastRss2Feed(validUrl, metadataToSync);
-    if (result.errorMessage) toast(`${result.errorMessage}`, { variant: 'danger' });
+    if (result.errorMessage) toast.error(`${result.errorMessage}`);
     return result;
   }
 
@@ -268,7 +262,7 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
 
     const subscription = findMetadataByFeedUrl(validUrl, 'rss2', subscriptions);
     if (hasMetadata(subscription)) {
-      toast(`You are already subscribed to ${subscription.title}.`, { variant: 'warning' });
+      toast.info(`You are already subscribed to ${subscription.title}.`);
       return true;
     }
 
@@ -277,7 +271,7 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
       newPodcastMetadataToSync } = await handleFetchPodcastRss2Feed(validUrl);
 
     if (hasMetadata(newPodcastMetadata)) {
-      toast(`Successfully subscribed to ${newPodcastMetadata.title}.`, { variant: 'success' });
+      toast.success(`Successfully subscribed to ${newPodcastMetadata.title}.`);
 
       setMetadataToSync(prev => prev.filter(podcast => podcast.feedUrl !== validUrl)
         .concat(hasMetadata(newPodcastMetadataToSync) ? newPodcastMetadataToSync : []));
@@ -285,7 +279,7 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
 
       return true;
     }
-    if (errorMessage) toast(`${errorMessage}`, { variant: 'danger' });
+    if (errorMessage) toast.error(`${errorMessage}`);
 
     return false;
   }
@@ -295,10 +289,10 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
     //       currently, any pending metadataToSync is left but does not survive a refresh
     const sub = findMetadataByFeedUrl(feedUrl, 'rss2', subscriptions);
     if (!hasMetadata(sub)) {
-      toast(`You are not subscribed to ${feedUrl}.`, { variant: 'danger' });
+      toast.error(`You are not subscribed to ${feedUrl}.`);
     }
     else {
-      toast(`Successfully unsubscribed from ${sub.title}.`, { variant: 'success' });
+      toast.success(`Successfully unsubscribed from ${sub.title}.`);
       await removeCachedSubscription(feedUrl);
       setSubscriptions(prev => prev.filter(podcast => podcast.feedUrl !== feedUrl));
     }
@@ -349,24 +343,17 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
 
       if (!silent) {
         if (errorMessages.length) {
-          toast(
-            `Refresh completed with some errors:\n${concatMessages(errorMessages)}`,
-            { autohideDelay: 10000, variant: 'warning' },
-          );
+          toast.warn(`Refresh completed with some errors:\n${concatMessages(errorMessages)}`,
+            { autoClose: 10000 });
         }
-        else toast('Refresh successful.', { variant: 'success' });
+        else toast.success('Refreshed all subscriptions.', { autoClose: 1500 });
       }
 
       return [newSubscriptions, newMetadataToSync];
     }
     catch (ex) {
       console.error(ex);
-      if (!silent) {
-        toast(
-          `Failed to refresh subscriptions, please try again; ${ex}`,
-          { autohideDelay: 10000, variant: 'danger' },
-        );
-      }
+      if (!silent) toast.error(`Failed to refresh subscriptions, please try again; ${ex}`);
     }
     finally {
       setIsRefreshing(false);
@@ -436,12 +423,12 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
         const errorMessage = `An error occurred while fetching the ${errorMessageTable} table from `
           + `IndexedDB:\n${(ex as Error).message}\n${IndexedDb.DB_ERROR_GENERIC_HELP_MESSAGE}`;
         console.error(errorMessage);
-        toast(errorMessage, { autohideDelay: 0, variant: 'danger' });
+        toast.error(errorMessage, { autoClose: false });
       }
     };
 
     if (dbStatus === DBStatus.UNINITIALIZED) initializeDatabase();
-  }, [dbStatus, toast]);
+  }, [dbStatus]);
 
   useRerenderEffect(() => {
     const updateCachedPodcasts = async () => {
@@ -450,7 +437,7 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
         const errorMessage = 'Some subscriptions failed to be cached into IndexedDB:\n'
           + `${IndexedDb.DB_ERROR_GENERIC_HELP_MESSAGE}\n${concatMessages(errorMessages)}`;
         console.error(errorMessage);
-        toast(errorMessage, { autohideDelay: 0, variant: 'danger' });
+        toast.error(errorMessage, { autoClose: false });
       }
     };
 

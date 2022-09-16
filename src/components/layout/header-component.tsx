@@ -1,7 +1,8 @@
-import React, { useState, useContext, useRef } from 'react';
-import { InputGroup, Form, Container } from 'react-bootstrap';
-import { Box } from '@mui/material';
-import { ToastContext } from '../../providers/toast';
+import React, { useState } from 'react';
+import {
+  Box, FormControl, TextField,
+} from '@mui/material';
+import { toast } from 'react-toastify';
 import ClearButton from '../buttons/clear-button';
 import SyncButton from '../buttons/sync-button';
 import RefreshButton from '../buttons/refresh-button';
@@ -15,79 +16,75 @@ interface Props {
 }
 
 function HeaderComponent({ onSubmit } : Props) {
-  const toast = useContext(ToastContext);
-  const [isSearching, setIsSearching] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showClearButton, setShowClearButton] = useState(false);
-  const SEARCH_TEXT = 'Search for podcasts, episodes or enter an RSS feed URL to subscribe to';
-  const searchFormRef = useRef<HTMLFormElement>(null);
+  const [searchText, setSearchText] = useState('');
 
   const clearSearchForm = () => {
-    if (searchFormRef.current) searchFormRef.current.reset();
+    setSearchText('');
     setShowClearButton(false);
   };
 
-  const getSearchFormInput = () : string => {
-    if (searchFormRef.current) {
-      const fd = new FormData(searchFormRef.current);
-      return fd.get('query')?.toString() || '';
-    }
-    return '';
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchText(event.target?.value || '');
+    setShowClearButton(!!event.target?.value);
   };
-
-  function handleChange() {
-    setShowClearButton(!!getSearchFormInput());
-  }
 
   async function handleSubmit(
     event: React.MouseEvent<HTMLFormElement> | React.FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
-    const query = getSearchFormInput();
-    if (query) {
-      setIsSearching(true);
+    if (!isSubmitting && searchText) {
+      setIsSubmitting(true);
       try {
-        const handleSearchResult = await onSubmit(event, query);
+        const handleSearchResult = await onSubmit(event, searchText);
         if (handleSearchResult) clearSearchForm(); // On successful subscription to RSS feed
-      } catch (ex) {
+      }
+      catch (ex) {
         console.error(ex);
-        toast('Could not find podcast.', { variant: 'danger' });
-      } finally {
-        setIsSearching(false);
+        toast.error(`Error while searching: ${(ex as Error).message}.\nPlease try again.`);
+      }
+      finally {
+        setIsSubmitting(false);
       }
     }
   }
 
   return (
-    <Container className={style['header-container']}>
+    <Box className={style['header-container']}>
       <Box className={style['whalephant-wrapper']}>
         <AppIcon />
       </Box>
       <Box className={style['form-layer']}>
         <Box>
-          <SearchButton disabled={isSearching} form="search-form" onClick={handleSubmit} />
+          <SearchButton isSearching={isSubmitting} form="search-form" onClick={handleSubmit} />
         </Box>
         <Box className={style['form-wrapper']}>
-          <Form ref={searchFormRef} id="search-form" onSubmit={handleSubmit}>
-            <Form.Group controlId="query">
-              <InputGroup>
-                <Form.Control
-                  name="query"
-                  style={{ paddingLeft: '0.2rem' }}
-                  placeholder={SEARCH_TEXT}
-                  onChange={handleChange}
-                />
-                {showClearButton && <ClearButton onClick={clearSearchForm} />}
-              </InputGroup>
-            </Form.Group>
-          </Form>
+          <FormControl
+            className={style['search-form']}
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{ m: 0 }}
+            variant="filled"
+          >
+            <TextField
+              value={searchText}
+              className={style['search-field']}
+              placeholder="Search for podcasts, episodes or enter an RSS feed URL to subscribe to"
+              onChange={handleChange}
+              variant="filled"
+            />
+            {showClearButton && (
+            <ClearButton classes={style['clear-button']} onClick={clearSearchForm} />
+            )}
+          </FormControl>
         </Box>
       </Box>
       <Box className={style['call-to-actions']}>
         <SyncButton />
         <RefreshButton />
       </Box>
-    </Container>
-
+    </Box>
   );
 }
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, NavLinkProps } from 'react-router-dom';
-import { Button } from 'react-bootstrap';
+import { IconButton } from '@mui/material';
 import style from './style.module.scss';
 
 interface Props extends NavLinkProps {
@@ -11,9 +11,9 @@ interface Props extends NavLinkProps {
 const NavButton : React.FC<Props> = ({ children, ...props }) => (
   <NavLink {...props}>
     <li>
-      <Button className={style['nav-btn']}>
+      <IconButton className={style['nav-btn']}>
         {children}
-      </Button>
+      </IconButton>
     </li>
   </NavLink>
 );
