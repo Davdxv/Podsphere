@@ -54,7 +54,8 @@ $ep-bg-color: rgba(20, 33, 40, 1);
 
 .ep-description {
   max-width: 70%;
-  display: flex;
+  display: inline-block;
+  white-space: normal;
   flex-direction: column;
   flex-grow: 33;
   color: $text-color;
@@ -71,6 +72,11 @@ $ep-bg-color: rgba(20, 33, 40, 1);
   &--clickable {
     @extend .ep-description;
     cursor: pointer;
+  }
+
+  &--expanded {
+    white-space: pre-line;
+    display: inline-flex;
   }
 }
 

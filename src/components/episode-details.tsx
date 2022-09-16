@@ -39,6 +39,11 @@ const EpisodeDetails : React.FC<Props> = ({ episode, showImage, podcastImageUrl 
     if (isTruncated && !getTextSelection()) setExpandDescription(prev => !prev);
   };
 
+  const epDescriptionClasses = () => {
+    const classes = style[`ep-description${(isTruncated ? '--clickable' : '')}`];
+    return `${classes} ${expandDescription ? style['ep-description--expanded'] : ''}`;
+  };
+
   return (
     <Box className={style['ep-card-wrapper']}>
       <Box className={style['ep-card-body']}>
@@ -51,11 +56,7 @@ const EpisodeDetails : React.FC<Props> = ({ episode, showImage, podcastImageUrl 
             />
           </Link>
         </Box>
-        <Box
-          className={style[`ep-description${(isTruncated ? '--clickable' : '')}`]}
-          sx={{ whiteSpace: expandDescription ? 'pre-line' : 'normal' }}
-          onClick={handleClick}
-        >
+        <Box className={epDescriptionClasses()} onClick={handleClick}>
           {expandDescription ? parseHtml(fullDescription) : parseHtml(truncatedDescription)}
         </Box>
         <Box className={style['ep-metadata']}>
