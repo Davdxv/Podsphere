@@ -1,7 +1,9 @@
 import { createTheme } from '@mui/material';
+import colors from './colors.module.scss';
 
 const TEXT_COLOR = 'rgba(255, 255, 255, 0.93)';
-const BG_COLOR = 'rgba(13, 13, 13, 1)';
+const BG_COLOR = colors.bgColor;
+
 const HOVER_COLOR = '#4b9b73';
 
 const SHARED_TABLE_STYLES = {
