@@ -72,13 +72,12 @@
 }
 
 .spin-button {
-  padding: 0.25rem 0.5rem;
-  line-height: 1.75rem;
+  padding: 0.25rem;
   border-radius: 50%;
   background: transparent !important;
   border: 1px solid transparent !important;
-  color: #fff;
   box-shadow: none !important;
+
   svg {
     @keyframes spin {
       from {

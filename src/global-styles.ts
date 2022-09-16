@@ -34,7 +34,11 @@ export default createGlobalStyle`
 
   a {
     text-decoration: none;
+    opacity: 0.9;
 
+    &:hover {
+      opacity: 1;
+    }
     &:link {
       color: var(--color-metadata-dark);
     }

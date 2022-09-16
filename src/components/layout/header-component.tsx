@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   Box, FormControl, TextField,
 } from '@mui/material';
@@ -18,34 +18,33 @@ interface Props {
 function HeaderComponent({ onSubmit } : Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showClearButton, setShowClearButton] = useState(false);
-  const SEARCH_TEXT = 'Search for podcasts, episodes or enter an RSS feed URL to subscribe to';
-  const searchFormRef = useRef<HTMLInputElement>(null);
+  const [searchText, setSearchText] = useState('');
 
   const clearSearchForm = () => {
-    if (searchFormRef.current?.value) searchFormRef.current.value = '';
+    setSearchText('');
     setShowClearButton(false);
   };
 
-  const getSearchFormInput = () : string => searchFormRef.current?.value || '';
-
-  function handleChange() {
-    setShowClearButton(!!getSearchFormInput());
-  }
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchText(event.target?.value || '');
+    setShowClearButton(!!event.target?.value);
+  };
 
   async function handleSubmit(
     event: React.MouseEvent<HTMLFormElement> | React.FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
-    const query = getSearchFormInput();
-    if (query && !isSubmitting) {
+    if (!isSubmitting && searchText) {
       setIsSubmitting(true);
       try {
-        const handleSearchResult = await onSubmit(event, query);
+        const handleSearchResult = await onSubmit(event, searchText);
         if (handleSearchResult) clearSearchForm(); // On successful subscription to RSS feed
-      } catch (ex) {
+      }
+      catch (ex) {
         console.error(ex);
-        toast.error('Could not find podcast.');
-      } finally {
+        toast.error(`Error while searching: ${(ex as Error).message}.\nPlease try again.`);
+      }
+      finally {
         setIsSubmitting(false);
       }
     }
@@ -58,7 +57,7 @@ function HeaderComponent({ onSubmit } : Props) {
       </Box>
       <Box className={style['form-layer']}>
         <Box>
-          <SearchButton disabled={isSubmitting} form="search-form" onClick={handleSubmit} />
+          <SearchButton isSearching={isSubmitting} form="search-form" onClick={handleSubmit} />
         </Box>
         <Box className={style['form-wrapper']}>
           <FormControl
@@ -69,9 +68,9 @@ function HeaderComponent({ onSubmit } : Props) {
             variant="filled"
           >
             <TextField
-              inputRef={searchFormRef}
+              value={searchText}
               className={style['search-field']}
-              placeholder={SEARCH_TEXT}
+              placeholder="Search for podcasts, episodes or enter an RSS feed URL to subscribe to"
               onChange={handleChange}
               variant="filled"
             />
