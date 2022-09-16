@@ -53,6 +53,7 @@ const EpisodeDetails : React.FC<Props> = ({ episode, showImage, podcastImageUrl 
         </Box>
         <Box
           className={style[`ep-description${(isTruncated ? '--clickable' : '')}`]}
+          sx={{ whiteSpace: expandDescription ? 'pre-line' : 'normal' }}
           onClick={handleClick}
         >
           {expandDescription ? parseHtml(fullDescription) : parseHtml(truncatedDescription)}

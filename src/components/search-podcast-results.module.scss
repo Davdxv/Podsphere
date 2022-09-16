@@ -4,7 +4,7 @@ $modal-bg-color: rgba(33, 33, 33, 1);
 $table-row-bg-color: rgba(20, 33, 40, 1);
 
 .text-highlight {
-  color: darkorange;
+  color: var(--color-metadata-dark);
 }
 
 .search-results-close-button {

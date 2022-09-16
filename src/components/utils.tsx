@@ -9,6 +9,7 @@ import parse, {
 } from 'html-react-parser';
 
 const PARSE_HTML_OPTIONS : HTMLReactParserOptions = {
+  trim: true,
   replace: (domNode: DOMNode) => {
     // see https://github.com/remarkablemark/html-react-parser/issues/199#issuecomment-963791320
     const el : Element = domNode as Element;
