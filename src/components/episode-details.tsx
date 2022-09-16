@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { Box, Link } from '@mui/material';
+import {
+  Box,
+  Link,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
 import AttachmentIcon from '@mui/icons-material/AttachFile';
 import DurationIcon from '@mui/icons-material/MoreTime';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -31,6 +36,9 @@ const EpisodeDetails : React.FC<Props> = ({ episode, showImage, podcastImageUrl 
   const isTruncated = !!truncatedDescription.match(/\.\.\.$/);
   if (!isTruncated && contentHtml) truncatedDescription = truncateString(contentHtml, 300);
 
+  const theme = useTheme();
+  const isSm = useMediaQuery(theme.breakpoints.down('sm'));
+
   const [expandDescription, setExpandDescription] = useState(false);
 
   const handleClick = (event: React.MouseEvent<unknown>) => {
@@ -48,6 +56,7 @@ const EpisodeDetails : React.FC<Props> = ({ episode, showImage, podcastImageUrl 
     <Box className={style['ep-card-wrapper']}>
       <Box className={style['ep-card-body']}>
         <Box className={style['ep-image-box']}>
+          {(!isSm || showImage) && (
           <Link href={imgUrl} title="View full-size image" target="_blank">
             <CachedImage
               className={style['ep-image']}
@@ -55,6 +64,7 @@ const EpisodeDetails : React.FC<Props> = ({ episode, showImage, podcastImageUrl 
               alt={title}
             />
           </Link>
+          )}
         </Box>
         <Box className={epDescriptionClasses()} onClick={handleClick}>
           {expandDescription ? parseHtml(fullDescription) : parseHtml(truncatedDescription)}
