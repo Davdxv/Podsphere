@@ -1,0 +1,9 @@
+$bg_color: rgb(106, 13, 213);
+$table_text_color: rgba(255, 255, 255, 0.93);
+$tab_hover_color: #4b9b73;
+
+:export {
+  bgColor: $bg_color;
+  tableTextColor: $table_text_color;
+  tabHoverColor: $tab_hover_color;
+}

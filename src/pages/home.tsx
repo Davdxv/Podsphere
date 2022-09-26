@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import {
-  Box, Tabs, Tab,
+  Box, Tabs, Tab, useTheme,
 } from '@mui/material';
 import { Podcast } from '../client/interfaces';
 import { findMetadataByFeedUrl, hasMetadata } from '../utils';
