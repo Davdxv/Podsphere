@@ -23,11 +23,6 @@ if (!isColor(tableTextColor) || !isColor(bgColor) || !isColor(tabHoverColor)) {
   throw new Error('SCSS exported color are not available');
 }
 
-if (!isValidString(xs) || !isValidString(sm)
-|| !isValidString(md) || !isValidString(lg) || !isValidString(xl)) {
-  throw new Error('');
-}
-
 const TEXT_COLOR = tableTextColor;
 const BG_COLOR = bgColor;
 const HOVER_COLOR = tabHoverColor;
