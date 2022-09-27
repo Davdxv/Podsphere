@@ -11,7 +11,11 @@ import AttachmentIcon from '@mui/icons-material/AttachFile';
 import DurationIcon from '@mui/icons-material/MoreTime';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { Episode } from '../client/interfaces';
-import { getTextSelection, bytesToString } from '../utils';
+import {
+  bytesToString,
+  getTextSelection,
+  isFakeDate,
+} from '../utils';
 import { truncateString } from '../client/metadata-filtering/formatting';
 import { parseHtml } from './utils';
 import CachedImage from './cached-image';
@@ -86,7 +90,7 @@ const EpisodeDetails : React.FC<Props> = ({ episode, showImage, podcastImageUrl 
             </Box>
             <Box component="small" className={style['ep-metadatum']}>
               <CloudUploadIcon className={style['ep-metadatum-icon']} />
-              {publishedAt ? dayjs(publishedAt).fromNow() : 'unknown'}
+              {isFakeDate(publishedAt) ? 'unknown' : dayjs(publishedAt).fromNow()}
             </Box>
           </Box>
         </Box>

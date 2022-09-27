@@ -66,7 +66,7 @@ export default SearchPodcastResults;
 
 /** An 'index' is added in rows() to retain original sort order */
 const DEFAULT_ORDER_BY = 'index';
-const DEFAULT_ROWS_PER_PAGE = 10;
+const DEFAULT_ROWS_PER_PAGE = 25;
 
 /** Adapted from: https://mui.com/material-ui/react-table/#sorting-amp-selecting */
 const EnhancedTable = React.forwardRef<unknown, Props>((props, ref) => {

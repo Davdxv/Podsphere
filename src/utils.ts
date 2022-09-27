@@ -62,8 +62,24 @@ export function toISOString(date: Date) {
   }
 }
 
-export function toLocaleString(date: Date) {
+/**
+ * Episodes without a date will have a fake date added to the feed,
+ * @see: `src/client/rss/index.ts#fillMissingEpisodeDates`
+ * @return true if the given `date` is of year 1970 or if it's not a valid Date object
+ */
+export function isFakeDate(date: Date) : boolean {
   try {
+    if (date.getFullYear() === 1970) return true;
+  }
+  catch (_ex) {
+    return true;
+  }
+  return false;
+}
+
+export function toLocaleString(date: Date) : string {
+  try {
+    if (isFakeDate(date)) return 'unknown';
     return date.toLocaleString();
   }
   catch (_ex) {

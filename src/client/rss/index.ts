@@ -1,4 +1,4 @@
-import Parser from 'rss-parser/index.d';
+import { Output as ParserOutput } from 'rss-parser/index.d';
 import parser from './parser';
 import {
   Episode,
@@ -23,8 +23,8 @@ import {
 } from '../metadata-filtering';
 import { newCandidatePodcastId } from '../../podcast-id';
 
-interface RssPodcastFeed extends Parser.Output<any>, Omit<Podcast, 'feedUrl' | 'title' |
-'lastBuildDate'> {
+interface RssPodcastFeed<U = { [key: string]: any }> extends ParserOutput<U>,
+  Omit<Podcast, 'feedUrl' | 'title' | 'lastBuildDate'> {
   categories?: string[];
   keywords?: string[];
   owner?: {
@@ -47,43 +47,32 @@ type CategoriesWithSubs = {
 };
 
 /**
- * @param feed
- * @param feedUrl
- * @returns {Podcast}
- * @throws {Error} If any of the mandatory podcast metadata are empty/missing after filtering
+ * Some feeds don't have any dates. This function fills in a fake date for each missing
+ * `episode.publishedAt` so that we can continue to use this field as a primary index for episodes.
+ * In this case, each episode will be dated +1 second after the previous one, starting at Epoch +1s.
  */
-function formatPodcastFeed(feed: RssPodcastFeed, feedUrl: Podcast['feedUrl']) : Podcast {
-  const { items, ...podcast } = feed;
-  const podItunes = isNotEmpty(podcast.itunes) ? podcast.itunes : {};
+function fillMissingEpisodeDates(episodes: Episode[]) : Episode[] {
+  if (!isNotEmpty(episodes) || episodes.every(ep => isValidDate(ep.publishedAt))) return episodes;
 
-  // Any subcategories are nested within podcast.itunes.categoriesWithSubs[i].subs[j].name
-  const itunesSubCategories = (podItunes.categoriesWithSubs || [])
-    .reduce((acc : string[], cat : CategoriesWithSubs) => acc
-      .concat(Array.isArray(cat.subs) ? cat.subs.map(subCat => subCat.name) : []), []);
+  let prevDate = new Date(0);
+  return [...episodes].reverse().map(ep => {
+    if (isValidDate(ep.publishedAt)) {
+      prevDate = ep.publishedAt;
+      return ep;
+    }
 
-  const optionalPodcastTags : OptionalPodcastTags = {
-    categories: mergeArraysToLowerCase(
-      podcast.categories,
-      (podItunes.categories || []).concat(itunesSubCategories),
-    ),
-    subtitle: sanitizeString(podcast.subtitle || podItunes.subtitle || ''),
-    description: sanitizeString(podcast.description || podItunes.description || ''),
-    summary: sanitizeString(podcast.summary || podItunes.summary || ''),
-    infoUrl: sanitizeUri(podcast.link || podcast.docs || ''),
-    imageUrl: sanitizeUri(podcast.image?.url || podItunes.image || ''),
-    imageTitle: sanitizeString(podcast.image?.title || ''),
-    language: sanitizeString(podcast.language || podItunes.language || ''),
-    explicit: sanitizeString(podcast.explicit || podItunes.explicit || ''),
-    author: sanitizeString(podItunes.author || podcast.author || podcast.creator || ''),
-    ownerName: sanitizeString(podcast.owner?.name || podItunes.owner?.name || ''),
-    ownerEmail: sanitizeString(podcast.owner?.email || podItunes.owner?.email || ''),
-    copyright: sanitizeString(podcast.copyright || podItunes.copyright || ''),
-    managingEditor: sanitizeString(podcast.managingEditor || podItunes.managingEditor || ''),
-    lastBuildDate: toDate(podcast.lastBuildDate),
-  };
+    const publishedAt = new Date(prevDate.getTime() + 1000);
+    prevDate = publishedAt;
 
+    return { ...ep, publishedAt };
+  }).filter(hasMetadata)
+    .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
+}
+
+function formatEpisodes(items: any[] = [], optionalPodcastTags: OptionalPodcastTags = {})
+  : { episodes: Episode[], episodesKeywords: string[] } {
   const episodesKeywords = new Set<string>();
-  const episodes : Episode[] = (items || [])
+  const episodes : Episode[] = items
     .map(episode => {
       const itunes = isNotEmpty(episode.itunes) ? episode.itunes : {};
 
@@ -121,7 +110,7 @@ function formatPodcastFeed(feed: RssPodcastFeed, feedUrl: Podcast['feedUrl']) : 
       const formattedEpisode = omitEmptyMetadata({ ...mandatoryEpisodeTags,
         ...selectedEpisodeTags }) as Episode;
 
-      if (isValidString(formattedEpisode.title) && isValidDate(formattedEpisode.publishedAt)) {
+      if (isValidString(formattedEpisode.title)) {
         episodeKeywords.forEach(key => episodesKeywords.add(key));
         return formattedEpisode;
       }
@@ -129,8 +118,48 @@ function formatPodcastFeed(feed: RssPodcastFeed, feedUrl: Podcast['feedUrl']) : 
     })
     .filter(episode => Object.keys(episode).length !== 0);
 
+  return { episodes: fillMissingEpisodeDates(episodes), episodesKeywords: [...episodesKeywords] };
+}
+
+/**
+ * @param feed
+ * @param feedUrl
+ * @returns {Podcast}
+ * @throws {Error} If any of the mandatory podcast metadata are empty/missing after filtering
+ */
+function formatPodcastFeed(feed: RssPodcastFeed, feedUrl: Podcast['feedUrl']) : Podcast {
+  const { items, ...podcast } = feed;
+  const podItunes = isNotEmpty(podcast.itunes) ? podcast.itunes : {};
+
+  // Any subcategories are nested within podcast.itunes.categoriesWithSubs[i].subs[j].name
+  const itunesSubCategories = (podItunes.categoriesWithSubs || [])
+    .reduce((acc : string[], cat : CategoriesWithSubs) => acc
+      .concat(Array.isArray(cat.subs) ? cat.subs.map(subCat => subCat.name) : []), []);
+
+  const optionalPodcastTags : OptionalPodcastTags = {
+    categories: mergeArraysToLowerCase(
+      podcast.categories,
+      (podItunes.categories || []).concat(itunesSubCategories),
+    ),
+    subtitle: sanitizeString(podcast.subtitle || podItunes.subtitle || ''),
+    description: sanitizeString(podcast.description || podItunes.description || ''),
+    summary: sanitizeString(podcast.summary || podItunes.summary || ''),
+    infoUrl: sanitizeUri(podcast.link || podcast.docs || ''),
+    imageUrl: sanitizeUri(podcast.image?.url || podItunes.image || ''),
+    imageTitle: sanitizeString(podcast.image?.title || ''),
+    language: sanitizeString(podcast.language || podItunes.language || ''),
+    explicit: sanitizeString(podcast.explicit || podItunes.explicit || ''),
+    author: sanitizeString(podItunes.author || podcast.author || podcast.creator || ''),
+    ownerName: sanitizeString(podcast.owner?.name || podItunes.owner?.name || ''),
+    ownerEmail: sanitizeString(podcast.owner?.email || podItunes.owner?.email || ''),
+    copyright: sanitizeString(podcast.copyright || podItunes.copyright || ''),
+    managingEditor: sanitizeString(podcast.managingEditor || podItunes.managingEditor || ''),
+    lastBuildDate: toDate(podcast.lastBuildDate),
+  };
+
+  const { episodes, episodesKeywords } = formatEpisodes(items, optionalPodcastTags);
   // Add episode tags that must be GraphQL-searchable to top-level
-  optionalPodcastTags.episodesKeywords = [...episodesKeywords];
+  optionalPodcastTags.episodesKeywords = episodesKeywords;
 
   const mandatoryPodcastTags = {
     id: newCandidatePodcastId(),
