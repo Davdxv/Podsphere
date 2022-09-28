@@ -1,3 +1,5 @@
+@use "src/theme/colors.module";
+
 .plus-icon {
   position: absolute;
   right: 0;
@@ -44,10 +46,10 @@
   svg {
     font-size: 1.3rem;
     &:hover {
-      color: #4b9b73;
+      color: colors.$tab_hover;
     }
     &:focus {
-      color: #4b9b73;
+      color: colors.$tab_hover;
     }
   }
 }
@@ -94,7 +96,7 @@
     fill: #fff;
   }
   &:hover svg, &.sync-initialized svg {
-    fill: #4b9b73;
+    fill: colors.$tab_hover;
   }
   &.spinning svg {
     animation: spin 1s infinite;

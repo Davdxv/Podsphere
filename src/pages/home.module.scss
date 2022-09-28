@@ -1,3 +1,5 @@
+@use "src/theme/breakpoints.module";
+
 .container {
   margin: auto;
 }
@@ -6,7 +8,7 @@
   display: inline;
   max-width: 30%;
   min-width: 19rem;
-  @media only screen and (max-width: 960px) {
+  @media only screen and (max-width: breakpoints.$md) {
     max-width: 100%;
   }
 }
@@ -14,7 +16,7 @@
 .rightPane {
   width: 100%;
   padding-left: 2rem;
-  @media screen and (max-width: 960px) {
+  @media screen and (max-width: breakpoints.$sm) {
     padding-left: 0;
     margin-top: 15px;
   }
@@ -35,7 +37,7 @@
   min-width: 100%;
   display: flex;
   padding: 0 16px;
-  @media only screen and (max-width: 960px) {
+  @media only screen and (max-width: breakpoints.$md) {
     margin-top:  15px;
     flex-direction: column;
   }

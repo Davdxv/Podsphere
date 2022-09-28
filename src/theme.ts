@@ -1,8 +1,32 @@
 import { createTheme } from '@mui/material';
+import colors from './theme/colors.module.scss';
+import breakpoints from './theme/breakpoints.module.scss';
+import { isValidString } from './utils';
+import { throwDevError } from './errors';
 
-const TEXT_COLOR = 'rgba(255, 255, 255, 0.93)';
-const BG_COLOR = 'rgba(13, 13, 13, 1)';
-const HOVER_COLOR = '#4b9b73';
+const isColor = (strColor: any) : strColor is string => {
+  const s = new Option().style;
+  s.color = strColor;
+  return s.color !== '';
+};
+
+const convertBreakpointStringToNumber = (value: unknown) => {
+  const regEx = /[0-9]+px/;
+  if (isValidString(value) && regEx.test(value)) return Number(value.split('px')[0]);
+  throwDevError('SCSS exported breakpoint is not valid', value);
+};
+
+const { tableTextColor, bgColor, tabHoverColor } = colors;
+
+const { xs, sm, md, lg, xl } = breakpoints;
+
+if (!isColor(tableTextColor) || !isColor(bgColor) || !isColor(tabHoverColor)) {
+  throw new Error('SCSS exported colors are not available');
+}
+
+const TEXT_COLOR = tableTextColor;
+const BG_COLOR = bgColor;
+const HOVER_COLOR = tabHoverColor;
 
 const SHARED_TABLE_STYLES = {
   backgroundColor: BG_COLOR,
@@ -17,11 +41,11 @@ export const theme = createTheme({
   },
   breakpoints: {
     values: {
-      xs: 0,
-      sm: 600,
-      md: 900,
-      lg: 1200,
-      xl: 1536,
+      xs: convertBreakpointStringToNumber(xs),
+      sm: convertBreakpointStringToNumber(sm),
+      md: convertBreakpointStringToNumber(md),
+      lg: convertBreakpointStringToNumber(lg),
+      xl: convertBreakpointStringToNumber(xl),
     },
   },
   components: {

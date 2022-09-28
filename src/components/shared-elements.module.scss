@@ -1,8 +1,8 @@
-$text-color: rgba(255, 255, 255, 0.93);
-$bg-color: rgba(13, 13, 13, 1);
+@use "src/theme/breakpoints.module";
+@use "src/theme/colors.module";
 
 .header {
-  color: $text-color;
+  color: colors.$table_text;
   font-weight: 700;
   margin-bottom: 0.75rem;
 }
@@ -11,7 +11,7 @@ $bg-color: rgba(13, 13, 13, 1);
   overflow-x: hidden;
   overflow-y: auto;
   padding: 0.75rem;
-  background-color: $bg-color;
+  background-color: colors.$bg;
   border: 2px solid rgba(38, 38, 38, 1);
   border-radius: 1rem;
   max-width: 100%;
@@ -41,7 +41,7 @@ $bg-color: rgba(13, 13, 13, 1);
 }
 
 .list-item {
-  color: $text-color;
+  color: colors.$table_text;
   padding: 0.5rem 0.5rem;
   border-radius: 0.5rem;
   justify-content: space-between;
@@ -59,8 +59,7 @@ $bg-color: rgba(13, 13, 13, 1);
   font-size: 0.875rem;
   line-height: 1.25rem;
   margin: 0;
-
-  @media only screen and (max-width: 960px) {
+  @media only screen and (max-width: breakpoints.$md) {
     width: auto;
   }
 }
@@ -93,7 +92,7 @@ $bg-color: rgba(13, 13, 13, 1);
   width: 52px;
   height: 52px;
   margin-right: 0.75rem;
-  @media only screen and (max-width: 960px) {
+  @media only screen and (max-width: breakpoints.$md) {
     width: 40px;
     height: 40px;
   }
@@ -108,7 +107,7 @@ $bg-color: rgba(13, 13, 13, 1);
   align-items: center;
   flex-grow: 0;
   margin-left: 0;
-  @media only screen and (max-width: 960px) {
+  @media only screen and (max-width: breakpoints.$md) {
     margin-left: auto;
   }
 }
@@ -116,7 +115,7 @@ $bg-color: rgba(13, 13, 13, 1);
 .action-info {
   padding-right: 1rem;
   flex-direction: row-reverse;
-  @media only screen and (max-width: 960px) {
+  @media only screen and (max-width: breakpoints.$md) {
     margin-left: auto;
   }
 }
@@ -130,7 +129,7 @@ $bg-color: rgba(13, 13, 13, 1);
   cursor: pointer;
   width: 4rem;
   height: 2.5rem;
-  @media only screen and (max-width: 960px) {
+  @media only screen and (max-width: breakpoints.$md) {
     padding: 0;
     border: none;
     width: auto;
