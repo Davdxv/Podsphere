@@ -87,12 +87,12 @@ export function formatTags(
     const val = newMetadata[tagName as keyof Podcast] as string;
     if (val) podcastTags.push([tagName, `${val}`]);
   });
-  const episodeBatchTags : ArweaveTag[] = isNotEmpty(newMetadata.episodes) ? episodeTags(
+  const episodeBatchTags : ArweaveTag[] = episodeTags(
     id,
     newMetadata.episodes,
     cachedMetadata,
     newMetadata.metadataBatch,
-  ) : [];
+  );
   const pluralTags : ArweaveTag[] = [];
   // Add new categories and keywords in string => string format
   (newMetadata.categories || []).forEach(cat => pluralTags.push(['category', cat]));
@@ -242,7 +242,7 @@ function episodeTags(
   cachedMetadata: Partial<Podcast> = {},
   metadataBatchNumber: number | null = null,
 ) : ArweaveTag[] {
-  if (!newEpisodes.length) { return []; }
+  if (!isNotEmpty(newEpisodes)) return [];
 
   const firstEpisodeDate = newEpisodes[newEpisodes.length - 1].publishedAt;
   const lastEpisodeDate = newEpisodes[0].publishedAt;
