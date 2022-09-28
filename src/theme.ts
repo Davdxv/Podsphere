@@ -2,6 +2,7 @@ import { createTheme } from '@mui/material';
 import colors from './theme/colors.module.scss';
 import breakpoints from './theme/breakpoints.module.scss';
 import { isValidString } from './utils';
+import { throwDevError } from './errors';
 
 const isColor = (strColor: any) : strColor is string => {
   const s = new Option().style;
@@ -12,7 +13,7 @@ const isColor = (strColor: any) : strColor is string => {
 const convertBreakpointStringToNumber = (value: unknown) => {
   const regEx = /[0-9]+px/;
   if (isValidString(value) && regEx.test(value)) return Number(value.split('px')[0]);
-  throw new Error('SCSS exported breakpoin is not valid');
+  throwDevError('SCSS exported breakpoint is not valid', value);
 };
 
 const { tableTextColor, bgColor, tabHoverColor } = colors;
@@ -20,7 +21,7 @@ const { tableTextColor, bgColor, tabHoverColor } = colors;
 const { xs, sm, md, lg, xl } = breakpoints;
 
 if (!isColor(tableTextColor) || !isColor(bgColor) || !isColor(tabHoverColor)) {
-  throw new Error('SCSS exported color are not available');
+  throw new Error('SCSS exported colors are not available');
 }
 
 const TEXT_COLOR = tableTextColor;

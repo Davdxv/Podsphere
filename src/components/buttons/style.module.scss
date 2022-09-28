@@ -46,10 +46,10 @@
   svg {
     font-size: 1.3rem;
     &:hover {
-      color: colors.$tab_hover_color;
+      color: colors.$tab_hover;
     }
     &:focus {
-      color: colors.$tab_hover_color;
+      color: colors.$tab_hover;
     }
   }
 }
@@ -96,7 +96,7 @@
     fill: #fff;
   }
   &:hover svg, &.sync-initialized svg {
-    fill: colors.$tab_hover_color;
+    fill: colors.$tab_hover;
   }
   &.spinning svg {
     animation: spin 1s infinite;
