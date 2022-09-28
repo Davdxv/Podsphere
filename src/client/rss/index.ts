@@ -6,9 +6,9 @@ import {
   PodcastFeedError,
 } from '../interfaces';
 import {
+  fillMissingEpisodeDates,
   hasMetadata,
   isNotEmpty,
-  isValidDate,
   isValidString,
   omitEmptyMetadata,
   toDate,
@@ -45,29 +45,6 @@ type CategoriesWithSubs = {
     },
   ],
 };
-
-/**
- * Some feeds don't have any dates. This function fills in a fake date for each missing
- * `episode.publishedAt` so that we can continue to use this field as a primary index for episodes.
- * In this case, each episode will be dated +1 second after the previous one, starting at Epoch +1s.
- */
-function fillMissingEpisodeDates(episodes: Episode[]) : Episode[] {
-  if (!isNotEmpty(episodes) || episodes.every(ep => isValidDate(ep.publishedAt))) return episodes;
-
-  let prevDate = new Date(0);
-  return [...episodes].reverse().map(ep => {
-    if (isValidDate(ep.publishedAt)) {
-      prevDate = ep.publishedAt;
-      return ep;
-    }
-
-    const publishedAt = new Date(prevDate.getTime() + 1000);
-    prevDate = publishedAt;
-
-    return { ...ep, publishedAt };
-  }).filter(hasMetadata)
-    .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
-}
 
 function formatEpisodes(items: any[] = [], optionalPodcastTags: OptionalPodcastTags = {})
   : { episodes: Episode[], episodesKeywords: string[] } {
