@@ -10,7 +10,6 @@ import PodGraph from '../components/pod-graph';
 import SearchPodcastResults from '../components/search-podcast-results';
 import PodcastDetails from '../components/podcast-details';
 import HeaderComponent from '../components/layout/header-component';
-import CategoriesList from '../components/categories-list';
 import PodcastList from '../components/podcast-list';
 import TransactionList from '../components/transaction-list';
 import style from './home.module.scss';
@@ -137,10 +136,7 @@ function HomePage() {
       )}
 
       <Box className={style.wrapper}>
-        <Box className={style.leftPane}>
-          <CategoriesList categories={[]} />
-        </Box>
-        <Box className={style.rightPane}>
+        <Box>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs onChange={handleChange} value={tab} aria-label="Info tabs">
               <Tab className={style.tabHeader} label="Subscriptions" />
