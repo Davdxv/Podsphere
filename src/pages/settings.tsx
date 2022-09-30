@@ -1,7 +1,10 @@
 import {
-  Box, Button, List, ListItem, Typography, useMediaQuery, useTheme,
+  Box, Button, FormControl, InputLabel, List, ListItem,
+  MenuItem, Select, SelectChangeEvent, TextField, Typography, useMediaQuery, useTheme,
 } from '@mui/material';
-import React, { useState } from 'react';
+import React, {
+  useEffect, useRef, useState,
+} from 'react';
 import SettingsIcon from '@mui/icons-material/Settings';
 import HandymanIcon from '@mui/icons-material/Handyman';
 import { toast } from 'react-toastify';
@@ -65,11 +68,73 @@ const GeneralSettings : React.FC<SettingsPageProps> = ({ handleDownloadBackup,
     </Box>
 );
 
-const AdvancedSettings : React.FC = () => (
-  <Box className={styles.container}>
-    <Typography style={{ margin: 'auto' }}> TBD! :( </Typography>
-  </Box>
-);
+const AdvancedSettings : React.FC = () => {
+  const [url, setUrl] = useState('https://cors-anywhere-podsphere.onrender.com/');
+
+  const inputRef = useRef<HTMLInputElement>();
+
+  const handleChange = (event: SelectChangeEvent) => {
+    setUrl(event.target.value as string);
+  };
+
+  useEffect(() => {
+    if (url === 'custom') inputRef!.current!.focus();
+  }, [url]);
+
+  return (
+    <Box className={styles.container}>
+      <Box>
+        <Box sx={{ minWidth: 120 }}>
+          <FormControl fullWidth>
+            <InputLabel id="demo-simple-select-label">Choose your CORS proxy</InputLabel>
+            <Select
+              value={url}
+              label="Choose your CORS proxy"
+              onChange={handleChange}
+            >
+              <MenuItem value="https://cors-anywhere-podsphere.onrender.com/">
+                https://cors-anywhere-podsphere.onrender.com/
+              </MenuItem>
+              <MenuItem value="https://cors-anywhere.herokuapp.com/">
+                https://cors-anywhere.herokuapp.com/
+              </MenuItem>
+              <MenuItem value="https://corsanywhere.herokuapp.com/">
+                https://corsanywhere.herokuapp.com/
+              </MenuItem>
+              <MenuItem value="custom">
+                Custom
+              </MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end' }}>
+
+          <TextField
+            sx={{
+              input: { color: 'white !important' },
+              '& .MuiInputBase-input.Mui-disabled': {
+                WebkitTextFillColor: 'white',
+                backgroundColor: 'gray',
+              },
+              marginTop: 5,
+              '& .MuiInput-underline:before': { borderBottomColor: 'white' },
+              '& .MuiInput-underline:after': { borderBottomColor: 'white' },
+            }}
+            required={url === 'custom'}
+            disabled={url !== 'custom'}
+            color="primary"
+            inputRef={inputRef}
+            defaultValue=""
+            variant="standard"
+          />
+          <Button sx={{ width: 75, backgroundColor: '#31664c', marginLeft: 15 }}>
+            Confirm
+          </Button>
+        </Box>
+      </Box>
+      <Typography style={{ margin: 'auto' }}> TBD! :( </Typography>
+    </Box>
+  ); };
 
 const getActivePane = (activeEl: MenuElement,
   handleImportBackup: SettingsPageProps['handleImportBackup'],
