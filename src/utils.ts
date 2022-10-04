@@ -386,8 +386,10 @@ export function corsApiHeaders() {
 }
 
 export function corsProxyURL() {
-  // return 'https://cors-anywhere.herokuapp.com/';
-  return 'https://cors-anywhere-podsphere.onrender.com/';
+  const defaultProxy = 'https://cors-anywhere-podsphere.onrender.com/';
+  const customProxy = localStorage.getItem('cors-proxy');
+
+  return customProxy || defaultProxy;
 }
 
 export function withCorsProxy(url: string) {

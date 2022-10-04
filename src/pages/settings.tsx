@@ -68,40 +68,72 @@ const GeneralSettings : React.FC<SettingsPageProps> = ({ handleDownloadBackup,
     </Box>
 );
 
+const standardOptions : { name: string; value: string }[] = [{
+  name: 'Podsphere CORS proxy',
+  value: 'https://cors-anywhere-podsphere.onrender.com/',
+}, {
+  name: 'CORS-Anywhere',
+  value: 'https://cors-anywhere.herokuapp.com/',
+}, {
+  name: 'CORSAnywhere',
+  value: 'https://corsanywhere.herokuapp.com/',
+}];
+
+const CustomCorsProxyName = 'custom';
+
+const getCurrentProxy = () => {
+  const currentValue = localStorage.getItem('cors-proxy');
+  const proxy = standardOptions.find(item => item.value === currentValue);
+  if (currentValue) return proxy || { name: CustomCorsProxyName, value: currentValue };
+  return standardOptions[0];
+};
+
 const AdvancedSettings : React.FC = () => {
-  const [url, setUrl] = useState('https://cors-anywhere-podsphere.onrender.com/');
+  const currentProxy = getCurrentProxy();
+  const [proxy, setProxy] = useState(currentProxy);
+  const [customUrl, setCustomUrl] = useState(currentProxy.name === CustomCorsProxyName
+    ? currentProxy.value : '');
 
   const inputRef = useRef<HTMLInputElement>();
 
+  const handleUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setCustomUrl(event.target.value);
+  };
+
   const handleChange = (event: SelectChangeEvent) => {
-    setUrl(event.target.value as string);
+    const val = event.target.value;
+    const newProxy = standardOptions.find(item => item.value === val);
+    setProxy(newProxy || { name: CustomCorsProxyName, value: customUrl });
+  };
+
+  const handleConfirm = () => {
+    const prx = proxy;
+    if (proxy.name === CustomCorsProxyName) prx.value = customUrl;
+    localStorage.setItem('cors-proxy', prx.value);
+    toast.success('CORS proxy is successfully set!');
   };
 
   useEffect(() => {
-    if (url === 'custom') inputRef!.current!.focus();
-  }, [url]);
+    if (proxy.name === CustomCorsProxyName) inputRef!.current!.focus();
+  }, [proxy]);
 
   return (
     <Box className={styles.container}>
       <Box>
         <Box sx={{ minWidth: 120 }}>
           <FormControl fullWidth>
-            <InputLabel id="demo-simple-select-label">Choose your CORS proxy</InputLabel>
+            <InputLabel>Choose your CORS proxy</InputLabel>
             <Select
-              value={url}
+              value={proxy.value}
               label="Choose your CORS proxy"
               onChange={handleChange}
             >
-              <MenuItem value="https://cors-anywhere-podsphere.onrender.com/">
-                https://cors-anywhere-podsphere.onrender.com/
-              </MenuItem>
-              <MenuItem value="https://cors-anywhere.herokuapp.com/">
-                https://cors-anywhere.herokuapp.com/
-              </MenuItem>
-              <MenuItem value="https://corsanywhere.herokuapp.com/">
-                https://corsanywhere.herokuapp.com/
-              </MenuItem>
-              <MenuItem value="custom">
+              {standardOptions.map(item => (
+                <MenuItem value={item.value}>
+                  {item.name}
+                </MenuItem>
+              ))}
+              <MenuItem value={customUrl}>
                 Custom
               </MenuItem>
             </Select>
@@ -120,14 +152,18 @@ const AdvancedSettings : React.FC = () => {
               '& .MuiInput-underline:before': { borderBottomColor: 'white' },
               '& .MuiInput-underline:after': { borderBottomColor: 'white' },
             }}
-            required={url === 'custom'}
-            disabled={url !== 'custom'}
+            required={proxy.name === CustomCorsProxyName}
+            disabled={proxy.name !== CustomCorsProxyName}
             color="primary"
             inputRef={inputRef}
-            defaultValue=""
+            value={customUrl}
+            onChange={handleUrlChange}
             variant="standard"
           />
-          <Button sx={{ width: 75, backgroundColor: '#31664c', marginLeft: 15 }}>
+          <Button
+            onClick={handleConfirm}
+            sx={{ width: 75, backgroundColor: '#31664c', marginLeft: 15 }}
+          >
             Confirm
           </Button>
         </Box>
