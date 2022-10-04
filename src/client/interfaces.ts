@@ -8,7 +8,7 @@ export type EmptyTypes = null | undefined | {};
 
 export const MANDATORY_ARWEAVE_TAGS = [
   'id',
-  'feedType',
+  'feedType', // TODO: Move to MANDATORY_ARWEAVE_METADATA_TAGS
   'feedUrl',
   'kind',
 ] as const;
@@ -83,13 +83,20 @@ export const METADATA_TX_KINDS = [
   'metadataBatch',
   'customMetadata',
 ] as const;
+export const THREAD_TX_KINDS = [
+  'thread',
+  'threadReply',
+] as const;
 export const TRANSACTION_KINDS = [
   ...METADATA_TX_KINDS,
+  ...THREAD_TX_KINDS,
 ];
-// export type MetadataTransactionKind = typeof METADATA_TX_KINDS[number];
+export type MetadataTransactionKind = typeof METADATA_TX_KINDS[number];
+export type ThreadTransactionKind = typeof THREAD_TX_KINDS[number];
 export type TransactionKind = typeof TRANSACTION_KINDS[number];
 
 export interface Podcast extends PodcastTags {
+  threads?: NewThread[];
   lastMutatedAt?: number; /** @see unixTimestamp() */
   episodes?: Episode[];
   infoUrl?: string;
@@ -281,4 +288,21 @@ export interface SearchPodcastResult {
   lastEpisodeDate: Date;
   genres: string[];
   country: string;
+}
+
+export const THREAD_TYPES = [
+  'public',
+  'private',
+  'passworded',
+] as const;
+export type ThreadType = typeof THREAD_TYPES[number];
+
+export interface NewThread {
+  isDraft?: boolean,
+  id: string,
+  podcastId: Podcast['id'],
+  episodeId: Episode['publishedAt'] | null,
+  subject: string,
+  content: string,
+  type: ThreadType,
 }

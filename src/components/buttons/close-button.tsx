@@ -4,7 +4,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import style from './style.module.scss';
 
 interface Props {
-  onClick: (_event: React.MouseEvent<unknown>, reason: string) => void;
+  onClick: (_event: React.MouseEvent<unknown>, reason?: string) => void;
   classes?: string,
 }
 

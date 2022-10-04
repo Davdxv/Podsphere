@@ -1,7 +1,6 @@
 import {
   CachedArTx,
   GraphQLMetadata,
-  METADATA_TX_KINDS,
   Podcast,
   PodcastTags,
   Primitive,
@@ -16,7 +15,7 @@ import {
   isValidString,
 } from '../../../utils';
 import { isValidUuid } from '../../../podcast-id';
-import { hasValidKind } from '../utils';
+import { hasValidKind, isMetadataTx } from '../utils';
 
 /**
  * The cached transactions, exclusively populated from GraphQL results.
@@ -107,9 +106,8 @@ function isValidTx(tx: CachedArTx, metadata: Podcast | {} | undefined = undefine
   if (!hasValidKind(tx)) return false;
   const kind = tx.kind as TransactionKind;
 
-  if (metadata) {
-    // Validate metadata
-    if (METADATA_TX_KINDS.includes(kind) && !hasMetadata(metadata)) return false;
+  if (metadata) { // Validate metadata
+    if (isMetadataTx(kind) && !hasMetadata(metadata)) return false;
   }
 
   if (!isValidUuid(tx.podcastId)) return false;

@@ -2,6 +2,17 @@ $podcast-details-modal-z-index: 100110;
 $text-color: rgba(255, 255, 255, 0.93);
 $modal-bg-color: rgba(33, 33, 33, 1);
 
+.toolbar {
+  display: flex;
+  position: relative;
+  float: right;
+  right: 2.5rem;
+
+  > button {
+    margin-right: 0.5rem;
+  }
+}
+
 .filter-clear-button {
   position: absolute;
   right: 0.3rem;

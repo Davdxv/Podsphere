@@ -22,6 +22,6 @@ The `Arweave blockchain` facilitates this, conceivably for centuries to come:
 - Being open source, the entire blockchain and its data can always survive through forking
 - Moreover, each user can always download a copy of their most valued data, providing them with a local back-up, as well as an organized journal
 
-### Current version: v0.0.6 (alpha)
+### Current version: v0.0.7 (alpha)
 Podsphere currently resides in a pre-prototype stage.
 The latest version of the code can be found right here, on the [development](https://github.com/Davdxv/Podsphere/tree/development) branch.

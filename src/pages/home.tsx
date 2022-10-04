@@ -2,16 +2,23 @@ import React, { useContext, useEffect, useState } from 'react';
 import {
   Box, Tabs, Tab,
 } from '@mui/material';
-import { Podcast } from '../client/interfaces';
+import { toast } from 'react-toastify';
+import {
+  Episode, NewThread, Podcast,
+} from '../client/interfaces';
 import { findMetadataByFeedUrl, hasMetadata } from '../utils';
 import { SubscriptionsContext } from '../providers/subscriptions';
 import { ArweaveContext } from '../providers/arweave';
 import PodGraph from '../components/pod-graph';
-import SearchPodcastResults from '../components/search-podcast-results';
-import PodcastDetails from '../components/podcast-details';
 import HeaderComponent from '../components/layout/header-component';
 import PodcastList from '../components/podcast-list';
 import TransactionList from '../components/transaction-list';
+// import ThreadList from '../components/thread-list';
+import DraftList from '../components/draft-list';
+import SearchPodcastResults from '../components/search-podcast-results';
+import PodcastDetails from '../components/podcast-details';
+import NewThreadDialog from '../components/new-thread';
+import AlertDialog from '../components/alert-dialog';
 import style from './home.module.scss';
 
 interface TabPanelProps {
@@ -38,8 +45,11 @@ function TabPanel(props: TabPanelProps) {
 
 function HomePage() {
   const {
+    handleCreateThread,
+    handleDiscardThread,
     handleSearch,
     handleFetchPodcastRss2Feed,
+    metadataToSync,
     searchResults,
     setShowSearchResults,
     showSearchResults,
@@ -54,10 +64,17 @@ function HomePage() {
 
   const [selectedPodcastId, setSelectedPodcastId] = useState<string | null>(null);
   const [selectedPodcastMetadata, setSelectedPodcastMetadata] = useState<Podcast | null>(null);
-  const [showPodcastDetails, setShowPodcastDetails] = useState<boolean>(false);
+  const [showPodcastDetails, setShowPodcastDetails] = useState(false);
 
   const [showPodcastMetadata, setShowPodcastMetadata] = useState(false);
-  const [showImages, setShowImages] = useState(true);
+  const [showEpisodeImages, setShowEpisodeImages] = useState(true);
+
+  const [showCreateThreadDialog, setShowCreateThreadDialog] = useState(false);
+  const [createThreadPodcastId, setCreateThreadPodcastId] = useState('');
+  const [createThreadEpisodeId, setCreateThreadEpisodeId] = useState<Date | null>(null);
+
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const [threadDraft, setThreadDraft] = useState<NewThread | null>(null);
 
   const isSubscribed = (feedUrl: string = selectedPodcastId || '') => hasMetadata(
     findMetadataByFeedUrl(feedUrl, 'rss2', subscriptions),
@@ -104,6 +121,64 @@ function HomePage() {
     }
   };
 
+  const handleShowCreateThreadDialog = (_event: React.MouseEvent<unknown>, podcastId: Podcast['id'],
+    episodeId: Episode['publishedAt'] | null) => {
+    setCreateThreadPodcastId(podcastId);
+    setCreateThreadEpisodeId(episodeId);
+    setShowCreateThreadDialog(true);
+  };
+
+  const handleShowEditThreadDialog = (_event: React.MouseEvent<unknown>, draft: NewThread) => {
+    setThreadDraft(draft);
+    setCreateThreadPodcastId(draft.podcastId);
+    setCreateThreadEpisodeId(draft.episodeId);
+    setShowCreateThreadDialog(true);
+  };
+
+  const handleCloseCreateThreadDialog = () => {
+    setShowCreateThreadDialog(false);
+    setThreadDraft(null);
+    setCreateThreadPodcastId('');
+    setCreateThreadEpisodeId(null);
+  };
+
+  const handleOpenSavePrompt = (draft: NewThread) => {
+    setThreadDraft(draft);
+    setShowSavePrompt(true);
+  };
+
+  const handleCloseSavePrompt = () => {
+    setShowSavePrompt(false);
+  };
+
+  const handleSubmitThread = (thread: NewThread) => {
+    if (thread) {
+      toast.success('Thread saved in browser storage.\n\nTo upload it to Arweave, click the Sync '
+        + 'button twice.\n\nYou may still edit or discard it from the Drafts tab.');
+      handleCreateThread(thread);
+      handleCloseCreateThreadDialog();
+    }
+  };
+
+  const handleSaveDraft = () => {
+    if (threadDraft) {
+      toast.success('Draft saved in browser storage.\n\nYou can edit, submit or discard it from '
+        + 'the Drafts tab.');
+      handleCreateThread(threadDraft);
+    }
+    setShowSavePrompt(false);
+    handleCloseCreateThreadDialog();
+  };
+
+  const handleDiscardDraft = () => {
+    if (threadDraft) {
+      toast.info('Draft deleted.');
+      handleDiscardThread(threadDraft);
+    }
+    setShowSavePrompt(false);
+    handleCloseCreateThreadDialog();
+  };
+
   useEffect(() => {
     if (isSyncing) setTab(1);
   }, [isSyncing]);
@@ -130,9 +205,9 @@ function HomePage() {
       <HeaderComponent onSubmit={search} />
 
       {subscriptions && (
-        <div>
-          <PodGraph subscriptions={subscriptions} setSelectedPodcastId={setSelectedPodcastId} />
-        </div>
+      <div>
+        <PodGraph subscriptions={subscriptions} setSelectedPodcastId={setSelectedPodcastId} />
+      </div>
       )}
 
       <Box className={style.wrapper}>
@@ -141,6 +216,8 @@ function HomePage() {
             <Tabs onChange={handleChange} value={tab} aria-label="Info tabs">
               <Tab className={style.tabHeader} label="Subscriptions" />
               <Tab className={style.tabHeader} label="Transactions" />
+              <Tab className={style.tabHeader} label="Threads" />
+              <Tab className={style.tabHeader} label="Drafts" />
             </Tabs>
           </Box>
 
@@ -159,34 +236,71 @@ function HomePage() {
               removeArSyncTxs={removeArSyncTxs}
             />
           </TabPanel>
+
+          <TabPanel className={style['tab-panel']} value={tab} index={2}>
+            <div />
+          </TabPanel>
+
+          <TabPanel className={style['tab-panel']} value={tab} index={3}>
+            <DraftList
+              subscriptions={subscriptions}
+              metadataToSync={metadataToSync}
+              handleShowEditThreadDialog={handleShowEditThreadDialog}
+              handleOpenSavePrompt={handleOpenSavePrompt}
+            />
+          </TabPanel>
         </Box>
       </Box>
 
-      <Box>
-        <SearchPodcastResults
-          onClose={handleCloseSearchResults}
-          clickFeedHandler={handleFetchFeed}
-          isOpen={showSearchResults}
-          searchQuery={searchQuery}
-          results={searchResults}
-        />
-      </Box>
+      <SearchPodcastResults
+        onClose={handleCloseSearchResults}
+        clickFeedHandler={handleFetchFeed}
+        isOpen={showSearchResults}
+        searchQuery={searchQuery}
+        results={searchResults}
+      />
 
       {showPodcastDetails && hasMetadata(selectedPodcastMetadata) && (
-        <Box>
-          <PodcastDetails
-            onClose={handleClosePodcastDetails}
-            podcast={selectedPodcastMetadata as Podcast}
-            isSubscribed={isSubscribed()}
-            isOpen={showPodcastDetails}
-            handleSubscribe={handleSubscribe}
-            handleUnsubscribe={handleUnsubscribe}
-            showPodcastMetadata={showPodcastMetadata}
-            setShowPodcastMetadata={setShowPodcastMetadata}
-            showImages={showImages}
-            setShowImages={setShowImages}
-          />
-        </Box>
+      <PodcastDetails
+        onClose={handleClosePodcastDetails}
+        podcast={selectedPodcastMetadata as Podcast}
+        isSubscribed={isSubscribed()}
+        isOpen={showPodcastDetails}
+        handleSubscribe={handleSubscribe}
+        handleUnsubscribe={handleUnsubscribe}
+        showPodcastMetadata={showPodcastMetadata}
+        setShowPodcastMetadata={setShowPodcastMetadata}
+        showEpisodeImages={showEpisodeImages}
+        setShowEpisodeImages={setShowEpisodeImages}
+        handleShowCreateThreadDialog={handleShowCreateThreadDialog}
+      />
+      )}
+
+      {showCreateThreadDialog && (
+      <NewThreadDialog
+        onClose={handleCloseCreateThreadDialog}
+        isOpen={showCreateThreadDialog}
+        handleOpenSavePrompt={handleOpenSavePrompt}
+        handleSubmitThread={handleSubmitThread}
+        subscriptions={subscriptions}
+        prevDraft={threadDraft}
+        podcastId={createThreadPodcastId}
+        episodeId={createThreadEpisodeId}
+      />
+      )}
+
+      {showSavePrompt && (
+      <AlertDialog
+        onClose={handleCloseSavePrompt}
+        isOpen={showSavePrompt}
+        title="Would you like to keep your draft?"
+        description=""
+        buttons={[
+          ['Save', handleSaveDraft, { autoFocus: true }],
+          ['Discard', handleDiscardDraft],
+          ['Close', () => { handleCloseSavePrompt(); handleCloseCreateThreadDialog(); }],
+        ]}
+      />
       )}
     </div>
   );

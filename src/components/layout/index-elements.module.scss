@@ -8,20 +8,22 @@
 .header-container {
   z-index: 110100;
   display: flex;
+  background-color: #030303;
   color: white;
   align-items: center;
   justify-content: space-between;
-  padding-top: 0.75rem;
   position: fixed;
   top: 0;
   right: 0;
   left: 0;
-  background-color: #030303;
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 1140px;
-  padding-right: 15px;
-  padding-left: 15px;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  margin: 0 auto;
+  max-width: 80vw;
+
+  @media screen and (max-width: breakpoints.$sm) {
+    max-width: 100vw;
+  }
 }
 
 .whalephant-wrapper {
@@ -72,6 +74,7 @@
   display: flex;
   align-items: center;
   height: 2.5rem;
+
   @media only screen and (max-width: breakpoints.$md) {
     padding: 0;
     border: none;
@@ -111,17 +114,17 @@
   overflow-x: hidden;
   display: flex;
   justify-content: center;
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 1140px;
+  margin: 0 auto;
+  max-width: 80vw;
+
+  @media screen and (max-width: breakpoints.$sm) {
+    max-width: 100vw;
+  }
 }
 
 .main-content {
   flex-grow: 1;
-  max-width: 72rem;
   padding-top: 1rem;
   padding-bottom: 1rem;
-  @media screen and (max-width: breakpoints.$sm) {
-    max-width: 100vw;
-  }
+  max-width: 100%;
 }

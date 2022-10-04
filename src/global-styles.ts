@@ -1,15 +1,16 @@
 import { createGlobalStyle } from 'styled-components';
 import 'cytoscape-panzoom/cytoscape.js-panzoom.css';
+import colors from './theme/colors.module.scss';
+
+const { orangeMedium, orangeDark } = colors;
 
 export default createGlobalStyle`
-
   :root {
     /* ====== Global CSS Variables ====== */
     --color-body: #000000fc;
     --color-label: #797979;
-    --color-metadata: rgb(255, 208, 176);
-    --color-metadata-medium: rgb(255, 150, 80);
-    --color-metadata-dark: rgb(255, 150, 0);
+
+    --toastify-color-progress-warning: ${orangeDark};
   }
 
   :focus-visible {
@@ -40,13 +41,13 @@ export default createGlobalStyle`
       opacity: 1;
     }
     &:link {
-      color: var(--color-metadata-dark);
+      color: ${orangeDark};
     }
     &:active {
-      color: var(--color-metadata-dark);
+      color: ${orangeDark};
     }
     &:visited {
-      color: var(--color-metadata-medium);
+      color: ${orangeMedium};
     }
   }
 
@@ -62,6 +63,7 @@ export default createGlobalStyle`
       padding: 0;
       line-break: auto;
       white-space: pre-wrap;
+      opacity: 0.9;
 
       > div:first-child {
         margin-top: 3rem;
@@ -101,6 +103,16 @@ export default createGlobalStyle`
 
     &__toast--warning {
       background-color: #e9c98a;
+
+      > .Toastify__toast-body > .Toastify__toast-icon {
+        svg {
+          fill: ${orangeDark};
+        }
+      }
+    }
+
+    &__progress-bar--warning {
+      background
     }
 
     &__toast--info {

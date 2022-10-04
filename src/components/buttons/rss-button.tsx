@@ -9,7 +9,7 @@ interface Props {
   handleSubscribe: (_event: React.MouseEvent<unknown>, feedUrl: string) => Promise<void>,
   handleUnsubscribe: (_event: React.MouseEvent<unknown>, feedUrl: string) => Promise<void>,
   feedUrl: string,
-  className?: string,
+  classes?: string,
   isSubscribed?: boolean,
 }
 
@@ -17,12 +17,12 @@ const RssButton : React.FC<Props> = ({
   handleSubscribe,
   handleUnsubscribe,
   feedUrl = '',
-  className = 'float-right',
+  classes = '',
   isSubscribed = false,
   ...props
 }) => (
   <IconButton
-    className={`${style['rss-btn']} ${style[className]}`}
+    className={`${style['rss-btn']} ${style[classes]}`}
     title={isSubscribed ? 'Unsubscribe' : 'Subscribe'}
     type="button"
     onClick={isSubscribed ? e => handleUnsubscribe(e, feedUrl) : e => handleSubscribe(e, feedUrl)}

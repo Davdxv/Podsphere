@@ -4,6 +4,7 @@ import {
   EpisodeDTO,
   FeedType,
   FEED_TYPES,
+  NewThread,
   Podcast,
   PodcastDTO,
   PodcastFeedError,
@@ -202,6 +203,32 @@ export function findMetadataById<T extends Podcast | Partial<Podcast>>(
   }
 
   return result || {} as T;
+}
+
+export function findEpisodeMetadata<T extends Podcast | Partial<Podcast> | Episode[]>(
+  epDate: Episode['publishedAt'] | null,
+  metadata: T,
+) : Episode | null {
+  if (!isValidDate(epDate) || !metadata) return null;
+  const episodes = Array.isArray(metadata) ? metadata : metadata.episodes;
+  if (!isNotEmpty(episodes)) return null;
+
+  return episodes.find(x => datesEqual(x.publishedAt, epDate)) || null;
+}
+
+export function findThreadDraft(
+  podcastId: Podcast['id'],
+  episodeId: Episode['publishedAt'] | null,
+  metadataList: Partial<Podcast>[] = [],
+) : NewThread | null {
+  const podcast = metadataList.find(obj => isNotEmpty(obj) && obj.id === podcastId);
+  if (!isNotEmpty(podcast)) return null;
+
+  if (episodeId) {
+    return (podcast.threads || [])
+      .find(thr => thr.isDraft && thr.episodeId && datesEqual(thr.episodeId, episodeId)) || null;
+  }
+  return (podcast.threads || []).find(thr => thr.isDraft && !thr.episodeId) || null;
 }
 
 export function partialToPodcast(partialMetadata: Partial<Podcast>) : Podcast | PodcastFeedError {

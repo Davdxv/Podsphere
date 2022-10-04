@@ -1,8 +1,8 @@
-$text-color: rgba(255, 255, 255, 0.93);
-$ep-bg-color: rgba(20, 33, 40, 1);
+@use "src/theme/breakpoints.module";
+@use "src/theme/colors.module";
 
 .ep-link {
-  color: var(--color-metadata-medium) !important;
+  color: colors.$orange-medium !important;
   padding: 0;
   margin-bottom: 0.25rem;
   display: block;
@@ -22,7 +22,7 @@ $ep-bg-color: rgba(20, 33, 40, 1);
   overflow: hidden;
   min-width: 0;
   word-wrap: break-word;
-  background-color: $ep-bg-color;
+  background-color: colors.$bg-darkblue;
   background-clip: border-box;
   border: 1px solid rgba(47, 42, 48, 0.85);
   border-radius: 0.375rem;
@@ -58,7 +58,7 @@ $ep-bg-color: rgba(20, 33, 40, 1);
   white-space: normal;
   flex-direction: column;
   flex-grow: 33;
-  color: $text-color;
+  color: colors.$text;
 
   > p {
     margin-top: 0.25em;
@@ -95,7 +95,7 @@ $ep-bg-color: rgba(20, 33, 40, 1);
   align-items: flex-start;
   line-height: 1;
   font-size: small;
-  color: var(--color-metadata);
+  color: colors.$orange;
   margin-top: 1px;
 
   @media only screen and (max-width: 960px) {
@@ -108,12 +108,37 @@ $ep-bg-color: rgba(20, 33, 40, 1);
   align-items: center;
   line-height: 1;
   font-size: small;
-  color: var(--color-metadata);
+  color: colors.$orange;
   padding-left: 0.5rem;
+
+  svg {
+    margin: 0;
+    padding: 0.2rem;
+    font-size: 1em;
+    fill: colors.$orange;
+  }
 }
 
-svg.ep-metadatum-icon {
-  margin: 0.2rem;
-  font-size: 1em;
-  fill: var(--color-metadata);
+.ep-metadatum-icon-large {
+  cursor: default;
+  margin: 0;
+  padding: 2px;
+  opacity: 0.5;
+
+  svg {
+    margin: 0;
+    padding: 0;
+    font-size: 1em;
+    fill: colors.$orange;
+  }
+
+  &--clickable {
+    @extend .ep-metadatum-icon-large;
+    cursor: pointer;
+    opacity: 0.8;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
 }

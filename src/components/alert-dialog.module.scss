@@ -1,0 +1,20 @@
+@use "src/theme/breakpoints.module";
+@use "src/theme/colors.module";
+
+.alert-dialog {
+  z-index: 111110;
+
+  > div > div {
+    background-color: colors.$bg-darkblue;
+    color: colors.$text;
+  }
+}
+
+.alert-action-button {
+  color: colors.$orange-medium;
+  background-color: colors.$gray-25;
+  border: 1px solid colors.$gray-25;
+  border-radius: 1rem;
+  padding: 0.4rem 0.8rem;
+  box-shadow: rgba(0, 0, 0, 0.15) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px;
+}
