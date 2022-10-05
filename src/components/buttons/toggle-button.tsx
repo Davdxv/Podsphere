@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ButtonProps, IconButton } from '@mui/material';
 import { ToggleOff, ToggleOn } from '@mui/icons-material';
 import style from './style.module.scss';
@@ -15,13 +15,13 @@ const ToggleButton : React.FC<Props> = ({
   children, enabled, onToggle,
   useColors = true, classes = '', ...props
 }) => {
-  const [value, setValue] = useState(enabled);
+  let value = enabled;
 
   const colorClass = style[`toggle-btn--${value ? 'on' : 'off'}`];
 
   const handleToggle = (_event: React.MouseEvent<unknown>) => {
     const newValue = !value;
-    setValue(newValue);
+    value = newValue;
     onToggle(newValue);
   };
 

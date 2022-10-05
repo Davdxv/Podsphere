@@ -21,13 +21,14 @@ const DraftList : React.FC<Props> = ({
   handleShowEditThreadDialog, handleOpenSavePrompt, handleCreateThread,
 }) => {
   const drafts = metadataToSync.map(podcast => podcast.threads).filter(isNotEmpty).flat();
+
   return (
     <Box className={style['list-container']}>
-      { drafts.length ? drafts.reverse().map(draft => {
+      { drafts.length ? [...drafts].reverse().map(draft => {
         const podcast : Partial<Podcast> = findMetadataById(draft.podcastId, subscriptions);
         const episode : Episode | null = findEpisodeMetadata(draft.episodeId, podcast);
         const propsAreInvalid = !isNotEmpty(podcast)
-          || (draft.episodeId && !isNotEmpty(episode));
+          || !!(draft.episodeId && !isNotEmpty(episode));
         const title = [podcast.title, episode?.title].filter(x => x).join(': ');
         const imageUrl = episode?.imageUrl || podcast.imageUrl || '';
 
@@ -66,7 +67,7 @@ const DraftList : React.FC<Props> = ({
                   title={draft.isDraft ? 'This Thread is saved locally only'
                     : 'This thread is marked ready for upload to Arweave'}
                   enabled={!draft.isDraft}
-                  onToggle={() => handleToggleSyncThread(draft)}
+                  onToggle={(_newValue: boolean) => handleToggleSyncThread(draft)}
                 >
                   sync
                 </ToggleButton>
