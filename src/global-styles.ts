@@ -2,7 +2,10 @@ import { createGlobalStyle } from 'styled-components';
 import 'cytoscape-panzoom/cytoscape.js-panzoom.css';
 import colors from './theme/colors.module.scss';
 
-const { orangeMedium, orangeDark } = colors;
+const {
+  green, orangeMedium, orangeDark,
+  red, yellow,
+} = colors;
 
 export default createGlobalStyle`
   :root {
@@ -94,15 +97,15 @@ export default createGlobalStyle`
     }
 
     &__toast--success {
-      background-color: #b3ecae;
+      background-color: ${green};
     }
 
     &__toast--error {
-      background-color: #e98a8a;
+      background-color: ${red};
     }
 
     &__toast--warning {
-      background-color: #e9c98a;
+      background-color: ${yellow};
 
       > .Toastify__toast-body > .Toastify__toast-icon {
         svg {

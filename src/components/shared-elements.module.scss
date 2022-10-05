@@ -42,7 +42,7 @@
 
 .list-item {
   color: colors.$table_text;
-  padding: 0.5rem 0.5rem;
+  padding: 0.25rem 0.25rem;
   border-radius: 0.5rem;
   justify-content: space-between;
   align-items: center;
@@ -123,16 +123,25 @@
 
 .action-btn {
   cursor: pointer;
-  border: solid 2px rgba(255, 255, 255, 0.4);
+  border: solid 2px rgba(255, 255, 255, 0.1);
   border-radius: 9999px;
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 4rem;
+  width: auto;
   height: 2.5rem;
+  padding: 0 0.5rem;
+
+  > button:not(:last-of-type) {
+    margin-right: 0.4rem;
+  }
+
   @media only screen and (max-width: breakpoints.$md) {
     padding: 0;
     border: none;
-    width: auto;
   }
+}
+
+.no-bg {
+  background-color: transparent;
 }

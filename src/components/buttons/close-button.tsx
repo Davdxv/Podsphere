@@ -1,11 +1,11 @@
 import React from 'react';
-import { IconButton } from '@mui/material';
+import { ButtonProps, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import style from './style.module.scss';
 
-interface Props {
+interface Props extends ButtonProps {
   onClick: (_event: React.MouseEvent<unknown>, reason?: string) => void;
-  classes?: string,
+  classes?: string;
 }
 
 const CloseButton : React.FC<Props> = ({ onClick, classes, ...props }) => (

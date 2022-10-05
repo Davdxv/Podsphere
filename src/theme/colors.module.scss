@@ -2,21 +2,32 @@ $bg: rgba(13, 13, 13, 1);
 $bg-darkblue: rgba(20, 33, 40, 1);
 
 $text: rgba(255, 255, 255, 0.93);
-$orange: rgb(255, 208, 176);
-$orange-medium: rgb(255, 150, 80);
-$orange-dark: rgb(255, 150, 0);
 
 $gray-25: rgba(50, 50, 50, 0.5);
 $gray-50: rgba(100, 100, 100, 0.5);
 
+$green: #b3ecae;
+$green-medium: #4b9b73;
+
+$orange: rgb(255, 208, 176);
+$orange-medium: rgb(255, 150, 80);
+$orange-dark: rgb(255, 150, 0);
+
+$red: #e98a8a;
+$yellow: #e9c98a;
+
 $table_text: rgba(255, 255, 255, 0.93);
-$tab_hover: #4b9b73;
+$tab_hover: $green-medium;
 
 :export {
   bgColor: $bg;
+  green: $green;
+  greenMedium: $green-medium;
   orange: $orange;
   orangeMedium: $orange-medium;
   orangeDark: $orange-dark;
+  red: $red;
   tableTextColor: $table_text;
   tabHoverColor: $tab_hover;
+  yellow: $yellow;
 }

@@ -7,16 +7,16 @@ import { Podcast, Episode } from '../../client/interfaces';
 import style from './style.module.scss';
 
 const CREATE_THREAD_INFO = 'To create a thread, please first index this podcast using the '
-  + 'Arweave Sync button';
+  + 'Arweave Sync button (next to the Refresh button).';
 
 interface Props extends ButtonProps {
-  isIndexed: boolean,
-  podcastId: Podcast['id'],
-  episodeId: Episode['publishedAt'] | null,
+  isIndexed: boolean;
+  podcastId: Podcast['id'];
+  episodeId: Episode['publishedAt'] | null;
   handleShowCreateThreadDialog: (_event: React.MouseEvent<unknown>, podcastId: Podcast['id'],
     episodeId: Episode['publishedAt'] | null) => void;
-  iconType?: 'create' | 'edit',
-  classes?: string,
+  iconType?: 'create' | 'edit';
+  classes?: string;
 }
 
 const CreateThreadButton : React.FC<Props> = ({

@@ -20,14 +20,14 @@ import CachedImage from './cached-image';
 import style from './new-thread.module.scss';
 
 interface Props {
-  onClose: () => void,
-  isOpen: boolean,
-  handleOpenSavePrompt: (draft: NewThread) => void,
-  handleSubmitThread: (thread: NewThread) => void,
-  subscriptions: Podcast[],
-  prevDraft: NewThread | null,
-  podcastId: Podcast['id'],
-  episodeId: Episode['publishedAt'] | null, // If null, the thread pertains to the podcast itself
+  onClose: () => void;
+  isOpen: boolean;
+  handleOpenSavePrompt: (draft: NewThread) => void;
+  handleSubmitThread: (thread: NewThread) => void;
+  subscriptions: Podcast[];
+  prevDraft: NewThread | null;
+  podcastId: Podcast['id'];
+  episodeId: Episode['publishedAt'] | null; // If null, the thread pertains to the podcast itself
 }
 
 const NewThreadDialog : React.FC<Props> = ({
@@ -45,14 +45,14 @@ const NewThreadDialog : React.FC<Props> = ({
   const podcast : Partial<Podcast> = findMetadataById(podcastId, subscriptions);
   const episode : Episode | null = findEpisodeMetadata(episodeId, podcast);
 
-  const propsAreInvalid = !isNotEmpty(podcast) || (episodeId && !isNotEmpty(episode));
-
   if (!initialized) {
     setInitialized(true);
+    const propsAreInvalid = !isNotEmpty(podcast) || (episodeId && !isNotEmpty(episode));
     if (propsAreInvalid) {
       setTimeout(onClose, 250);
       toast.error('Unable to create thread: Could not find the corresponding '
-        + `${episodeId ? 'episode' : 'podcast'}`, { autoClose: 6000, toastId: 'thr-bad-props' });
+        + `${episodeId ? 'episode' : 'podcast'}.\n\nPlease ensure that you are subscribed to the `
+        + 'podcast and that it\'s indexed.', { autoClose: 8000, toastId: 'thr-bad-props' });
       return <Box />;
     }
   }

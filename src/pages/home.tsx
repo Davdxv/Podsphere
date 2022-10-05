@@ -153,7 +153,7 @@ function HomePage() {
 
   const handleSubmitThread = (thread: NewThread) => {
     if (thread) {
-      toast.success('Thread saved in browser storage.\n\nTo upload it to Arweave, click the Sync '
+      toast.success('Thread saved in browser storage.\n\nTo upload it to Arweave, tap the Sync '
         + 'button twice.\n\nYou may still edit or discard it from the Drafts tab.');
       handleCreateThread(thread);
       handleCloseCreateThreadDialog();
@@ -247,6 +247,7 @@ function HomePage() {
               metadataToSync={metadataToSync}
               handleShowEditThreadDialog={handleShowEditThreadDialog}
               handleOpenSavePrompt={handleOpenSavePrompt}
+              handleCreateThread={handleCreateThread}
             />
           </TabPanel>
         </Box>

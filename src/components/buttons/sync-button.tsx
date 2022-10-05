@@ -1,11 +1,11 @@
 import React, { useContext } from 'react';
-import { IconButton } from '@mui/material';
+import { ButtonProps, IconButton } from '@mui/material';
 import { ReactComponent as ArSyncIcon } from '../../assets/arsync-logo.svg';
 import { SubscriptionsContext } from '../../providers/subscriptions';
 import { ArweaveContext } from '../../providers/arweave';
 import style from './style.module.scss';
 
-const SyncButton : React.FC = () => {
+const SyncButton : React.FC<ButtonProps> = ({ ...props }) => {
   const { isRefreshing } = useContext(SubscriptionsContext);
   const { isSyncing, prepareSync, startSync, hasPendingTxs } = useContext(ArweaveContext);
 
@@ -26,6 +26,7 @@ const SyncButton : React.FC = () => {
         isSyncing ? style.spinning : ''}`}
       onClick={onClick}
       title={title}
+      {...props}
     >
       <ArSyncIcon
         width="1.5rem"

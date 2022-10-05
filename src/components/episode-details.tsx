@@ -27,7 +27,7 @@ import style from './episode-details.module.scss';
 dayjs.extend(relativeTime);
 
 interface Props {
-  podcastId: Podcast['id'],
+  podcastId: Podcast['id'];
   episode: Episode;
   showImage: boolean;
   podcastImageUrl?: string;

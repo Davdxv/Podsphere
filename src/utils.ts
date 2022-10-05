@@ -4,7 +4,7 @@ import {
   EpisodeDTO,
   FeedType,
   FEED_TYPES,
-  NewThread,
+  // NewThread,
   Podcast,
   PodcastDTO,
   PodcastFeedError,
@@ -216,20 +216,20 @@ export function findEpisodeMetadata<T extends Podcast | Partial<Podcast> | Episo
   return episodes.find(x => datesEqual(x.publishedAt, epDate)) || null;
 }
 
-export function findThreadDraft(
-  podcastId: Podcast['id'],
-  episodeId: Episode['publishedAt'] | null,
-  metadataList: Partial<Podcast>[] = [],
-) : NewThread | null {
-  const podcast = metadataList.find(obj => isNotEmpty(obj) && obj.id === podcastId);
-  if (!isNotEmpty(podcast)) return null;
+// export function findThreadDraft(
+//   podcastId: Podcast['id'],
+//   episodeId: Episode['publishedAt'] | null,
+//   metadataList: Partial<Podcast>[] = [],
+// ) : NewThread | null {
+//   const podcast = metadataList.find(obj => isNotEmpty(obj) && obj.id === podcastId);
+//   if (!isNotEmpty(podcast)) return null;
 
-  if (episodeId) {
-    return (podcast.threads || [])
-      .find(thr => thr.isDraft && thr.episodeId && datesEqual(thr.episodeId, episodeId)) || null;
-  }
-  return (podcast.threads || []).find(thr => thr.isDraft && !thr.episodeId) || null;
-}
+//   if (episodeId) {
+//     return (podcast.threads || [])
+//       .find(thr => thr.isDraft && thr.episodeId && datesEqual(thr.episodeId, episodeId)) || null;
+//   }
+//   return (podcast.threads || []).find(thr => thr.isDraft && !thr.episodeId) || null;
+// }
 
 export function partialToPodcast(partialMetadata: Partial<Podcast>) : Podcast | PodcastFeedError {
   const result : Podcast = {

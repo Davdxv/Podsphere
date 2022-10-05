@@ -298,7 +298,7 @@ export const THREAD_TYPES = [
 export type ThreadType = typeof THREAD_TYPES[number];
 
 export interface NewThread {
-  isDraft?: boolean,
+  isDraft: boolean,
   id: string,
   podcastId: Podcast['id'],
   episodeId: Episode['publishedAt'] | null,

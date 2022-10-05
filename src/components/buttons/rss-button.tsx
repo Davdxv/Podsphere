@@ -1,16 +1,16 @@
 import React from 'react';
-import { IconButton } from '@mui/material';
+import { ButtonProps, IconButton } from '@mui/material';
 import RssIcon from '@mui/icons-material/RssFeed';
 import PlusIcon from '@mui/icons-material/Add';
 import MinusIcon from '@mui/icons-material/Remove';
 import style from './style.module.scss';
 
-interface Props {
-  handleSubscribe: (_event: React.MouseEvent<unknown>, feedUrl: string) => Promise<void>,
-  handleUnsubscribe: (_event: React.MouseEvent<unknown>, feedUrl: string) => Promise<void>,
-  feedUrl: string,
-  classes?: string,
-  isSubscribed?: boolean,
+interface Props extends ButtonProps {
+  handleSubscribe: (_event: React.MouseEvent<unknown>, feedUrl: string) => Promise<void>;
+  handleUnsubscribe: (_event: React.MouseEvent<unknown>, feedUrl: string) => Promise<void>;
+  feedUrl: string;
+  classes?: string;
+  isSubscribed?: boolean;
 }
 
 const RssButton : React.FC<Props> = ({
