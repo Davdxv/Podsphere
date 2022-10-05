@@ -10,6 +10,7 @@ import HandymanIcon from '@mui/icons-material/Handyman';
 import { toast } from 'react-toastify';
 import { BackupDropzone } from '../components/settings-page/backup-dropzone';
 import styles from './settings.module.scss';
+// eslint-disable-next-line import/no-cycle
 import { MobileSettingsPage, SettingsPageProps } from './settings-mobile';
 import { downloadBackup, importBackup } from '../components/settings-page/utils';
 
@@ -68,7 +69,7 @@ const GeneralSettings : React.FC<SettingsPageProps> = ({ handleDownloadBackup,
     </Box>
 );
 
-const standardOptions : { name: string; value: string }[] = [{
+export const standardOptions : { name: string; value: string }[] = [{
   name: 'Podsphere CORS proxy',
   value: 'https://cors-anywhere-podsphere.onrender.com/',
 }, {
@@ -79,9 +80,9 @@ const standardOptions : { name: string; value: string }[] = [{
   value: 'https://corsanywhere.herokuapp.com/',
 }];
 
-const CustomCorsProxyName = 'custom';
+export const CustomCorsProxyName = 'custom';
 
-const getCurrentProxy = () => {
+export const getCurrentProxy = () => {
   const currentValue = localStorage.getItem('cors-proxy');
   const proxy = standardOptions.find(item => item.value === currentValue);
   if (currentValue) return proxy || { name: CustomCorsProxyName, value: currentValue };
