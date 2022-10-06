@@ -15,7 +15,7 @@
   align-items: center;
   width: 90%;
   height: 75vh;
-  background-color: #fffe;
+  background-color: rgb(20, 33, 40);
   border-radius: 10px;
   padding: 5px;
   animation: fadeIn 0.4s;
@@ -23,9 +23,9 @@
 
 .page {
   margin: auto;
-  width: 90%;
+  width: 80%;
   height: 75vh;
-  background-color: #fffe;
+  background-color: rgb(20, 33, 40);
   border-radius: 10px;
   padding: 30px;
   animation: fadeIn 0.4s;
@@ -45,12 +45,13 @@
 
 .mobile-select {
   color: #fff;
-
-  background-color: rgb(160, 160, 160);
+  background-color: rgb(48, 48, 48);
 }
 
 .select-label {
-  color: rgb(0, 0, 0);
+  margin-bottom: 5px;
+  font-size: 21px;
+  color: rgb(235, 235, 235);
 }
 
 .close-button {
@@ -89,7 +90,7 @@
 }
 
 .profile > p {
-  color: #000;
+  color: rgb(255, 255, 255);
   font-weight: bolder;
 }
 
@@ -104,6 +105,13 @@
   justify-content: space-between;
   align-items: center;
   margin: 20px 0;
+}
+.export-box > p {
+  color: #fff;
+}
+
+.import-title {
+  color: #fff;
 }
 
 .export-box:first-child {

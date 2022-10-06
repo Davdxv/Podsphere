@@ -43,7 +43,7 @@ MobileMenuElement) => void } & SettingsPageProps> = ({ handleChange,
         <Button onClick={handleDownloadBackup}> Backup </Button>
       </Box>
       <Box>
-        <Typography> Import your data: </Typography>
+        <Typography className={styles['import-title']}> Import your data: </Typography>
         <BackupDropzone dropzoneText="Choose your backup file!" onDrop={handleImportBackup} />
       </Box>
     </Box>
@@ -91,20 +91,19 @@ MobileMenuElement) => void }> = ({ handleChange }) => {
       <Box>
         <Box sx={{ minWidth: 120 }}>
           <FormControl fullWidth>
-            <InputLabel className={styles['select-label']}>Choose your CORS proxy</InputLabel>
+            <InputLabel
+              shrink
+              className={styles['select-label']}
+            >Choose your CORS proxy
+            </InputLabel>
             <Select
               sx={{
-                input: { color: 'white !important' },
                 '& .MuiInputBase-input.Mui-disabled': {
-                  WebkitTextFillColor: 'white',
-                  backgroundColor: 'gray',
+                  backgroundColor: 'white',
                 },
                 marginTop: 5,
-                '& .MuiInput-underline:before': { borderBottomColor: 'white' },
-                '& .MuiInput-underline:after': { borderBottomColor: 'white' },
               }}
               value={proxy.value}
-              label="Choose your CORS proxy"
               className={styles['mobile-select']}
               onChange={handleSelectChange}
             >
