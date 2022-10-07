@@ -106,7 +106,7 @@ MobileMenuElement) => void }> = ({ handleChange }) => {
             </Select>
           </FormControl>
         </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end' }}>
+        <Box className={styles['confirm-section']}>
           <TextField
             sx={{
               visibility: proxy.name === CustomCorsProxyName ? 'visible' : 'hidden',
@@ -129,7 +129,7 @@ MobileMenuElement) => void }> = ({ handleChange }) => {
           />
           <Button
             onClick={handleConfirm}
-            sx={{ width: 75, backgroundColor: '#31664c', marginLeft: 15 }}
+            className={styles['confirm-button']}
           >
             Confirm
           </Button>

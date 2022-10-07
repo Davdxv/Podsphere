@@ -124,7 +124,7 @@ const AdvancedSettings : React.FC = () => {
             </Select>
           </FormControl>
         </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end' }}>
+        <Box className={styles['confirm-section']}>
 
           <TextField
             sx={{
@@ -148,7 +148,7 @@ const AdvancedSettings : React.FC = () => {
           />
           <Button
             onClick={handleConfirm}
-            sx={{ width: 75, backgroundColor: '#31664c', marginLeft: 15 }}
+            className={styles['confirm-button']}
           >
             Confirm
           </Button>

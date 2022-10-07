@@ -64,6 +64,19 @@
   padding: 15px 20px;
 }
 
+.confirm-button {
+  width: 75;
+  background-color: #31664c;
+  margin-left: 15;
+}
+
+.confirm-section {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
 .arrow {
   color: #0006;
 }
