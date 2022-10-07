@@ -11,6 +11,7 @@ import {
   TRANSACTION_KINDS,
 } from './client/interfaces';
 import { initializeKeywords } from './client/metadata-filtering/generation';
+import { CorsProxyStorageKey } from './pages/settings-utils';
 import {
   addPrefixToPodcastId,
   isCandidatePodcastId,
@@ -387,7 +388,7 @@ export function corsApiHeaders() {
 
 export function corsProxyURL() {
   const defaultProxy = 'https://cors-anywhere-podsphere.onrender.com/';
-  const customProxy = localStorage.getItem('cors-proxy');
+  const customProxy = localStorage.getItem(CorsProxyStorageKey);
 
   return customProxy || defaultProxy;
 }

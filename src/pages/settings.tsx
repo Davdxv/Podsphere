@@ -10,11 +10,13 @@ import HandymanIcon from '@mui/icons-material/Handyman';
 import { toast } from 'react-toastify';
 import { BackupDropzone } from '../components/settings-page/backup-dropzone';
 import styles from './settings.module.scss';
-import {
-  CustomCorsProxyName, getCurrentProxy, MobileSettingsPage,
-  SettingsPageProps, standardOptions,
-} from './settings-mobile';
+
 import { downloadBackup, importBackup } from '../components/settings-page/utils';
+import { MobileSettingsPage } from './settings-mobile';
+import {
+  SettingsPageProps, getCurrentProxy,
+  CustomCorsProxyName, standardOptions, CorsProxyStorageKey,
+} from './settings-utils';
 
 export enum MenuElement {
   General,
@@ -92,7 +94,7 @@ const AdvancedSettings : React.FC = () => {
   const handleConfirm = () => {
     const prx = proxy;
     if (proxy.name === CustomCorsProxyName) prx.value = customUrl;
-    localStorage.setItem('cors-proxy', prx.value);
+    localStorage.setItem(CorsProxyStorageKey, prx.value);
     toast.success('CORS proxy is successfully set!');
   };
 

@@ -10,37 +10,10 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { toast } from 'react-toastify';
 import { BackupDropzone } from '../components/settings-page/backup-dropzone';
 import styles from './settings-mobile.module.scss';
-
-export enum MobileMenuElement {
-  Main,
-  General,
-  Advanced,
-}
-
-export interface SettingsPageProps {
-  handleImportBackup: (file: File) => Promise<void>;
-  handleDownloadBackup: () => Promise<void>;
-}
-
-export const standardOptions : { name: string; value: string }[] = [{
-  name: 'Podsphere CORS proxy',
-  value: 'https://cors-anywhere-podsphere.onrender.com/',
-}, {
-  name: 'CORS-Anywhere',
-  value: 'https://cors-anywhere.herokuapp.com/',
-}, {
-  name: 'CORSAnywhere',
-  value: 'https://corsanywhere.herokuapp.com/',
-}];
-
-export const CustomCorsProxyName = 'custom';
-
-export const getCurrentProxy = () => {
-  const currentValue = localStorage.getItem('cors-proxy');
-  const proxy = standardOptions.find(item => item.value === currentValue);
-  if (currentValue) return proxy || { name: CustomCorsProxyName, value: currentValue };
-  return standardOptions[0];
-};
+import {
+  MobileMenuElement, SettingsPageProps,
+  getCurrentProxy, CustomCorsProxyName, standardOptions, CorsProxyStorageKey,
+} from './settings-utils';
 
 const GeneralSettings : React.FC<{ handleChange: (activeEl:
 MobileMenuElement) => void } & SettingsPageProps> = ({ handleChange,
@@ -89,7 +62,7 @@ MobileMenuElement) => void }> = ({ handleChange }) => {
   const handleConfirm = () => {
     const prx = proxy;
     if (proxy.name === CustomCorsProxyName) prx.value = customUrl;
-    localStorage.setItem('cors-proxy', prx.value);
+    localStorage.setItem(CorsProxyStorageKey, prx.value);
     toast.success('CORS proxy is successfully set!');
   };
 
