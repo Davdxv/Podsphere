@@ -10,8 +10,10 @@ import HandymanIcon from '@mui/icons-material/Handyman';
 import { toast } from 'react-toastify';
 import { BackupDropzone } from '../components/settings-page/backup-dropzone';
 import styles from './settings.module.scss';
-// eslint-disable-next-line import/no-cycle
-import { MobileSettingsPage, SettingsPageProps } from './settings-mobile';
+import {
+  CustomCorsProxyName, getCurrentProxy, MobileSettingsPage,
+  SettingsPageProps, standardOptions,
+} from './settings-mobile';
 import { downloadBackup, importBackup } from '../components/settings-page/utils';
 
 export enum MenuElement {
@@ -69,26 +71,6 @@ const GeneralSettings : React.FC<SettingsPageProps> = ({ handleDownloadBackup,
     </Box>
 );
 
-export const standardOptions : { name: string; value: string }[] = [{
-  name: 'Podsphere CORS proxy',
-  value: 'https://cors-anywhere-podsphere.onrender.com/',
-}, {
-  name: 'CORS-Anywhere',
-  value: 'https://cors-anywhere.herokuapp.com/',
-}, {
-  name: 'CORSAnywhere',
-  value: 'https://corsanywhere.herokuapp.com/',
-}];
-
-export const CustomCorsProxyName = 'custom';
-
-export const getCurrentProxy = () => {
-  const currentValue = localStorage.getItem('cors-proxy');
-  const proxy = standardOptions.find(item => item.value === currentValue);
-  if (currentValue) return proxy || { name: CustomCorsProxyName, value: currentValue };
-  return standardOptions[0];
-};
-
 const AdvancedSettings : React.FC = () => {
   const currentProxy = getCurrentProxy();
   const [proxy, setProxy] = useState(currentProxy);
@@ -144,6 +126,7 @@ const AdvancedSettings : React.FC = () => {
 
           <TextField
             sx={{
+              visibility: proxy.name === CustomCorsProxyName ? 'visible' : 'hidden',
               input: { color: 'white !important' },
               '& .MuiInputBase-input.Mui-disabled': {
                 WebkitTextFillColor: 'white',
