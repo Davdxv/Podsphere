@@ -10,12 +10,12 @@ import {
   hasMetadata,
   isNotEmpty,
   isValidDate,
-  mergeThreads,
   omitEmptyMetadata,
   toDate,
   valuePresent,
 } from '../../../utils';
 import { mergeArraysToLowerCase } from '../../metadata-filtering/formatting';
+import { sanitizeString } from '../../metadata-filtering/sanitization';
 import { findBestId } from '../../../podcast-id';
 
 /**
@@ -131,6 +131,24 @@ export function mergeBatchMetadata(
     }, {}),
     episodes: mergedEpisodes,
   };
+}
+
+/**
+ * @returns The given arrays of threads, concatenated, with string-props sanitized.
+ */
+export function mergeThreads(list1 : NewThread[] = [], list2 : NewThread[] = []) : NewThread[] {
+  const sanitizeThread = (thr: NewThread) : NewThread => ({
+    ...thr,
+    id: sanitizeString(thr.id),
+    podcastId: sanitizeString(thr.podcastId),
+    subject: sanitizeString(thr.subject),
+    content: sanitizeString(thr.content),
+  });
+
+  return [...list1, ...list2].reduce((acc: NewThread[], thread: NewThread) => [
+    ...(acc || []).filter(thr => thr.id !== thread.id),
+    sanitizeThread(thread),
+  ], [] as NewThread[]);
 }
 
 /**
