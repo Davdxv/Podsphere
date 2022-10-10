@@ -8,6 +8,8 @@ import { ArrowDropDown, ArrowDropUp } from '@mui/icons-material';
 import { Episode, Podcast } from '../client/interfaces';
 import { isValidInteger, metadatumToString } from '../utils';
 import { valueToLowerCase } from '../client/metadata-filtering/formatting';
+import { isCandidatePodcastId } from '../podcast-id';
+import CreateThreadButton from './buttons/create-thread-button';
 import RssButton from './buttons/rss-button';
 import CloseButton from './buttons/close-button';
 import ClearButton from './buttons/clear-button';
@@ -17,7 +19,7 @@ import EpisodeDetails from './episode-details';
 import style from './podcast-details.module.scss';
 
 interface Props {
-  onClose: (_event: React.MouseEvent<unknown>, reason: string) => void,
+  onClose: (_event: React.MouseEvent<unknown>, reason?: string) => void,
   podcast: Podcast,
   isSubscribed: boolean,
   isOpen: boolean,
@@ -25,30 +27,30 @@ interface Props {
   handleUnsubscribe: (_event: React.MouseEvent<unknown>, feedUrl: string) => Promise<void>,
   showPodcastMetadata: boolean,
   setShowPodcastMetadata: React.Dispatch<React.SetStateAction<boolean>>,
-  showImages: boolean,
-  setShowImages: React.Dispatch<React.SetStateAction<boolean>>,
+  showEpisodeImages: boolean,
+  setShowEpisodeImages: React.Dispatch<React.SetStateAction<boolean>>,
+  handleShowCreateThreadDialog: (_event: React.MouseEvent<unknown>, podcastId: Podcast['id'],
+    episodeId: Episode['publishedAt'] | null) => void;
 }
 
 const FILTER_DELAY = 500; // ms
 
 const PodcastDetails : React.FC<Props> = ({
-  onClose,
-  podcast,
-  isSubscribed,
-  isOpen,
-  handleSubscribe,
-  handleUnsubscribe,
-  showPodcastMetadata,
-  setShowPodcastMetadata,
-  showImages,
-  setShowImages,
+  onClose, podcast,
+  isSubscribed, isOpen,
+  handleSubscribe, handleUnsubscribe,
+  showPodcastMetadata, setShowPodcastMetadata,
+  showEpisodeImages, setShowEpisodeImages,
+  handleShowCreateThreadDialog,
 }) => {
   const METADATA_TAGS = [
     'id', 'feedUrl', 'feedType', 'title', 'description', 'author', 'summary', 'explicit',
     'subtitle', 'language', 'creator', 'ownerName', 'ownerEmail', 'managingEditor', 'categories',
     'keywords', 'episodesKeywords', 'imageUrl', 'imageTitle', 'lastBuildDate', 'copyright',
   ];
-  const { title, description, episodes, imageUrl, imageTitle } = podcast;
+  const { id, title, description, episodes, imageUrl, imageTitle } = podcast;
+
+  const isIndexed = !isCandidatePodcastId(id);
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(50);
@@ -134,13 +136,24 @@ const PodcastDetails : React.FC<Props> = ({
       onClose={onClose}
     >
       <Box className={style['podcast-details-inner-container']}>
-        <RssButton
-          isSubscribed={isSubscribed}
-          feedUrl={podcast.feedUrl}
-          handleSubscribe={handleSubscribe}
-          handleUnsubscribe={handleUnsubscribe}
-        />
+        <Box className={style.toolbar}>
+          <CreateThreadButton
+            isIndexed={isIndexed}
+            classes={style[`ep-metadatum-icon-large${isIndexed ? '--clickable' : ''}`]}
+            podcastId={id}
+            episodeId={null}
+            handleShowCreateThreadDialog={handleShowCreateThreadDialog}
+          />
+          <RssButton
+            isSubscribed={isSubscribed}
+            feedUrl={podcast.feedUrl}
+            handleSubscribe={handleSubscribe}
+            handleUnsubscribe={handleUnsubscribe}
+          />
+        </Box>
+
         <CloseButton classes={style['podcast-details-close-button']} onClick={onClose} />
+
         <Box component="h4" className={style['podcast-details-title']}>{title}</Box>
 
         <Box className={style['podcast-details-description']}>
@@ -154,7 +167,7 @@ const PodcastDetails : React.FC<Props> = ({
           </Link>
           )}
           {description && (
-          <p>{description}</p>
+          <Linkified>{description}</Linkified>
           )}
         </Box>
 
@@ -171,8 +184,8 @@ const PodcastDetails : React.FC<Props> = ({
         </Box>
 
         <Box className={style['episodes-toolbar']}>
-          <Button sx={{ width: '8em' }} onClick={() => toggle(setShowImages)}>
-            {`${showImages ? 'Hide' : 'Load'} episode images`}
+          <Button sx={{ width: '8em' }} onClick={() => toggle(setShowEpisodeImages)}>
+            {`${showEpisodeImages ? 'Hide' : 'Load'} episode images`}
           </Button>
 
           <FormControl sx={{ m: 1, width: 'auto', flexGrow: '99' }} variant="outlined">
@@ -208,10 +221,12 @@ const PodcastDetails : React.FC<Props> = ({
                 .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
                 .map(ep => (
                   <EpisodeDetails
-                    key={`${ep.mediaUrl || ep.publishedAt}`}
+                    key={`${ep.publishedAt}`}
+                    podcastId={podcast.id}
                     episode={ep}
-                    showImage={showImages}
+                    showImage={showEpisodeImages}
                     podcastImageUrl={imageUrl}
+                    handleShowCreateThreadDialog={handleShowCreateThreadDialog}
                   />
                 ))}
             </Box>

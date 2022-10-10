@@ -17,12 +17,12 @@
 }
 
 .rss-btn {
-  padding: 0.2rem;
+  padding: 0.25rem;
   line-height: 1.75rem;
-  background-color: orange !important;
+  background-color: colors.$orange-dark !important;
   border: 0;
   border-radius: 0.25rem;
-  color: #fff ;
+  color: #fff;
   box-shadow: none !important;
   opacity: 0.8;
   &:hover, &:focus {
@@ -34,13 +34,32 @@
   }
 }
 
+.create-thread-btn {
+  padding: 0.25rem;
+  line-height: 1.75rem;
+  background-color: transparent !important;
+  border: 0;
+  border-radius: 0.25rem;
+  color: #fff;
+  box-shadow: none !important;
+  opacity: 0.8;
+  &:hover, &:focus {
+    opacity: 1;
+  }
+
+  svg {
+    font-size: 2rem;
+    fill: colors.$orange;
+  }
+}
+
 .custom-btn {
   padding: 2px;
   line-height: 1.75rem;
   border-radius: 50%;
   background: transparent !important;
   border: 0;
-  color: #fff ;
+  color: #fff;
   box-shadow: none !important;
 
   svg {
@@ -68,7 +87,7 @@
     font-size: 2rem;
 
     &:hover, &:focus {
-      color: #4b9b73;
+      color: colors.$green-medium;
     }
   }
 }
@@ -124,7 +143,7 @@
 
 .float-right-fixed {
   position: fixed;
-  right: calc(5vw + 1.5rem);
+  right: calc(5vw + 1rem);
 }
 
 .float-right {
@@ -162,44 +181,32 @@
   }
 }
 
-.btn-icon-open {
-  font-size: 1.25rem;
-  line-height: 1.75rem;
-}
+.toggle-btn {
+  position: relative;
+  float: right;
+  width: fit-content;
+  height: fit-content;
+  margin-left: 0 !important;
+  margin-right: 0;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0.2rem;
+  background-color: transparent;
+  color: colors.$text;
+  font-size: 0.875rem;
 
-.btn-icon-close {
-  font-size: 1.25rem;
-  line-height: 1.75rem;
-}
+  &--on {
+    color: colors.$green;
+  }
 
-.btn {
-  align-items: center;
-  background-color: #030303;
-  border: 1px solid transparent;
-  box-shadow: none !important;
-  border-radius: 50%;
-  display: flex;
-  height: 40px;
-  justify-content: center;
-  position: absolute;
-  left: 35px;
-  width: 40px;
-  z-index: 9999;
-  top: 250px;
-  animation: glowing 1300ms infinite;
-  @keyframes glowing {
-    0% {
-      background-color: #030303;
-      box-shadow: 0 0 3px #030303;
-    }
-    50% {
-      background-color: #0f0f0f;
-      box-shadow: 0 0 10px #0d0d0d;
-      border-color: #212529;
-    }
-    100% {
-      background-color: #030303;
-      box-shadow: 0 0 3px #030303;
-    }
+  &--off {
+    color: colors.$red;
+  }
+
+  svg {
+    width: 1em;
+    height: 1em;
+    margin-right: 0.2rem;
+    fill: colors.$text;
   }
 }

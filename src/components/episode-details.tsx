@@ -10,26 +10,35 @@ import {
 import AttachmentIcon from '@mui/icons-material/AttachFile';
 import DurationIcon from '@mui/icons-material/MoreTime';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import { Episode } from '../client/interfaces';
+import { Episode, Podcast } from '../client/interfaces';
 import {
   bytesToString,
   getTextSelection,
   isFakeDate,
+  isValidDate,
 } from '../utils';
 import { truncateString } from '../client/metadata-filtering/formatting';
+import { isCandidatePodcastId } from '../podcast-id';
 import { parseHtml } from './utils';
+import CreateThreadButton from './buttons/create-thread-button';
 import CachedImage from './cached-image';
-import style from './episode-details-elements.module.scss';
+import style from './episode-details.module.scss';
 
 dayjs.extend(relativeTime);
 
 interface Props {
+  podcastId: Podcast['id'];
   episode: Episode;
   showImage: boolean;
   podcastImageUrl?: string;
+  handleShowCreateThreadDialog: (_event: React.MouseEvent<unknown>, podcastId: Podcast['id'],
+    episodeId: Episode['publishedAt'] | null) => void;
 }
 
-const EpisodeDetails : React.FC<Props> = ({ episode, showImage, podcastImageUrl }) => {
+const EpisodeDetails : React.FC<Props> = ({
+  podcastId, episode, showImage,
+  podcastImageUrl, handleShowCreateThreadDialog,
+}) => {
   const { title, publishedAt, contentHtml, summary, mediaUrl, mediaLength, duration,
     imageUrl } = episode;
   const imgUrl = imageUrl || podcastImageUrl || '';
@@ -42,6 +51,7 @@ const EpisodeDetails : React.FC<Props> = ({ episode, showImage, podcastImageUrl 
 
   const theme = useTheme();
   const isSm = useMediaQuery(theme.breakpoints.down('sm'));
+  const isIndexed = !isCandidatePodcastId(podcastId);
 
   const [expandDescription, setExpandDescription] = useState(false);
 
@@ -92,6 +102,17 @@ const EpisodeDetails : React.FC<Props> = ({ episode, showImage, podcastImageUrl 
               <CloudUploadIcon className={style['ep-metadatum-icon']} />
               {isFakeDate(publishedAt) ? 'unknown' : dayjs(publishedAt).fromNow()}
             </Box>
+            {isValidDate(publishedAt) && (
+              <Box component="small" className={style['ep-metadatum']}>
+                <CreateThreadButton
+                  isIndexed={isIndexed}
+                  classes={style[`ep-metadatum-icon-large${isIndexed ? '--clickable' : ''}`]}
+                  podcastId={podcastId}
+                  episodeId={publishedAt}
+                  handleShowCreateThreadDialog={handleShowCreateThreadDialog}
+                />
+              </Box>
+            )}
           </Box>
         </Box>
       </Box>

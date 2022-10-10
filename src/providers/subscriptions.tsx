@@ -15,7 +15,9 @@ import {
 import {
   concatMessages,
   findMetadataByFeedUrl,
+  findMetadataById,
   hasMetadata,
+  isNotEmpty,
   podcastsFromDTO,
   unixTimestamp,
 } from '../utils';
@@ -23,6 +25,7 @@ import {
   ArSyncTxDTO,
   CachedArTx,
   EpisodesDBTable,
+  NewThread,
   Podcast,
   PodcastDTO,
   SearchPodcastResult,
@@ -70,6 +73,8 @@ interface SubscriptionContextType {
   dbWriteCachedArSyncTxs: (newValue: ArSyncTxDTO[]) => Promise<void>,
   dbStatus: DBStatus,
   setDbStatus: (value: DBStatus) => void,
+  handleCreateThread: (thread: NewThread) => void,
+  handleDiscardThread: (thread: NewThread) => void,
 }
 
 export enum DBStatus {
@@ -98,6 +103,8 @@ export const SubscriptionsContext = createContext<SubscriptionContextType>({
   dbWriteCachedArSyncTxs: async () => {},
   dbStatus: 0,
   setDbStatus: () => {},
+  handleCreateThread: () => {},
+  handleDiscardThread: () => {},
 });
 
 const DB_SUBSCRIPTIONS = IndexedDb.SUBSCRIPTIONS;
@@ -176,14 +183,14 @@ async function dbReadCachedMetadataToSync() : Promise<Partial<PodcastDTO>[]> {
 
 /**
  * `metadataToSync` is updated on each subscriptions refresh, but we still cache it, because f.i. it
- * contains any pending user posts.
+ * contains any pending user threads.
  * @param newValue
  * @throws
  */
 async function dbWriteCachedMetadataToSync(newValue: Partial<Podcast>[]) {
   if (Array.isArray(newValue)) {
     await db.clearAllValues(DB_METADATATOSYNC);
-    await db.putValues(DB_METADATATOSYNC, newValue);
+    await db.putValues(DB_METADATATOSYNC, newValue.filter(values => !!values.id));
   }
 }
 
@@ -195,7 +202,7 @@ async function dbReadCachedTransactions() : Promise<CachedArTx[]> {
 async function dbWriteCachedTransactions(newValue: CachedArTx[]) {
   if (Array.isArray(newValue)) {
     await db.clearAllValues(DB_TX_CACHE);
-    await db.putValues(DB_TX_CACHE, newValue);
+    await db.putValues(DB_TX_CACHE, newValue.filter(values => !!values.txId));
   }
 }
 
@@ -331,9 +338,7 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
       }
 
       const { errorMessages, newSubscriptions, newMetadataToSync } = await refreshSubscriptions(
-        subscriptionsWithNewIds,
-        metadataToSyncWithNewIds,
-        newIdsToRefresh,
+        subscriptionsWithNewIds, metadataToSyncWithNewIds, newIdsToRefresh,
       );
 
       setLastRefreshTime(unixTimestamp());
@@ -376,8 +381,44 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const dbWriteCachedArSyncTxs = async (newValue: ArSyncTxDTO[]) => {
-    await db.clearAllValues(DB_ARSYNCTXS);
-    await db.putValues(DB_ARSYNCTXS, newValue);
+    if (Array.isArray(newValue)) {
+      await db.clearAllValues(DB_ARSYNCTXS);
+      await db.putValues(DB_ARSYNCTXS, newValue.filter(values => !!values.id));
+    }
+  };
+
+  /**
+   * Saves the new `thread` to `metadataToSync`.
+   * ArSync will skip it if `thread.isDraft = true` or if `.subject` or `.content` is missing.
+   * @param thread
+   */
+  const handleCreateThread = (thread: NewThread) => {
+    if (thread.podcastId && thread.content) {
+      const podcastToSync = {
+        ...findMetadataById(thread.podcastId, metadataToSync),
+        id: thread.podcastId,
+      };
+      podcastToSync.threads = [...(podcastToSync.threads || []).filter(thr => thr.id !== thread.id),
+        thread];
+      setMetadataToSync(prev => prev.filter(podcast => podcast.id !== thread.podcastId)
+        .concat(podcastToSync));
+    }
+  };
+
+  /**
+   * Removes the given `thread` from `metadataToSync`.
+   * @param thread
+   */
+  const handleDiscardThread = (thread: NewThread) => {
+    if (thread.podcastId) {
+      const podcastToSync = { ...findMetadataById(thread.podcastId, metadataToSync) };
+      if (isNotEmpty(podcastToSync) && Array.isArray(podcastToSync.threads)) {
+        setMetadataToSync(prev => prev.filter(podcast => podcast.id !== thread.podcastId).concat({
+          ...podcastToSync,
+          threads: podcastToSync.threads!.filter(thr => thr.id !== thread.id),
+        }));
+      }
+    }
   };
 
   useEffect(() => {
@@ -485,6 +526,8 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
         dbWriteCachedArSyncTxs,
         dbStatus,
         setDbStatus,
+        handleCreateThread,
+        handleDiscardThread,
       }}
     >
       {children}

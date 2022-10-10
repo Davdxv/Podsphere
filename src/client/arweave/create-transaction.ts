@@ -6,7 +6,6 @@ import {
   ArweaveTag,
   Episode,
   MandatoryTags,
-  METADATA_TX_KINDS,
   OPTIONAL_ARWEAVE_STRING_TAGS,
   Podcast,
   TransactionKind,
@@ -14,7 +13,13 @@ import {
 } from '../interfaces';
 import { WalletDeferredToArConnect } from './wallet';
 import client from './client';
-import { compressMetadata, toTag, usingArConnect } from './utils';
+import {
+  compressMetadata,
+  isMetadataTx,
+  // isThreadTx,
+  toTag,
+  usingArConnect,
+} from './utils';
 import {
   unixTimestamp,
   toISOString,
@@ -61,6 +66,7 @@ export function formatTags(
   let id = removePrefixFromPodcastId(newMetadata.id || cachedMetadata.id || '');
   if (!isValidUuid(id)) id = '';
   const title = newMetadata.title || cachedMetadata.title || '';
+  // const subject = newMetadata.subject || cachedMetadata.subject || '';
 
   const mandatoryPodcastTags : [MandatoryTags | 'title', string | undefined][] = [
     ['id', removePrefixFromPodcastId(id)],
@@ -68,9 +74,12 @@ export function formatTags(
     ['feedUrl', newMetadata.feedUrl || cachedMetadata.feedUrl],
     ['kind', TRANSACTION_KINDS.includes(kind) ? kind : ''],
   ];
-  if (METADATA_TX_KINDS.includes(kind)) {
+  if (isMetadataTx(kind)) {
     mandatoryPodcastTags.push(['title', title]);
   }
+  // else if (isThreadTx(kind)) {
+  //   mandatoryPodcastTags.push(['subject', subject]);
+  // }
 
   const getMandatoryTagsValues = (key: MandatoryTags) => mandatoryPodcastTags
     .find(element => element[0] === key)![1];

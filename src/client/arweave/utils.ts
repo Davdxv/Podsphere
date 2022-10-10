@@ -12,9 +12,14 @@ import {
   ArweaveTag,
   CachedArTx,
   DispatchResultDTO,
+  MetadataTransactionKind,
+  METADATA_TX_KINDS,
   Podcast,
   PodcastDTO,
+  ThreadTransactionKind,
+  THREAD_TX_KINDS,
   TransactionDTO,
+  TransactionKind,
   TRANSACTION_KINDS,
 } from '../interfaces';
 
@@ -49,6 +54,12 @@ export function calculateTagsSize(tags: ArweaveTag[]) : number {
     acc + (str ? str.length : 0)), 0);
   return tagPrefixesSize + tagsSize;
 }
+
+export const isMetadataTx = (kind: TransactionKind) => METADATA_TX_KINDS
+  .includes(kind as MetadataTransactionKind);
+
+export const isThreadTx = (kind: TransactionKind) => THREAD_TX_KINDS
+  .includes(kind as ThreadTransactionKind);
 
 export function compressMetadata(metadata: Partial<Podcast>) : Uint8Array {
   const u8data = strToU8(JSON.stringify(metadata));

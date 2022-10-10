@@ -1,19 +1,21 @@
 import {
   Episode,
+  NewThread,
   Podcast,
   PodcastTags,
   Primitive,
 } from '../../interfaces';
 import {
-  isNotEmpty,
-  toDate,
-  isValidDate,
   datesEqual,
   hasMetadata,
-  valuePresent,
+  isNotEmpty,
+  isValidDate,
   omitEmptyMetadata,
+  toDate,
+  valuePresent,
 } from '../../../utils';
 import { mergeArraysToLowerCase } from '../../metadata-filtering/formatting';
+import { sanitizeString } from '../../metadata-filtering/sanitization';
 import { findBestId } from '../../../podcast-id';
 
 /**
@@ -74,8 +76,7 @@ function mergeEpisodesMetadata(
     }
 
     const duplicateNewEpisodeIndex = newEpisodes
-      .findIndex(newEpisode => newEpisode.publishedAt.getTime()
-      - oldEpisode.publishedAt.getTime() === 0);
+      .findIndex(newEpisode => datesEqual(newEpisode.publishedAt, oldEpisode.publishedAt));
     if (duplicateNewEpisodeIndex >= 0) {
       duplicateNewEpisodeIndices.push(duplicateNewEpisodeIndex);
       const newEpisode = newEpisodes[duplicateNewEpisodeIndex];
@@ -133,6 +134,24 @@ export function mergeBatchMetadata(
 }
 
 /**
+ * @returns The given arrays of threads, concatenated, with string-props sanitized.
+ */
+export function mergeThreads(list1 : NewThread[] = [], list2 : NewThread[] = []) : NewThread[] {
+  const sanitizeThread = (thr: NewThread) : NewThread => ({
+    ...thr,
+    id: sanitizeString(thr.id),
+    podcastId: sanitizeString(thr.podcastId),
+    subject: sanitizeString(thr.subject),
+    content: sanitizeString(thr.content),
+  });
+
+  return [...list1, ...list2].reduce((acc: NewThread[], thread: NewThread) => [
+    ...(acc || []).filter(thr => thr.id !== thread.id),
+    sanitizeThread(thread),
+  ], [] as NewThread[]);
+}
+
+/**
  * Helper function to run in the body of a reduce operation on an array of objects.
  * @returns
  *   `tags` with all non-empty tags merged, where newer batches take precedence, except for:
@@ -140,11 +159,11 @@ export function mergeBatchMetadata(
  *   - min holds for firstEpisodeDate
  *   - max holds for lastEpisodeDate and metadataBatch
  *   - metadataBatch maps to an Integer
- *   - both categories and keywords are merged
- *     NOTE: pending T251, removal of certain categories and keywords can still be accomplished
- *           by omitting the (e.g. downvoted) tx.id in preselection of GraphQL results.
+ *   - categories, keywords, episodesKeywords and threads are merged
+ *     - NOTE: removal of certain categories and keywords can still be accomplished
+ *             by omitting the (e.g. downvoted) tx.id in preselection of GraphQL results.
  */
-const mergeSpecialTags = (tags: Partial<PodcastTags>, metadata: Partial<PodcastTags>) => {
+const mergeSpecialTags = (tags: Partial<Podcast>, metadata: Partial<Podcast>) => {
   let acc = { ...tags };
   Object.entries(omitEmptyMetadata(metadata)).forEach(([tag, value]) => {
     switch (tag) {
@@ -172,10 +191,11 @@ const mergeSpecialTags = (tags: Partial<PodcastTags>, metadata: Partial<PodcastT
       case 'categories':
       case 'keywords':
       case 'episodesKeywords':
-        acc[tag as 'categories' | 'keywords' | 'episodesKeywords'] = mergeArraysToLowerCase(
-          acc[tag] || [],
-          value as string[],
-        );
+        acc[tag as 'categories' | 'keywords' | 'episodesKeywords'] =
+          mergeArraysToLowerCase(acc[tag] || [], value as string[]);
+        break;
+      case 'threads':
+        acc[tag as 'threads'] = mergeThreads(acc[tag] || [], value as NewThread[]);
         break;
       default:
         acc = { ...acc, [tag]: value };

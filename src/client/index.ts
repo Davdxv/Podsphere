@@ -67,11 +67,11 @@ export async function fetchPodcastRss2Feed(
   // Here we do want currentPodcastMetadataToSync to override each field of the rssDiffnewToArweave,
   // since in the previous refresh, currentPodcastMetadataToSync was assigned
   // the diff from feed.arweave to metadataToSyncWithNewEpisodes.
-  const metadataToSyncWithNewEpisodes = mergeBatchMetadata([rssDiffnewToArweave,
-    currentPodcastMetadataToSync], false);
+  const metadataToSyncWithNewEpisodes =
+    mergeBatchMetadata([rssDiffnewToArweave, currentPodcastMetadataToSync], false);
 
-  const newPartialPodcastMetadata : Partial<Podcast> = mergeBatchMetadata([feed.arweave,
-    metadataToSyncWithNewEpisodes], true);
+  const newPartialPodcastMetadata : Partial<Podcast> =
+    mergeBatchMetadata([feed.arweave, metadataToSyncWithNewEpisodes], true);
   const newPodcastMetadata = partialToPodcast(newPartialPodcastMetadata);
   if ('errorMessage' in newPodcastMetadata) return newPodcastMetadata;
 
@@ -80,10 +80,7 @@ export async function fetchPodcastRss2Feed(
     id: findBestId([feed.arweave.id || '', metadataToSyncWithNewEpisodes.id || '']),
   };
 
-  return {
-    newPodcastMetadata: addLastMutatedAt(newPodcastMetadata),
-    newPodcastMetadataToSync,
-  };
+  return { newPodcastMetadata: addLastMutatedAt(newPodcastMetadata), newPodcastMetadataToSync };
 }
 
 export interface NewIdMapping extends Pick<Podcast, 'feedType' | 'feedUrl'> {
@@ -123,52 +120,59 @@ export function updatePodcastIds<T extends Podcast | Partial<Podcast>>(
   });
 }
 
+/**
+ *
+ * @param subscriptions
+ * @param metadataToSync
+ * @param idsToRefresh if `null`, all subscriptions are refreshed
+ */
 export async function refreshSubscriptions(
   subscriptions: Podcast[],
   metadataToSync: Partial<Podcast>[] = [],
   idsToRefresh: Podcast['id'][] | null = null,
 ) {
   const errorMessages : string[] = [];
-  const newSubscriptions : Podcast[] = [];
-  const newMetadataToSync : Partial<Podcast>[] = [];
+  const newSubscriptions : Podcast[] = [...subscriptions];
+  const newMetadataToSync : Partial<Podcast>[] = [...metadataToSync];
 
   const podcastsToRefresh = idsToRefresh || subscriptions.map(sub => sub.id);
-  const fetchPodcastResults = await Promise.all(
+  const results = await Promise.all(
     podcastsToRefresh.map(id => fetchPodcastById(id, 'rss2', subscriptions, metadataToSync)),
   );
 
-  const replaceOldSubscription = (subscription: Podcast, errorMessage: string = '') => {
-    const oldPodcastMetadataToSync = findMetadataById(subscription.id, metadataToSync);
-    if (errorMessage) {
-      errorMessages.push(`${subscription.title} failed to refresh due to:\n${errorMessage}`);
-    }
-    newSubscriptions.push(subscription);
-    if (hasMetadata(oldPodcastMetadataToSync)) newMetadataToSync.push(oldPodcastMetadataToSync);
+  const updateSubscriptionInPlace = (newSubscription: Podcast) : void => {
+    const { id } = newSubscription;
+    if (!id) return;
+    const index = newSubscriptions.findIndex(sub => sub.id === id);
+    if (index) newSubscriptions[index] = newSubscription;
   };
 
-  subscriptions.forEach(subscription => {
-    const index = podcastsToRefresh.findIndex(id => id === subscription.id);
+  const updateMetadataToSyncInPlace = (newPodcastToSync: Partial<Podcast>) : void => {
+    const { id } = newPodcastToSync;
+    if (!id) return;
+    const index = newMetadataToSync.findIndex(sub => sub.id === id);
     if (index >= 0) {
-      const { errorMessage,
-        newPodcastMetadata, newPodcastMetadataToSync } = fetchPodcastResults[index];
-
-      if (hasMetadata(newPodcastMetadata)) {
-        if (hasDiff(subscription, newPodcastMetadata)) {
-          newSubscriptions.push(newPodcastMetadata);
-          if (hasMetadata(newPodcastMetadataToSync)) {
-            newMetadataToSync.push(newPodcastMetadataToSync);
-          }
-        }
-        else replaceOldSubscription(subscription, errorMessage);
-      }
-      else replaceOldSubscription(subscription, errorMessage);
+      newMetadataToSync[index] = mergeBatchMetadata([newMetadataToSync[index], newPodcastToSync],
+        true);
     }
-    else replaceOldSubscription(subscription);
+    else newMetadataToSync.push(newPodcastToSync);
+  };
+
+  results.forEach(({ errorMessage, newPodcastMetadata, newPodcastMetadataToSync }) => {
+    if (hasMetadata(newPodcastMetadata)) {
+      const subscription = subscriptions.find(sub => sub.id === newPodcastMetadata.id);
+      if (subscription && hasDiff(subscription, newPodcastMetadata)) {
+        updateSubscriptionInPlace(newPodcastMetadata);
+        if (hasMetadata(newPodcastMetadataToSync)) {
+          updateMetadataToSyncInPlace(newPodcastMetadataToSync);
+        }
+      }
+      else if (errorMessage) {
+        const title = subscription?.title || 'Podcast';
+        errorMessages.push(`${title} failed to refresh due to:\n${errorMessage}`);
+      }
+    }
   });
 
-  return {
-    errorMessages,
-    newSubscriptions,
-    newMetadataToSync,
-  };
+  return { errorMessages, newSubscriptions, newMetadataToSync };
 }

@@ -205,6 +205,17 @@ export function findMetadataById<T extends Podcast | Partial<Podcast>>(
   return result || {} as T;
 }
 
+export function findEpisodeMetadata<T extends Podcast | Partial<Podcast> | Episode[]>(
+  epDate: Episode['publishedAt'] | null,
+  metadata: T,
+) : Episode | null {
+  if (!isValidDate(epDate) || !metadata) return null;
+  const episodes = Array.isArray(metadata) ? metadata : metadata.episodes;
+  if (!isNotEmpty(episodes)) return null;
+
+  return episodes.find(x => datesEqual(x.publishedAt, epDate)) || null;
+}
+
 export function partialToPodcast(partialMetadata: Partial<Podcast>) : Podcast | PodcastFeedError {
   const result : Podcast = {
     ...partialMetadata,

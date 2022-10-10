@@ -16,7 +16,7 @@ import style from './search-podcast-results.module.scss';
 type Order = 'asc' | 'desc';
 
 interface OnCloseProp {
-  onClose: (_event: React.MouseEvent<unknown>, reason: string) => void,
+  onClose: (_event: React.MouseEvent<unknown>, reason?: string) => void,
 }
 
 interface Props extends OnCloseProp {

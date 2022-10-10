@@ -1,16 +1,13 @@
 import React from 'react';
-import { IconButton } from '@mui/material';
+import { ButtonProps, IconButton } from '@mui/material';
 import TrashIcon from '@mui/icons-material/DeleteRounded';
 import style from './style.module.scss';
 
-interface Props {
+interface Props extends ButtonProps {
   onClick: () => void;
 }
 
-const RemoveBtn : React.FC<Props> = ({
-  onClick,
-  ...props
-}) => (
+const RemoveBtn : React.FC<Props> = ({ onClick, ...props }) => (
   <IconButton
     className={style['delete-btn']}
     onClick={onClick}

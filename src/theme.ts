@@ -17,11 +17,10 @@ const convertBreakpointStringToNumber = (value: unknown) => {
 };
 
 const { tableTextColor, bgColor, tabHoverColor } = colors;
-
 const { xs, sm, md, lg, xl } = breakpoints;
 
 if (!isColor(tableTextColor) || !isColor(bgColor) || !isColor(tabHoverColor)) {
-  throw new Error('SCSS exported colors are not available');
+  throwDevError('SCSS exported colors are not available');
 }
 
 const TEXT_COLOR = tableTextColor;
@@ -150,7 +149,7 @@ export const theme = createTheme({
     MuiInputLabel: {
       styleOverrides: {
         root: {
-          color: 'inherit',
+          color: 'gray',
           '&:hover, &:focus, &:focus-visible': {
             outline: 'inherit',
           },
@@ -180,10 +179,26 @@ export const theme = createTheme({
         root: {
           color: 'inherit',
           backgroundColor: 'inherit',
+          '&:hover, &:focus, &:focus-visible': {
+            '& > fieldset': {
+              borderColor: 'unset !important',
+            },
+          },
         },
         input: {
           '&:hover, &:focus, &:focus-visible': {
             outline: 'inherit',
+          },
+        },
+      },
+    },
+    MuiFormControlLabel: {
+      styleOverrides: {
+        label: {
+          color: 'inherit',
+          backgroundColor: 'inherit',
+          '&.Mui-disabled': {
+            color: 'gray',
           },
         },
       },

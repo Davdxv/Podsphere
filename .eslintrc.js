@@ -5,8 +5,10 @@ module.exports = {
   },
   rules: {
     quotes: [2, 'single'],
+    'operator-linebreak': 'off',
     '@typescript-eslint/brace-style': 'off',
     '@typescript-eslint/no-use-before-define': 'off',
+    'function-call-argument-newline': 'off',
     'function-paren-newline': ['error', 'consistent'],
     'arrow-body-style': ['error', 'as-needed'],
     'prefer-const': ['error'],
