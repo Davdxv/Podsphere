@@ -144,7 +144,7 @@ export async function refreshSubscriptions(
     const { id } = newSubscription;
     if (!id) return;
     const index = newSubscriptions.findIndex(sub => sub.id === id);
-    if (index) newSubscriptions[index] = newSubscription;
+    if (index >= 0) newSubscriptions[index] = newSubscription;
   };
 
   const updateMetadataToSyncInPlace = (newPodcastToSync: Partial<Podcast>) : void => {

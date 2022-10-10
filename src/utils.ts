@@ -10,6 +10,7 @@ import {
   TransactionKind,
   TRANSACTION_KINDS,
 } from './client/interfaces';
+import { isValidUrl } from './client/metadata-filtering';
 import { initializeKeywords } from './client/metadata-filtering/generation';
 import { CorsProxyStorageKey } from './pages/settings-utils';
 import {
@@ -399,9 +400,12 @@ export function corsApiHeaders() {
 
 export function corsProxyURL() {
   const defaultProxy = 'https://cors-anywhere-podsphere.onrender.com/';
-  const customProxy = localStorage.getItem(CorsProxyStorageKey);
+  if (typeof window !== 'undefined') {
+    const customProxy = localStorage.getItem(CorsProxyStorageKey);
+    if (customProxy && isValidUrl(customProxy)) return customProxy;
+  }
 
-  return customProxy || defaultProxy;
+  return defaultProxy;
 }
 
 export function withCorsProxy(url: string) {
