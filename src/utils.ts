@@ -11,6 +11,7 @@ import {
   TRANSACTION_KINDS,
 } from './client/interfaces';
 import { initializeKeywords } from './client/metadata-filtering/generation';
+import { CorsProxyStorageKey } from './pages/settings-utils';
 import {
   addPrefixToPodcastId,
   isCandidatePodcastId,
@@ -386,8 +387,10 @@ export function corsApiHeaders() {
 }
 
 export function corsProxyURL() {
-  // return 'https://cors-anywhere.herokuapp.com/';
-  return 'https://cors-anywhere-podsphere.onrender.com/';
+  const defaultProxy = 'https://cors-anywhere-podsphere.onrender.com/';
+  const customProxy = localStorage.getItem(CorsProxyStorageKey);
+
+  return customProxy || defaultProxy;
 }
 
 export function withCorsProxy(url: string) {

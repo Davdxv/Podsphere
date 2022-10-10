@@ -1,24 +1,19 @@
 import {
-  Box, Button, List, ListItem, Typography,
+  Box, Button, FormControl, InputLabel, List, ListItem,
+  MenuItem, Select, SelectChangeEvent, TextField, Typography,
 } from '@mui/material';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import SettingsIcon from '@mui/icons-material/Settings';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import HandymanIcon from '@mui/icons-material/Handyman';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { toast } from 'react-toastify';
 import { BackupDropzone } from '../components/settings-page/backup-dropzone';
 import styles from './settings-mobile.module.scss';
-
-export enum MobileMenuElement {
-  Main,
-  General,
-  Advanced,
-}
-
-export interface SettingsPageProps {
-  handleImportBackup: (file: File) => Promise<void>;
-  handleDownloadBackup: () => Promise<void>;
-}
+import {
+  MobileMenuElement, SettingsPageProps,
+  getCurrentProxy, CustomCorsProxyName, standardOptions, CorsProxyStorageKey,
+} from './settings-utils';
 
 const GeneralSettings : React.FC<{ handleChange: (activeEl:
 MobileMenuElement) => void } & SettingsPageProps> = ({ handleChange,
@@ -36,7 +31,7 @@ MobileMenuElement) => void } & SettingsPageProps> = ({ handleChange,
         <Button onClick={handleDownloadBackup}> Backup </Button>
       </Box>
       <Box>
-        <Typography> Import your data: </Typography>
+        <Typography className={styles['import-title']}> Import your data: </Typography>
         <BackupDropzone dropzoneText="Choose your backup file!" onDrop={handleImportBackup} />
       </Box>
     </Box>
@@ -45,7 +40,35 @@ MobileMenuElement) => void } & SettingsPageProps> = ({ handleChange,
 
 const AdvancedSettings : React.FC<{ handleChange: (activeEl:
 MobileMenuElement) => void }> = ({ handleChange }) => {
+  const currentProxy = getCurrentProxy();
+  const [proxy, setProxy] = useState(currentProxy);
+  const [customUrl, setCustomUrl] = useState(currentProxy.name === CustomCorsProxyName
+    ? currentProxy.value : '');
+
+  const inputRef = useRef<HTMLInputElement>();
+
+  const handleUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setCustomUrl(event.target.value);
+  };
+
   const onListItemClick = (element: MobileMenuElement) => () => handleChange(element);
+
+  const handleSelectChange = (event: SelectChangeEvent) => {
+    const val = event.target.value;
+    const newProxy = standardOptions.find(item => item.value === val);
+    setProxy(newProxy || { name: CustomCorsProxyName, value: customUrl });
+  };
+
+  const handleConfirm = () => {
+    const prx = proxy;
+    if (proxy.name === CustomCorsProxyName) prx.value = customUrl;
+    localStorage.setItem(CorsProxyStorageKey, prx.value);
+    toast.success('CORS proxy is successfully set!');
+  };
+
+  useEffect(() => {
+    if (proxy.name === CustomCorsProxyName) inputRef!.current!.focus();
+  }, [proxy]);
 
   return (
     <Box className={styles.page}>
@@ -53,7 +76,65 @@ MobileMenuElement) => void }> = ({ handleChange }) => {
         onClick={onListItemClick(MobileMenuElement.Main)}
         className={styles['close-button']}
       />
-      <Typography style={{ margin: 'auto' }}> TBD! :( </Typography>
+      <Box>
+        <Box sx={{ minWidth: 120 }}>
+          <FormControl fullWidth>
+            <InputLabel
+              shrink
+              className={styles['select-label']}
+            >Choose your CORS proxy
+            </InputLabel>
+            <Select
+              sx={{
+                '& .MuiInputBase-input.Mui-disabled': {
+                  backgroundColor: 'white',
+                },
+                marginTop: 5,
+              }}
+              value={proxy.value}
+              className={styles['mobile-select']}
+              onChange={handleSelectChange}
+            >
+              {standardOptions.map(item => (
+                <MenuItem value={item.value}>
+                  {item.name}
+                </MenuItem>
+              ))}
+              <MenuItem value={customUrl}>
+                Custom
+              </MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+        <Box className={styles['confirm-section']}>
+          <TextField
+            sx={{
+              visibility: proxy.name === CustomCorsProxyName ? 'visible' : 'hidden',
+              input: { color: 'white !important' },
+              '& .MuiInputBase-input.Mui-disabled': {
+                WebkitTextFillColor: 'white',
+                backgroundColor: 'gray',
+              },
+              marginTop: 5,
+              '& .MuiInput-underline:before': { borderBottomColor: 'white' },
+              '& .MuiInput-underline:after': { borderBottomColor: 'white' },
+            }}
+            required={proxy.name === CustomCorsProxyName}
+            disabled={proxy.name !== CustomCorsProxyName}
+            color="primary"
+            inputRef={inputRef}
+            value={customUrl}
+            onChange={handleUrlChange}
+            variant="standard"
+          />
+          <Button
+            onClick={handleConfirm}
+            className={styles['confirm-button']}
+          >
+            Confirm
+          </Button>
+        </Box>
+      </Box>
     </Box>
   );
 };

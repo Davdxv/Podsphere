@@ -1,14 +1,22 @@
 import {
-  Box, Button, List, ListItem, Typography, useMediaQuery, useTheme,
+  Box, Button, FormControl, InputLabel, List, ListItem,
+  MenuItem, Select, SelectChangeEvent, TextField, Typography, useMediaQuery, useTheme,
 } from '@mui/material';
-import React, { useState } from 'react';
+import React, {
+  useEffect, useRef, useState,
+} from 'react';
 import SettingsIcon from '@mui/icons-material/Settings';
 import HandymanIcon from '@mui/icons-material/Handyman';
 import { toast } from 'react-toastify';
 import { BackupDropzone } from '../components/settings-page/backup-dropzone';
 import styles from './settings.module.scss';
-import { MobileSettingsPage, SettingsPageProps } from './settings-mobile';
+
 import { downloadBackup, importBackup } from '../components/settings-page/utils';
+import { MobileSettingsPage } from './settings-mobile';
+import {
+  SettingsPageProps, getCurrentProxy,
+  CustomCorsProxyName, standardOptions, CorsProxyStorageKey,
+} from './settings-utils';
 
 export enum MenuElement {
   General,
@@ -65,11 +73,90 @@ const GeneralSettings : React.FC<SettingsPageProps> = ({ handleDownloadBackup,
     </Box>
 );
 
-const AdvancedSettings : React.FC = () => (
-  <Box className={styles.container}>
-    <Typography style={{ margin: 'auto' }}> TBD! :( </Typography>
-  </Box>
-);
+const AdvancedSettings : React.FC = () => {
+  const currentProxy = getCurrentProxy();
+  const [proxy, setProxy] = useState(currentProxy);
+  const [customUrl, setCustomUrl] = useState(currentProxy.name === CustomCorsProxyName
+    ? currentProxy.value : '');
+
+  const inputRef = useRef<HTMLInputElement>();
+
+  const handleUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setCustomUrl(event.target.value);
+  };
+
+  const handleChange = (event: SelectChangeEvent) => {
+    const val = event.target.value;
+    const newProxy = standardOptions.find(item => item.value === val);
+    setProxy(newProxy || { name: CustomCorsProxyName, value: customUrl });
+  };
+
+  const handleConfirm = () => {
+    const prx = proxy;
+    if (proxy.name === CustomCorsProxyName) prx.value = customUrl;
+    localStorage.setItem(CorsProxyStorageKey, prx.value);
+    toast.success('CORS proxy is successfully set!');
+  };
+
+  useEffect(() => {
+    if (proxy.name === CustomCorsProxyName) inputRef!.current!.focus();
+  }, [proxy]);
+
+  return (
+    <Box className={styles.container}>
+      <Box>
+        <Box sx={{ minWidth: 120 }}>
+          <FormControl fullWidth>
+            <InputLabel>Choose your CORS proxy</InputLabel>
+            <Select
+              value={proxy.value}
+              label="Choose your CORS proxy"
+              onChange={handleChange}
+            >
+              {standardOptions.map(item => (
+                <MenuItem value={item.value}>
+                  {item.name}
+                </MenuItem>
+              ))}
+              <MenuItem value={customUrl}>
+                Custom
+              </MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+        <Box className={styles['confirm-section']}>
+
+          <TextField
+            sx={{
+              visibility: proxy.name === CustomCorsProxyName ? 'visible' : 'hidden',
+              input: { color: 'white !important' },
+              '& .MuiInputBase-input.Mui-disabled': {
+                WebkitTextFillColor: 'white',
+                backgroundColor: 'gray',
+              },
+              marginTop: 5,
+              '& .MuiInput-underline:before': { borderBottomColor: 'white' },
+              '& .MuiInput-underline:after': { borderBottomColor: 'white' },
+            }}
+            required={proxy.name === CustomCorsProxyName}
+            disabled={proxy.name !== CustomCorsProxyName}
+            color="primary"
+            inputRef={inputRef}
+            value={customUrl}
+            onChange={handleUrlChange}
+            variant="standard"
+          />
+          <Button
+            onClick={handleConfirm}
+            className={styles['confirm-button']}
+          >
+            Confirm
+          </Button>
+        </Box>
+      </Box>
+      <Typography style={{ margin: 'auto' }}> TBD! :( </Typography>
+    </Box>
+  ); };
 
 const getActivePane = (activeEl: MenuElement,
   handleImportBackup: SettingsPageProps['handleImportBackup'],

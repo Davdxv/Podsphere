@@ -15,7 +15,7 @@
   align-items: center;
   width: 90%;
   height: 75vh;
-  background-color: #fffe;
+  background-color: rgb(20, 33, 40);
   border-radius: 10px;
   padding: 5px;
   animation: fadeIn 0.4s;
@@ -23,9 +23,9 @@
 
 .page {
   margin: auto;
-  width: 90%;
+  width: 80%;
   height: 75vh;
-  background-color: #fffe;
+  background-color: rgb(20, 33, 40);
   border-radius: 10px;
   padding: 30px;
   animation: fadeIn 0.4s;
@@ -43,6 +43,17 @@
   margin-right: 15px;
 }
 
+.mobile-select {
+  color: #fff;
+  background-color: rgb(48, 48, 48);
+}
+
+.select-label {
+  margin-bottom: 5px;
+  font-size: 21px;
+  color: rgb(235, 235, 235);
+}
+
 .close-button {
   margin-bottom: 30px;
 }
@@ -51,6 +62,19 @@
   display: flex;
   justify-content: space-between;
   padding: 15px 20px;
+}
+
+.confirm-button {
+  width: 75;
+  background-color: #31664c;
+  margin-left: 15;
+}
+
+.confirm-section {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
 }
 
 .arrow {
@@ -79,7 +103,7 @@
 }
 
 .profile > p {
-  color: #000;
+  color: rgb(255, 255, 255);
   font-weight: bolder;
 }
 
@@ -94,6 +118,13 @@
   justify-content: space-between;
   align-items: center;
   margin: 20px 0;
+}
+.export-box > p {
+  color: #fff;
+}
+
+.import-title {
+  color: #fff;
 }
 
 .export-box:first-child {
