@@ -190,7 +190,7 @@ async function dbReadCachedMetadataToSync() : Promise<Partial<PodcastDTO>[]> {
 async function dbWriteCachedMetadataToSync(newValue: Partial<Podcast>[]) {
   if (Array.isArray(newValue)) {
     await db.clearAllValues(DB_METADATATOSYNC);
-    await db.putValues(DB_METADATATOSYNC, newValue);
+    await db.putValues(DB_METADATATOSYNC, newValue.filter(values => !!values.id));
   }
 }
 
@@ -202,7 +202,7 @@ async function dbReadCachedTransactions() : Promise<CachedArTx[]> {
 async function dbWriteCachedTransactions(newValue: CachedArTx[]) {
   if (Array.isArray(newValue)) {
     await db.clearAllValues(DB_TX_CACHE);
-    await db.putValues(DB_TX_CACHE, newValue);
+    await db.putValues(DB_TX_CACHE, newValue.filter(values => !!values.txId));
   }
 }
 
@@ -338,9 +338,7 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
       }
 
       const { errorMessages, newSubscriptions, newMetadataToSync } = await refreshSubscriptions(
-        subscriptionsWithNewIds,
-        metadataToSyncWithNewIds,
-        newIdsToRefresh,
+        subscriptionsWithNewIds, metadataToSyncWithNewIds, newIdsToRefresh,
       );
 
       setLastRefreshTime(unixTimestamp());
@@ -383,8 +381,10 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const dbWriteCachedArSyncTxs = async (newValue: ArSyncTxDTO[]) => {
-    await db.clearAllValues(DB_ARSYNCTXS);
-    await db.putValues(DB_ARSYNCTXS, newValue);
+    if (Array.isArray(newValue)) {
+      await db.clearAllValues(DB_ARSYNCTXS);
+      await db.putValues(DB_ARSYNCTXS, newValue.filter(values => !!values.id));
+    }
   };
 
   /**

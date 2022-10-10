@@ -32,7 +32,7 @@ const DraftList : React.FC<Props> = ({
         const title = [podcast.title, episode?.title].filter(x => x).join(': ');
         const imageUrl = episode?.imageUrl || podcast.imageUrl || '';
 
-        const toggleIsDraft = (thread: NewThread) => ({ ...thread, isDraft: !thread.isDraft });
+        const toggleIsDraft = (thr: NewThread) : NewThread => ({ ...thr, isDraft: !thr.isDraft });
 
         const handleToggleSyncThread = (thread: NewThread) => {
           handleCreateThread(toggleIsDraft(thread));

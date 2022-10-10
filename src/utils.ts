@@ -4,7 +4,7 @@ import {
   EpisodeDTO,
   FeedType,
   FEED_TYPES,
-  // NewThread,
+  NewThread,
   Podcast,
   PodcastDTO,
   PodcastFeedError,
@@ -12,6 +12,7 @@ import {
   TRANSACTION_KINDS,
 } from './client/interfaces';
 import { initializeKeywords } from './client/metadata-filtering/generation';
+import { sanitizeString } from './client/metadata-filtering/sanitization';
 import {
   addPrefixToPodcastId,
   isCandidatePodcastId,
@@ -334,6 +335,24 @@ export function fillMissingEpisodeDates(episodes: Episode[]) : Episode[] {
     return { ...ep, publishedAt };
   }).filter(hasMetadata)
     .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
+}
+
+/**
+ * @returns The given arrays of threads, concatenated, with string-props sanitized.
+ */
+export function mergeThreads(list1 : NewThread[] = [], list2 : NewThread[] = []) : NewThread[] {
+  const sanitizeThread = (thr: NewThread) : NewThread => ({
+    ...thr,
+    id: sanitizeString(thr.id),
+    podcastId: sanitizeString(thr.podcastId),
+    subject: sanitizeString(thr.subject),
+    content: sanitizeString(thr.content),
+  });
+
+  return [...list1, ...list2].reduce((acc: NewThread[], thread: NewThread) => [
+    ...(acc || []).filter(thr => thr.id !== thread.id),
+    sanitizeThread(thread),
+  ], [] as NewThread[]);
 }
 
 /**

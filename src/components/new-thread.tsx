@@ -37,10 +37,10 @@ const NewThreadDialog : React.FC<Props> = ({
 }) => {
   const [initialized, setInitialized] = useState(false);
   const [modified, setModified] = useState(false);
-  const [id] = useState(prevDraft ? prevDraft.id : uuid());
   const [subject, setSubject] = useState(prevDraft ? prevDraft.subject : '');
   const [content, setContent] = useState(prevDraft ? prevDraft.content : '');
   const [type, setType] = useState<ThreadType>(prevDraft ? prevDraft.type : 'public');
+  const id = prevDraft ? prevDraft.id : uuid();
 
   const podcast : Partial<Podcast> = findMetadataById(podcastId, subscriptions);
   const episode : Episode | null = findEpisodeMetadata(episodeId, podcast);

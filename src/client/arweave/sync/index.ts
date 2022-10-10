@@ -1,12 +1,12 @@
 /**
  * @module ArSync Main module for ArSync
  *
- * Current version: v1.4
+ * Current version: v1.4.1
  *
  * ArSync comprises all necessary logic for creating, fetching and tracking Podsphere's transactions
  * on Arweave.
- * At present, these transactions comprise incremental (podcast) metadata. Future updates will
- * expand this with more types of transactions.
+ * At present, these transactions comprise incremental (podcast) metadata or user threads/replies.
+ * Future updates will expand this with more types of transactions.
  *
  * A modular API is not available yet, but the code is to be maintained with this prospect in mind.
  *
@@ -32,6 +32,7 @@ import {
 import {
   findMetadataById,
   hasMetadata,
+  isNotEmpty,
   unixTimestamp,
 } from '../../../utils';
 import { throwDevError } from '../../../errors';
@@ -316,11 +317,8 @@ function partitionMetadataBatches(
   let episodesRemainder = episodes || [];
   do {
     priorBatchMetadata = mergeBatchMetadata([priorBatchMetadata, previousBatchMetadata], true);
-    const currentBatch = findNextBatch(cachedMetadata,
-      priorBatchMetadata,
-      mainMetadata,
-      episodesRemainder,
-      maxBatchSize);
+    const currentBatch = findNextBatch(cachedMetadata, priorBatchMetadata, mainMetadata,
+      episodesRemainder, maxBatchSize);
     batches.push(currentBatch);
     previousBatchMetadata = currentBatch.metadata;
 
@@ -347,8 +345,11 @@ export function formatNewMetadataToSync(
         newDiff = rightDiff(metadata, prevPodcastToSyncDiff, ['id', 'feedType', 'feedUrl']);
       }
 
+      const { threads } = prevPodcastToSyncDiff;
+      const newDiffWithThreads = isNotEmpty(threads) ? { ...newDiff, id: podcastId, threads } :
+        { ...newDiff };
       diffs = diffs.filter(oldDiff => oldDiff.id !== podcastId);
-      if (hasMetadata(newDiff)) diffs.push(newDiff);
+      if (hasMetadata(newDiffWithThreads)) diffs.push(newDiffWithThreads);
     }
   });
 

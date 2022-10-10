@@ -96,6 +96,7 @@ const CachedImage : React.FC<Props> = ({ src, alt, classes, tWidth, tHeight, ...
 
   useEffect(() => {
     try {
+      // TODO: if (!loading)
       if (!thumb) loadThumbnail();
     }
     catch (ex) {
