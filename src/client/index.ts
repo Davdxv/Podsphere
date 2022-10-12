@@ -2,17 +2,12 @@ import { Podcast } from './interfaces';
 import * as arweave from './arweave';
 import * as rss from './rss';
 import {
-  addLastMutatedAt,
-  findMetadataByFeedUrl,
-  findMetadataById,
-  hasMetadata,
-  partialToPodcast,
+  addLastMutatedAt, findMetadataByFeedUrl, findMetadataById,
+  hasMetadata, isEmpty, partialToPodcast,
   unixTimestamp,
 } from '../utils';
 import {
-  hasDiff,
-  mergeBatchMetadata,
-  rightDiff,
+  hasDiff, mergeBatchMetadata, rightDiff,
   simpleDiff,
 } from './arweave/sync/diff-merge-logic';
 import { findBestId, isValidUuid } from '../podcast-id';
@@ -152,8 +147,9 @@ export async function refreshSubscriptions(
     if (!id) return;
     const index = newMetadataToSync.findIndex(sub => sub.id === id);
     if (index >= 0) {
-      newMetadataToSync[index] = mergeBatchMetadata([newMetadataToSync[index], newPodcastToSync],
-        true);
+      const { threads } = newMetadataToSync[index];
+      const prevToSync = isEmpty(threads) ? {} : { id, threads };
+      newMetadataToSync[index] = mergeBatchMetadata([prevToSync, newPodcastToSync], true);
     }
     else newMetadataToSync.push(newPodcastToSync);
   };

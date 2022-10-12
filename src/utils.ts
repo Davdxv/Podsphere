@@ -7,6 +7,8 @@ import {
   Podcast,
   PodcastDTO,
   PodcastFeedError,
+  ThreadType,
+  THREAD_TYPES,
   TransactionKind,
   TRANSACTION_KINDS,
 } from './client/interfaces';
@@ -107,6 +109,10 @@ export function isValidKind(kind: unknown) : kind is TransactionKind {
 
 export function isValidFeedType(feedType: unknown) : feedType is FeedType {
   return typeof feedType === 'string' && FEED_TYPES.some(t => t === feedType);
+}
+
+export function isValidThreadType(type: unknown) : type is ThreadType {
+  return typeof type === 'string' && THREAD_TYPES.some(t => t === type);
 }
 
 export function datesEqual(a: Date, b: Date) {
@@ -276,8 +282,7 @@ export function podcastFromDTO(podcast: Partial<PodcastDTO>, sortEpisodes = true
 }
 
 export function podcastsFromDTO(podcasts: Partial<PodcastDTO>[], sortEpisodes = true) {
-  return podcasts.filter(podcast => isNotEmpty(podcast))
-    .map(podcast => podcastFromDTO(podcast, sortEpisodes));
+  return podcasts.filter(isNotEmpty).map(podcast => podcastFromDTO(podcast, sortEpisodes));
 }
 
 export function podcastToDTO(podcast: Partial<Podcast>) : Partial<PodcastDTO> {
@@ -287,16 +292,16 @@ export function podcastToDTO(podcast: Partial<Podcast>) : Partial<PodcastDTO> {
 
   if (feedType) result.feedType = `${feedType}`;
   if (kind) result.kind = `${kind}`;
-  if (firstEpisodeDate) result.firstEpisodeDate = `${firstEpisodeDate}`;
-  if (lastEpisodeDate) result.lastEpisodeDate = `${lastEpisodeDate}`;
-  if (lastBuildDate) result.lastBuildDate = `${lastBuildDate}`;
+  if (firstEpisodeDate) result.firstEpisodeDate = toISOString(firstEpisodeDate);
+  if (lastEpisodeDate) result.lastEpisodeDate = toISOString(lastEpisodeDate);
+  if (lastBuildDate) result.lastBuildDate = toISOString(lastBuildDate);
   if (isNotEmpty(episodes)) result.episodes = episodesToDTO(episodes);
 
   return result;
 }
 
 export function episodesToDTO(episodes: Episode[]) : EpisodeDTO[] {
-  return episodes.map(episode => ({ ...episode, publishedAt: `${episode.publishedAt}` }));
+  return episodes.map(episode => ({ ...episode, publishedAt: toISOString(episode.publishedAt) }));
 }
 
 /**
@@ -333,7 +338,7 @@ export function omitEmptyMetadata(metadata: Partial<Podcast> | Partial<Episode>)
   Object.entries(metadata).forEach(([prop, value]) => {
     let newValue = value;
     // @ts-ignore
-    if (Array.isArray(newValue)) newValue = newValue.filter(elem => valuePresent(elem));
+    if (Array.isArray(newValue)) newValue = newValue.filter(valuePresent);
     if (valuePresent(newValue)) result = { ...result, [prop]: newValue };
   });
 
@@ -358,7 +363,7 @@ export function valuePresent(value: number | string | object) : boolean {
     case 'string':
       return !!value.trim();
     case 'object':
-      if (Array.isArray(value)) return isNotEmpty(value.filter(elem => valuePresent(elem)));
+      if (Array.isArray(value)) return isNotEmpty(value.filter(valuePresent));
       if (value instanceof Date) return isValidDate(value);
 
       return isNotEmpty(value);
@@ -368,13 +373,24 @@ export function valuePresent(value: number | string | object) : boolean {
 }
 
 /**
- * @param obj is an object that might be empty/undefined
- * @returns true if the given array or object is not empty
+ * @param val
+ * @returns true if the given `val` is an array or object that is not empty
  */
-export function isNotEmpty<T extends object>(obj: T | EmptyTypes) : obj is T {
-  const isEmpty = !obj || typeof obj !== 'object' || Object.keys(obj).length === 0;
-  return !isEmpty;
+export function isNotEmpty<T extends object>(val: T | EmptyTypes) : val is T {
+  const empty = !val || typeof val !== 'object' || Object.keys(val).length === 0;
+  return !empty;
 }
+
+/**
+ * @param val
+ * @returns true if the given `val` is an array or object that is empty
+ */
+export function isEmpty<T extends object>(val: T | EmptyTypes) {
+  return !isNotEmpty<T>(val);
+}
+// export function isEmpty(val: unknown) {
+//   return !isNotEmpty(val);
+// }
 
 /* Returns true if the given objects' values are (deep)equal */
 export function valuesEqual(a: object = {}, b: object = {}) : boolean {

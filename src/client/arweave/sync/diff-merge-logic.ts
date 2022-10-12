@@ -1,9 +1,6 @@
 import {
-  Episode,
-  NewThread,
-  Podcast,
-  PodcastTags,
-  Primitive,
+  Episode, Podcast, PodcastTags,
+  Primitive, Thread,
 } from '../../interfaces';
 import {
   datesEqual,
@@ -136,8 +133,8 @@ export function mergeBatchMetadata(
 /**
  * @returns The given arrays of threads, concatenated, with string-props sanitized.
  */
-export function mergeThreads(list1 : NewThread[] = [], list2 : NewThread[] = []) : NewThread[] {
-  const sanitizeThread = (thr: NewThread) : NewThread => ({
+export function mergeThreads(list1 : Thread[] = [], list2 : Thread[] = []) : Thread[] {
+  const sanitizeThread = (thr: Thread) : Thread => ({
     ...thr,
     id: sanitizeString(thr.id),
     podcastId: sanitizeString(thr.podcastId),
@@ -145,10 +142,10 @@ export function mergeThreads(list1 : NewThread[] = [], list2 : NewThread[] = [])
     content: sanitizeString(thr.content),
   });
 
-  return [...list1, ...list2].reduce((acc: NewThread[], thread: NewThread) => [
+  return [...list1, ...list2].reduce((acc: Thread[], thread: Thread) => [
     ...(acc || []).filter(thr => thr.id !== thread.id),
     sanitizeThread(thread),
-  ], [] as NewThread[]);
+  ], [] as Thread[]);
 }
 
 /**
@@ -159,7 +156,7 @@ export function mergeThreads(list1 : NewThread[] = [], list2 : NewThread[] = [])
  *   - min holds for firstEpisodeDate
  *   - max holds for lastEpisodeDate and metadataBatch
  *   - metadataBatch maps to an Integer
- *   - categories, keywords, episodesKeywords and threads are merged
+ *   - categories, keywords, episodesKeywords and threads are each merged
  *     - NOTE: removal of certain categories and keywords can still be accomplished
  *             by omitting the (e.g. downvoted) tx.id in preselection of GraphQL results.
  */
@@ -195,7 +192,7 @@ const mergeSpecialTags = (tags: Partial<Podcast>, metadata: Partial<Podcast>) =>
           mergeArraysToLowerCase(acc[tag] || [], value as string[]);
         break;
       case 'threads':
-        acc[tag as 'threads'] = mergeThreads(acc[tag] || [], value as NewThread[]);
+        acc[tag as 'threads'] = mergeThreads(acc[tag] || [], value as Thread[]);
         break;
       default:
         acc = { ...acc, [tag]: value };
@@ -221,10 +218,8 @@ function episodesRightDiff(
 ) {
   const result : PartialEpisodeWithDate[] = [];
   for (const newEpisode of newEpisodes) {
-    const oldEpisodeMatch = oldEpisodes.find(oldEpisode => datesEqual(
-      oldEpisode.publishedAt,
-      newEpisode.publishedAt,
-    ));
+    const oldEpisodeMatch =
+      oldEpisodes.find(oldEpisode => datesEqual(oldEpisode.publishedAt, newEpisode.publishedAt));
     if (oldEpisodeMatch) {
       const diff = rightDiff(oldEpisodeMatch, newEpisode, ['publishedAt']);
       if (hasMetadata(diff)) result.push(diff as PartialEpisodeWithDate);

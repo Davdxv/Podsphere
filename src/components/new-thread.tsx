@@ -8,7 +8,7 @@ import {
 import { toast } from 'react-toastify';
 import { v4 as uuid } from 'uuid';
 import {
-  Episode, NewThread, Podcast,
+  Episode, Podcast, Thread,
   ThreadType,
 } from '../client/interfaces';
 import {
@@ -22,10 +22,10 @@ import style from './new-thread.module.scss';
 interface Props {
   onClose: () => void;
   isOpen: boolean;
-  handleOpenSavePrompt: (draft: NewThread) => void;
-  handleSubmitThread: (thread: NewThread) => void;
+  handleOpenSavePrompt: (draft: Thread) => void;
+  handleSubmitThread: (thread: Thread) => void;
   subscriptions: Podcast[];
-  prevDraft: NewThread | null;
+  prevDraft: Thread | null;
   podcastId: Podcast['id'];
   episodeId: Episode['publishedAt'] | null; // If null, the thread pertains to the podcast itself
 }

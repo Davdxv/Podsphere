@@ -3,31 +3,20 @@ import Transaction from 'arweave/node/lib/transaction';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { DispatchResult } from 'arconnect';
 import {
-  ArweaveTag,
-  Episode,
-  MandatoryTags,
-  OPTIONAL_ARWEAVE_STRING_TAGS,
-  Podcast,
-  TransactionKind,
-  TRANSACTION_KINDS,
+  ArweaveTag, Episode, MandatoryMetadataTxTags,
+  MandatoryThreadReplyTxTags, MandatoryTags, MandatoryThreadTxTags,
+  OPTIONAL_ARWEAVE_STRING_TAGS, Podcast, Thread,
+  ThreadReply, TransactionKind, TRANSACTION_KINDS,
 } from '../interfaces';
 import { WalletDeferredToArConnect } from './wallet';
 import client from './client';
 import {
-  compressMetadata,
-  isMetadataTx,
-  // isThreadTx,
-  toTag,
-  usingArConnect,
+  compressMetadata, toTag, usingArConnect,
 } from './utils';
 import {
-  unixTimestamp,
-  toISOString,
-  isNotEmpty,
-  isValidDate,
-  isValidInteger,
-  getFirstEpisodeDate,
-  getLastEpisodeDate,
+  getFirstEpisodeDate, getLastEpisodeDate, isNotEmpty,
+  isValidDate, isValidInteger, isValidThreadType,
+  toISOString, unixTimestamp,
 } from '../../utils';
 import { isValidUuid, removePrefixFromPodcastId } from '../../podcast-id';
 import { getCachedBatchNumberForDate } from './cache/transactions';
@@ -57,7 +46,7 @@ const validateAndTrimTag = (tag: ArweaveTag) : ArweaveTag | null => {
   return [validName, validVal] as ArweaveTag;
 };
 
-export function formatTags(
+export function formatMetadataTxTags(
   newMetadata: Partial<Podcast>,
   cachedMetadata: Partial<Podcast> = {},
   kind: TransactionKind = 'metadataBatch',
@@ -65,43 +54,29 @@ export function formatTags(
   // An updated id is assumed to have been fetched through SubscriptionsProvider.refresh()
   let id = removePrefixFromPodcastId(newMetadata.id || cachedMetadata.id || '');
   if (!isValidUuid(id)) id = '';
-  const title = newMetadata.title || cachedMetadata.title || '';
-  // const subject = newMetadata.subject || cachedMetadata.subject || '';
 
-  const mandatoryPodcastTags : [MandatoryTags | 'title', string | undefined][] = [
-    ['id', removePrefixFromPodcastId(id)],
-    ['feedType', newMetadata.feedType || cachedMetadata.feedType],
-    ['feedUrl', newMetadata.feedUrl || cachedMetadata.feedUrl],
-    ['kind', TRANSACTION_KINDS.includes(kind) ? kind : ''],
-  ];
-  if (isMetadataTx(kind)) {
-    mandatoryPodcastTags.push(['title', title]);
-  }
-  // else if (isThreadTx(kind)) {
-  //   mandatoryPodcastTags.push(['subject', subject]);
-  // }
+  const mandatoryTags : { [K in MandatoryTags | MandatoryMetadataTxTags]: string | undefined } = {
+    id: removePrefixFromPodcastId(id),
+    kind: TRANSACTION_KINDS.includes(kind) ? kind : '',
+    feedType: newMetadata.feedType || cachedMetadata.feedType || '',
+    feedUrl: newMetadata.feedUrl || cachedMetadata.feedUrl || '',
+    title: newMetadata.title || cachedMetadata.title || '',
+  };
 
-  const getMandatoryTagsValues = (key: MandatoryTags) => mandatoryPodcastTags
-    .find(element => element[0] === key)![1];
-
-  mandatoryPodcastTags.forEach(([name, value]) => {
+  Object.entries(mandatoryTags).forEach(([key, value]) => {
     if (!value) {
-      throw new Error('Could not upload metadata for '
-        + `${title || getMandatoryTagsValues('feedUrl')}: ${name} is missing`);
+      const name = mandatoryTags.title || mandatoryTags.feedUrl;
+      throw new Error(`Could not upload metadata for ${name}: ${key} is missing`);
     }
   });
 
-  const podcastTags : ArweaveTag[] = [...mandatoryPodcastTags];
+  const podcastTags : ArweaveTag[] = Object.entries(mandatoryTags) as ArweaveTag[];
   OPTIONAL_ARWEAVE_STRING_TAGS.forEach(tagName => {
-    const val = newMetadata[tagName as keyof Podcast] as string;
-    if (val) podcastTags.push([tagName, `${val}`]);
+    const val = newMetadata[tagName as keyof Podcast];
+    if (val) podcastTags.push([tagName, val instanceof Date ? toISOString(val) : `${val}`]);
   });
-  const episodeBatchTags : ArweaveTag[] = episodeTags(
-    id,
-    newMetadata.episodes,
-    cachedMetadata,
-    newMetadata.metadataBatch,
-  );
+  const episodeBatchTags : ArweaveTag[] =
+    episodeTags(id, newMetadata.episodes, cachedMetadata, newMetadata.metadataBatch);
   const pluralTags : ArweaveTag[] = [];
   // Add new categories and keywords in string => string format
   (newMetadata.categories || []).forEach(cat => pluralTags.push(['category', cat]));
@@ -114,6 +89,48 @@ export function formatTags(
   ].map(validateAndTrimTag).filter(x => x) as ArweaveTag[];
 
   // pluralTags are cut off if tags exceed MAX_TAGS
+  return validTags.length <= MAX_TAGS ? validTags : validTags.slice(0, MAX_TAGS);
+}
+
+export function formatThreadTxTags(
+  post: Thread | ThreadReply,
+  cachedMetadata: Partial<Podcast> = {},
+) : ArweaveTag[] {
+  const isReply = ('parentId' in post);
+  const { id, podcastId, episodeId, content, type } = post;
+
+  const primaryMandatoryTags
+  : { [K in MandatoryTags | (MandatoryThreadReplyTxTags & MandatoryThreadTxTags)]: string } = {
+    id: isValidUuid(podcastId) ? podcastId : '',
+    kind: isReply ? 'threadReply' : 'thread',
+    episodeId: isValidDate(episodeId) ? toISOString(episodeId) : '',
+    threadId: isValidUuid(id) ? id : '',
+    type: isValidThreadType(type) ? type : '',
+    content,
+  };
+  let secondaryMandatoryTags;
+  if (isReply) {
+    secondaryMandatoryTags = {
+      parentId: isValidUuid(post.parentId) ? post.parentId : '',
+    } as { [K in MandatoryThreadReplyTxTags]: string };
+  }
+  else {
+    secondaryMandatoryTags = {
+      subject: post.subject || '',
+    } as { [K in MandatoryThreadTxTags]: string };
+  }
+  const mandatoryTags = { ...primaryMandatoryTags, ...secondaryMandatoryTags };
+  Object.entries(mandatoryTags).forEach(([key, value]) => {
+    if (key !== 'episodeId' && !value) {
+      const prefix = 'subject' in mandatoryTags ? `thread "${mandatoryTags.subject}"` : 'reply';
+      const name = `${prefix} in ${cachedMetadata.title || 'podcast'}`;
+      throw new Error(`Could not post ${name}: ${key} is missing`);
+    }
+  });
+
+  const validTags = (Object.entries(mandatoryTags) as ArweaveTag[])
+    .map(validateAndTrimTag).filter(x => x) as ArweaveTag[];
+
   return validTags.length <= MAX_TAGS ? validTags : validTags.slice(0, MAX_TAGS);
 }
 
@@ -217,7 +234,7 @@ export async function newTransactionFromMetadata(
   const cachedMetadataWithId = { ...cachedMetadata, id };
 
   const newCompressedMetadata : Uint8Array = compressMetadata(newMetadataWithId);
-  const tags : ArweaveTag[] = formatTags(newMetadataWithId, cachedMetadataWithId);
+  const tags : ArweaveTag[] = formatMetadataTxTags(newMetadataWithId, cachedMetadataWithId);
   return newTransactionFromCompressedMetadata(wallet, newCompressedMetadata, tags);
 }
 
@@ -236,6 +253,24 @@ export async function newTransactionFromCompressedMetadata(
 ) : Promise<Transaction> {
   // TODO: Add some simple type checks
   return newTransaction(wallet, compressedMetadata, tags);
+}
+
+/**
+ * @param wallet
+ * @param thread
+ * @param cachedMetadata
+ * @returns a new Arweave Transaction object
+ * @throws if `newMetadata` is incomplete or if newTransaction() throws
+ */
+export async function newThreadTransaction(
+  wallet: JWKInterface | WalletDeferredToArConnect,
+  thread: Thread | ThreadReply,
+  cachedMetadata: Partial<Podcast> = {},
+) : Promise<Transaction> {
+  const id = thread.podcastId;
+  const newCompressedMetadata : Uint8Array = compressMetadata(thread);
+  const tags : ArweaveTag[] = formatThreadTxTags(thread, { ...cachedMetadata, id });
+  return newTransactionFromCompressedMetadata(wallet, newCompressedMetadata, tags);
 }
 
 /**
@@ -272,16 +307,10 @@ export function withMetadataBatchNumber(
   const firstEpisodeDate = getFirstEpisodeDate(metadata);
   const lastEpisodeDate = getLastEpisodeDate(metadata);
   const podcastId = removePrefixFromPodcastId(metadata.id || priorBatchMetadata.id || '');
+  const metadataBatch =
+    getMetadataBatchNumber(podcastId, priorBatchMetadata, firstEpisodeDate, lastEpisodeDate);
 
-  const metadataBatch = getMetadataBatchNumber(
-    podcastId, priorBatchMetadata, firstEpisodeDate, lastEpisodeDate,
-  );
-  return {
-    ...metadata,
-    firstEpisodeDate,
-    lastEpisodeDate,
-    metadataBatch,
-  };
+  return { ...metadata, firstEpisodeDate, lastEpisodeDate, metadataBatch };
 }
 
 /**

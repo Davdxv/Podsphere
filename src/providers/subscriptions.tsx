@@ -4,45 +4,28 @@ import { toast } from 'react-toastify';
 import useRerenderEffect from '../hooks/use-rerender-effect';
 import { searchPodcast } from '../client/search';
 import {
-  fetchPodcastRss2Feed,
-  getNewPodcastIds,
-  GetPodcastResult,
-  NewIdMapping,
-  pingTxIds,
-  refreshSubscriptions,
+  fetchPodcastRss2Feed, getNewPodcastIds, GetPodcastResult,
+  NewIdMapping, pingTxIds, refreshSubscriptions,
   updatePodcastIds,
 } from '../client';
 import {
-  concatMessages,
-  findMetadataByFeedUrl,
-  findMetadataById,
-  hasMetadata,
-  isNotEmpty,
-  podcastsFromDTO,
+  concatMessages, findMetadataByFeedUrl, findMetadataById,
+  hasMetadata, isNotEmpty, podcastsFromDTO,
   unixTimestamp,
 } from '../utils';
 import {
-  ArSyncTxDTO,
-  CachedArTx,
-  EpisodesDBTable,
-  NewThread,
-  Podcast,
-  PodcastDTO,
-  SearchPodcastResult,
+  ArSyncTxDTO, CachedArTx, EpisodesDBTable,
+  Podcast, PodcastDTO, SearchPodcastResult,
+  Thread,
 } from '../client/interfaces';
 import { sanitizeString, sanitizeUri, isValidUrl } from '../client/metadata-filtering';
 import { usingArLocal } from '../client/arweave/utils';
 import { IndexedDb } from '../indexed-db';
+import { initializeIdCache, metadataToIdMappings } from '../client/arweave/cache/podcast-id';
 import {
-  initializeIdCache,
-  metadataToIdMappings,
-} from '../client/arweave/cache/podcast-id';
-import {
-  initializeTxCache,
-  isNotBlocked,
+  initializeTxCache, isNotBlocked, txCache,
   removeTxIds as removeTxIdsFromTxCache,
   removeUnsubscribedIds as removeUnsubscribedIdsFromTxCache,
-  txCache,
 } from '../client/arweave/cache/transactions';
 
 if (usingArLocal()) {
@@ -73,8 +56,8 @@ interface SubscriptionContextType {
   dbWriteCachedArSyncTxs: (newValue: ArSyncTxDTO[]) => Promise<void>,
   dbStatus: DBStatus,
   setDbStatus: (value: DBStatus) => void,
-  handleCreateThread: (thread: NewThread) => void,
-  handleDiscardThread: (thread: NewThread) => void,
+  handleCreateThread: (thread: Thread) => void,
+  handleDiscardThread: (thread: Thread) => void,
 }
 
 export enum DBStatus {
@@ -392,7 +375,7 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
    * ArSync will skip it if `thread.isDraft = true` or if `.subject` or `.content` is missing.
    * @param thread
    */
-  const handleCreateThread = (thread: NewThread) => {
+  const handleCreateThread = (thread: Thread) => {
     if (thread.podcastId && thread.content) {
       const podcastToSync = {
         ...findMetadataById(thread.podcastId, metadataToSync),
@@ -409,7 +392,7 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
    * Removes the given `thread` from `metadataToSync`.
    * @param thread
    */
-  const handleDiscardThread = (thread: NewThread) => {
+  const handleDiscardThread = (thread: Thread) => {
     if (thread.podcastId) {
       const podcastToSync = { ...findMetadataById(thread.podcastId, metadataToSync) };
       if (isNotEmpty(podcastToSync) && Array.isArray(podcastToSync.threads)) {

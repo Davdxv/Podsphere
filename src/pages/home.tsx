@@ -4,7 +4,7 @@ import {
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import {
-  Episode, NewThread, Podcast,
+  Episode, Podcast, Thread,
 } from '../client/interfaces';
 import { findMetadataByFeedUrl, hasMetadata } from '../utils';
 import { SubscriptionsContext } from '../providers/subscriptions';
@@ -74,7 +74,7 @@ function HomePage() {
   const [createThreadEpisodeId, setCreateThreadEpisodeId] = useState<Date | null>(null);
 
   const [showSavePrompt, setShowSavePrompt] = useState(false);
-  const [threadDraft, setThreadDraft] = useState<NewThread | null>(null);
+  const [threadDraft, setThreadDraft] = useState<Thread | null>(null);
 
   const isSubscribed = (feedUrl: string = selectedPodcastId || '') => hasMetadata(
     findMetadataByFeedUrl(feedUrl, 'rss2', subscriptions),
@@ -128,7 +128,7 @@ function HomePage() {
     setShowCreateThreadDialog(true);
   };
 
-  const handleShowEditThreadDialog = (_event: React.MouseEvent<unknown>, draft: NewThread) => {
+  const handleShowEditThreadDialog = (_event: React.MouseEvent<unknown>, draft: Thread) => {
     setThreadDraft(draft);
     setCreateThreadPodcastId(draft.podcastId);
     setCreateThreadEpisodeId(draft.episodeId);
@@ -142,7 +142,7 @@ function HomePage() {
     setCreateThreadEpisodeId(null);
   };
 
-  const handleOpenSavePrompt = (draft: NewThread) => {
+  const handleOpenSavePrompt = (draft: Thread) => {
     setThreadDraft(draft);
     setShowSavePrompt(true);
   };
@@ -151,7 +151,7 @@ function HomePage() {
     setShowSavePrompt(false);
   };
 
-  const handleSubmitThread = (thread: NewThread) => {
+  const handleSubmitThread = (thread: Thread) => {
     if (thread) {
       toast.success('Thread saved in browser storage.\n\nTo upload it to Arweave, tap the Sync '
         + 'button twice.\n\nYou may still edit or discard it from the Drafts tab.');

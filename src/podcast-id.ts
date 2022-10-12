@@ -40,7 +40,7 @@ export function isCandidatePodcastId(id: Podcast['id']) : boolean {
 }
 
 export function findBestId(ids: string[]) : string {
-  const validIds = ids.filter(id => isValidUuid(id));
+  const validIds = ids.filter(isValidUuid);
   const bestId = validIds.find(id => !isCandidatePodcastId(id));
   return bestId || validIds.at(-1) || ids.at(-1) || '';
 }

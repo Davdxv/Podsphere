@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box } from '@mui/material';
-import { Episode, NewThread, Podcast } from '../client/interfaces';
+import { Episode, Podcast, Thread } from '../client/interfaces';
 import { findEpisodeMetadata, findMetadataById, isNotEmpty } from '../utils';
 import { truncateString } from '../client/metadata-filtering/formatting';
 import ClearButton from './buttons/clear-button';
@@ -11,9 +11,9 @@ import style from './shared-elements.module.scss';
 interface Props {
   subscriptions: Podcast[];
   metadataToSync: Partial<Podcast>[];
-  handleShowEditThreadDialog: (_event: React.MouseEvent<unknown>, draft: NewThread) => void;
-  handleOpenSavePrompt: (draft: NewThread) => void;
-  handleCreateThread: (thread: NewThread) => void;
+  handleShowEditThreadDialog: (_event: React.MouseEvent<unknown>, draft: Thread) => void;
+  handleOpenSavePrompt: (draft: Thread) => void;
+  handleCreateThread: (thread: Thread) => void;
 }
 
 const DraftList : React.FC<Props> = ({
@@ -32,9 +32,9 @@ const DraftList : React.FC<Props> = ({
         const title = [podcast.title, episode?.title].filter(x => x).join(': ');
         const imageUrl = episode?.imageUrl || podcast.imageUrl || '';
 
-        const toggleIsDraft = (thr: NewThread) : NewThread => ({ ...thr, isDraft: !thr.isDraft });
+        const toggleIsDraft = (thr: Thread) : Thread => ({ ...thr, isDraft: !thr.isDraft });
 
-        const handleToggleSyncThread = (thread: NewThread) => {
+        const handleToggleSyncThread = (thread: Thread) => {
           handleCreateThread(toggleIsDraft(thread));
         };
 

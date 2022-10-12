@@ -195,7 +195,7 @@ export async function getPodcastRss2Feed(
   return mergedMetadata;
 }
 
-// TODO: to be used in ArSync v1.5+ when user can specify whitelisted/blacklisted txIds per podcast
+// TODO: to be used in ArSync v1.6+ when user can specify whitelisted/blacklisted txIds per podcast
 export async function getPodcastFeedForTxIds(ids: string[]) {
   return getPodcastFeedForGqlQuery(gqlQueryForIds(ids, [QueryField.TAGS]));
 }

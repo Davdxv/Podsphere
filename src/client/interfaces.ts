@@ -8,13 +8,29 @@ export type EmptyTypes = null | undefined | {};
 
 export const MANDATORY_ARWEAVE_TAGS = [
   'id',
-  'feedType', // TODO: Move to MANDATORY_ARWEAVE_METADATA_TAGS
-  'feedUrl',
   'kind',
 ] as const;
 
 const MANDATORY_ARWEAVE_METADATA_TAGS = [
+  'feedType',
+  'feedUrl',
   'title',
+] as const;
+
+const MANDATORY_ARWEAVE_THREAD_TAGS = [
+  'episodeId',
+  'threadId',
+  'type',
+  'content',
+  'subject',
+] as const;
+
+const MANDATORY_ARWEAVE_THREADREPLY_TAGS = [
+  'episodeId',
+  'threadId',
+  'type',
+  'content',
+  'parentId',
 ] as const;
 
 export const OPTIONAL_ARWEAVE_STRING_TAGS = [
@@ -56,6 +72,8 @@ const OPTIONAL_ARWEAVE_SINGULAR_TAGS = [
 export const ALLOWED_ARWEAVE_TAGS = [
   ...MANDATORY_ARWEAVE_TAGS,
   ...MANDATORY_ARWEAVE_METADATA_TAGS,
+  ...MANDATORY_ARWEAVE_THREAD_TAGS,
+  ...MANDATORY_ARWEAVE_THREADREPLY_TAGS,
   ...OPTIONAL_ARWEAVE_STRING_TAGS,
   ...OPTIONAL_ARWEAVE_BATCH_TAGS,
   ...OPTIONAL_ARWEAVE_SINGULAR_TAGS,
@@ -64,12 +82,17 @@ export const ALLOWED_ARWEAVE_TAGS = [
 export const ALLOWED_ARWEAVE_TAGS_PLURALIZED = [
   ...MANDATORY_ARWEAVE_TAGS,
   ...MANDATORY_ARWEAVE_METADATA_TAGS,
+  ...MANDATORY_ARWEAVE_THREAD_TAGS,
+  ...MANDATORY_ARWEAVE_THREADREPLY_TAGS,
   ...OPTIONAL_ARWEAVE_STRING_TAGS,
   ...OPTIONAL_ARWEAVE_BATCH_TAGS,
   ...OPTIONAL_ARWEAVE_PLURAL_TAGS,
 ] as const;
 
 export type MandatoryTags = typeof MANDATORY_ARWEAVE_TAGS[number];
+export type MandatoryMetadataTxTags = typeof MANDATORY_ARWEAVE_METADATA_TAGS[number];
+export type MandatoryThreadTxTags = typeof MANDATORY_ARWEAVE_THREAD_TAGS[number];
+export type MandatoryThreadReplyTxTags = typeof MANDATORY_ARWEAVE_THREADREPLY_TAGS[number];
 export type AllowedTags = typeof ALLOWED_ARWEAVE_TAGS[number];
 export type AllowedTagsPluralized = typeof ALLOWED_ARWEAVE_TAGS_PLURALIZED[number];
 export type ArweaveTag = [AllowedTags, string | undefined];
@@ -96,7 +119,7 @@ export type ThreadTransactionKind = typeof THREAD_TX_KINDS[number];
 export type TransactionKind = typeof TRANSACTION_KINDS[number];
 
 export interface Podcast extends PodcastTags {
-  threads?: NewThread[];
+  threads?: Thread[];
   lastMutatedAt?: number; /** @see unixTimestamp() */
   episodes?: Episode[];
   infoUrl?: string;
@@ -213,7 +236,7 @@ export enum ArSyncTxStatus {
  * @prop {string} title?
  * @prop {DispatchResult | DispatchResultDTO} dispatchResult?
  * @prop {Transaction | TransactionDTO | Error} resultObj
- * @prop {Partial<Podcast>} metadata
+ * @prop {Partial<Podcast> | Thread} metadata
  * @prop {number} numEpisodes
  * @prop {ArSyncTxStatus} status
  * @prop {number} timestamp
@@ -225,7 +248,7 @@ export interface ArSyncTx {
   title?: Podcast['title'],
   dispatchResult?: DispatchResult | DispatchResultDTO,
   resultObj: Transaction | TransactionDTO | Error,
-  metadata: Partial<Podcast>,
+  metadata: Partial<Podcast> | Thread,
   numEpisodes: number,
   status: ArSyncTxStatus,
   timestamp: Podcast['lastMutatedAt'],
@@ -297,12 +320,16 @@ export const THREAD_TYPES = [
 ] as const;
 export type ThreadType = typeof THREAD_TYPES[number];
 
-export interface NewThread {
+export interface Thread {
   isDraft: boolean,
   id: string,
   podcastId: Podcast['id'],
   episodeId: Episode['publishedAt'] | null,
-  subject: string,
   content: string,
   type: ThreadType,
+  subject: string,
+}
+
+export interface ThreadReply extends Omit<Thread, 'subject'> {
+  parentId: Thread['id'],
 }

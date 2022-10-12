@@ -106,7 +106,7 @@ function isValidTx(tx: CachedArTx, metadata: Podcast | {} | undefined = undefine
   if (!hasValidKind(tx)) return false;
   const kind = tx.kind as TransactionKind;
 
-  if (metadata) { // Validate metadata
+  if (metadata) { /* Validate metadata */
     if (isMetadataTx(kind) && !hasMetadata(metadata)) return false;
   }
 
