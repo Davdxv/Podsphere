@@ -170,13 +170,12 @@ export function toDate(date: string | Date | undefined) : Date {
  *   - an empty episodes list
  *   - `Episode['publishedAt']`
  */
-export function hasMetadata<T extends Partial<Podcast>[] | Partial<Episode>[],
-K extends Partial<Podcast> | Partial<Episode>>(
+export function hasMetadata<K extends Partial<Podcast> | Partial<Episode>, T extends K[]>(
   metadata: K | T | EmptyTypes,
 ) : metadata is T | K {
-  if (!isNotEmpty(metadata)) return false;
+  if (isEmpty(metadata)) return false;
   if (Array.isArray(metadata)) return !!metadata.length;
-  if (metadata.title) return true;
+  if (isNotEmpty(metadata) && metadata.title) return true;
 
   // @ts-ignore
   const { id, feedType, feedUrl, kind, lastMutatedAt, publishedAt, episodes,
@@ -218,9 +217,9 @@ export function findEpisodeMetadata<T extends Podcast | Partial<Podcast> | Episo
 ) : Episode | null {
   if (!isValidDate(epDate) || !metadata) return null;
   const episodes = Array.isArray(metadata) ? metadata : metadata.episodes;
-  if (!isNotEmpty(episodes)) return null;
+  if (isNotEmpty(episodes)) return episodes.find(x => datesEqual(x.publishedAt, epDate)) || null;
 
-  return episodes.find(x => datesEqual(x.publishedAt, epDate)) || null;
+  return null;
 }
 
 export function partialToPodcast(partialMetadata: Partial<Podcast>) : Podcast | PodcastFeedError {
@@ -310,7 +309,7 @@ export function episodesToDTO(episodes: Episode[]) : EpisodeDTO[] {
  * In this case, each episode will be dated +1 second after the previous one, starting at Epoch +1s.
  */
 export function fillMissingEpisodeDates(episodes: Episode[]) : Episode[] {
-  if (!isNotEmpty(episodes) || episodes.every(ep => isValidDate(ep.publishedAt))) return episodes;
+  if (isEmpty(episodes) || episodes.every(ep => isValidDate(ep.publishedAt))) return episodes;
 
   let prevDate = new Date(0);
   return [...episodes].reverse().map(ep => {
@@ -332,7 +331,7 @@ export function fillMissingEpisodeDates(episodes: Episode[]) : Episode[] {
  * @returns The `metadata` exluding props where !valuePresent(value), @see valuePresent
  */
 export function omitEmptyMetadata(metadata: Partial<Podcast> | Partial<Episode>) {
-  if (!isNotEmpty(metadata)) return {};
+  if (isEmpty(metadata)) return {};
 
   let result : Partial<Podcast> | Partial<Episode> = {};
   Object.entries(metadata).forEach(([prop, value]) => {
@@ -356,7 +355,7 @@ export function omitEmptyMetadata(metadata: Partial<Podcast> | Partial<Episode>)
  *   - an empty object (non-recursively)
  *   - an array comprised of only any of the above elements
  */
-export function valuePresent(value: number | string | object) : boolean {
+export function valuePresent(value: any) : boolean {
   switch (typeof value) {
     case 'number':
       return !Number.isNaN(value);
@@ -383,14 +382,11 @@ export function isNotEmpty<T extends object>(val: T | EmptyTypes) : val is T {
 
 /**
  * @param val
- * @returns true if the given `val` is an array or object that is empty
+ * @returns true if the given `val` is not a non-empty array or object
  */
 export function isEmpty<T extends object>(val: T | EmptyTypes) {
   return !isNotEmpty<T>(val);
 }
-// export function isEmpty(val: unknown) {
-//   return !isNotEmpty(val);
-// }
 
 /* Returns true if the given objects' values are (deep)equal */
 export function valuesEqual(a: object = {}, b: object = {}) : boolean {

@@ -5,7 +5,7 @@ import {
 import {
   datesEqual,
   hasMetadata,
-  isNotEmpty,
+  isEmpty,
   isValidDate,
   omitEmptyMetadata,
   toDate,
@@ -115,7 +115,7 @@ export function mergeBatchMetadata(
   metadataBatches: Partial<Podcast>[],
   applyMergeSpecialTags = false,
 ) : Partial<Podcast> {
-  if (!isNotEmpty(metadataBatches) || metadataBatches.every(batch => !hasMetadata(batch))) {
+  if (isEmpty(metadataBatches) || metadataBatches.every(batch => !hasMetadata(batch))) {
     return {} as Partial<Podcast>;
   }
 

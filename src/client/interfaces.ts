@@ -4,7 +4,7 @@ import Transaction from 'arweave/node/lib/transaction';
 
 export type Primitive = string | boolean | number;
 
-export type EmptyTypes = null | undefined | {};
+export type EmptyTypes = null | undefined | {} | [];
 
 export const MANDATORY_ARWEAVE_TAGS = [
   'id',

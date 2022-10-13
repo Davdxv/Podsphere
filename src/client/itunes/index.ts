@@ -5,7 +5,7 @@ import {
   ResultPodcast,
   search,
 } from 'itunes-store-api';
-import { isNotEmpty, toDate } from '../../utils';
+import { isEmpty, toDate } from '../../utils';
 import { SearchPodcastResult } from '../interfaces';
 
 // declare global {
@@ -40,7 +40,7 @@ export async function searchPodcast<M extends Media, E extends Entities[M]>(
     ...options,
   };
   const results = await search<M, E>(terms, searchOptions);
-  if (!isNotEmpty(results?.results)) return [];
+  if (isEmpty(results?.results)) return [];
 
   return results.results.map(itunesResult => toGenericResult(itunesResult as ResultPodcast))
     .filter(isValidResult);

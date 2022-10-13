@@ -12,9 +12,10 @@ import useRerenderEffect from '../hooks/use-rerender-effect';
 import { IndexedDb } from '../indexed-db';
 import { DBStatus, SubscriptionsContext } from './subscriptions';
 import {
+  concatMessages,
+  isEmpty,
   isNotEmpty,
   valuesEqual,
-  concatMessages,
 } from '../utils';
 import {
   isErrored,
@@ -113,17 +114,17 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
   const pluralize = (array: any[]) => (array.length > 1 ? 's' : '');
 
   async function prepareSync() {
-    if (!isNotEmpty(wallet) && !usingArConnect()) return cancelSync('Wallet is undefined');
+    if (isEmpty(wallet) && !usingArConnect()) return cancelSync('Wallet is undefined');
     if (isSyncing || isRefreshing || hasPendingTxs()) return;
 
     setIsSyncing(true);
 
     const [newSubscriptions, newMetadataToSync] = await refresh(null, true, 600); // TODO MVP: => 30
 
-    if (!isNotEmpty(newSubscriptions)) {
+    if (!newSubscriptions || isEmpty(newSubscriptions)) {
       return cancelSync('Failed to refresh subscriptions.');
     }
-    if (!isNotEmpty(newMetadataToSync)) {
+    if (!newMetadataToSync || isEmpty(newMetadataToSync)) {
       return cancelSync('Subscribed podcasts are already up-to-date.', 'info');
     }
 
@@ -175,7 +176,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
   }
 
   async function startSync() {
-    if (!isNotEmpty(wallet) && !usingArConnect()) throw new Error('wallet is undefined');
+    if (isEmpty(wallet) && !usingArConnect()) throw new Error('wallet is undefined');
     if (!hasPendingTxs()) return cancelSync();
 
     setIsSyncing(true);

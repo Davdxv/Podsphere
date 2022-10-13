@@ -1,7 +1,10 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import { Episode, Podcast, Thread } from '../client/interfaces';
-import { findEpisodeMetadata, findMetadataById, isNotEmpty } from '../utils';
+import {
+  findEpisodeMetadata, findMetadataById, isEmpty,
+  isNotEmpty,
+} from '../utils';
 import { truncateString } from '../client/metadata-filtering/formatting';
 import ClearButton from './buttons/clear-button';
 import ToggleButton from './buttons/toggle-button';
@@ -27,8 +30,8 @@ const DraftList : React.FC<Props> = ({
       { drafts.length ? [...drafts].reverse().map(draft => {
         const podcast : Partial<Podcast> = findMetadataById(draft.podcastId, subscriptions);
         const episode : Episode | null = findEpisodeMetadata(draft.episodeId, podcast);
-        const propsAreInvalid = !isNotEmpty(podcast)
-          || !!(draft.episodeId && !isNotEmpty(episode));
+        const propsAreInvalid = isEmpty(podcast)
+          || !!(draft.episodeId && isEmpty(episode));
         const title = [podcast.title, episode?.title].filter(x => x).join(': ');
         const imageUrl = episode?.imageUrl || podcast.imageUrl || '';
 

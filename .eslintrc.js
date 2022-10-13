@@ -4,7 +4,8 @@ module.exports = {
     browser: true,
   },
   rules: {
-    quotes: [2, 'single'],
+    quotes: ['error', 'single'],
+    'no-undef': ['error', { typeof: true }],
     'operator-linebreak': 'off',
     '@typescript-eslint/brace-style': 'off',
     '@typescript-eslint/no-use-before-define': 'off',

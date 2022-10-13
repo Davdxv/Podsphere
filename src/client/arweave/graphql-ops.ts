@@ -25,6 +25,7 @@ import {
   concatMessages,
   episodesCount,
   hasMetadata,
+  isEmpty,
   isNotEmpty,
   isValidString,
   podcastFromDTO,
@@ -121,7 +122,7 @@ export async function getPodcastRss2Feed(
         if (!errorMessage.match(ERRONEOUS_TX_DATA)) return false;
       }
 
-      if (!isNotEmpty(tags) || !isNotEmpty(gqlMetadata)) return false;
+      if (isEmpty(tags) || isEmpty(gqlMetadata)) return false;
 
       const cachedTx : CachedArTx | null = getCachedTxForFeed(
         gqlMetadata as GraphQLMetadata,
@@ -149,7 +150,7 @@ export async function getPodcastRss2Feed(
     );
     const parsedTxs = await getPodcastFeedForGqlQuery(gqlQuery, true);
     if (parsedTxs.length) {
-      if (parsedTxs.every(tx => !isNotEmpty(tx.tags) || !isNotEmpty(tx.gqlMetadata))) {
+      if (parsedTxs.every(tx => isEmpty(tx.tags) || isEmpty(tx.gqlMetadata))) {
         // GraphQL error or batch number not found
         errorMessages.push(...parsedTxs.map(tx => tx.errorMessage).filter(isValidString));
         break;
@@ -358,7 +359,7 @@ async function parseGqlResult(tx: GraphQLTransaction, getData: boolean) : Promis
       errorMessage = (ex as Error).message;
       console.warn(errorMessage);
     }
-    if (errorMessage || !isNotEmpty(metadata)) {
+    if (errorMessage || isEmpty(metadata)) {
       return { errorMessage, metadata: {}, tags, gqlMetadata };
     }
   }
@@ -369,7 +370,7 @@ async function parseGqlResult(tx: GraphQLTransaction, getData: boolean) : Promis
 async function getPodcastFeedForGqlQuery(gqlQuery: GraphQLQuery, getData = true)
   : Promise<ParsedGqlResult[]> {
   const { edges, errorMessage } = await getGqlResponse(gqlQuery);
-  if (errorMessage || !isNotEmpty(edges)) {
+  if (isEmpty(edges)) {
     return [{ errorMessage, metadata: {}, tags: {}, gqlMetadata: {} }];
   }
 

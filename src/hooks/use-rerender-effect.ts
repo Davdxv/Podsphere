@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 type UseEffect = (effect: React.EffectCallback, deps?: React.DependencyList | undefined) => void;
 /**

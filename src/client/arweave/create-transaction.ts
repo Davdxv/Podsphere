@@ -14,9 +14,9 @@ import {
   compressMetadata, toTag, usingArConnect,
 } from './utils';
 import {
-  getFirstEpisodeDate, getLastEpisodeDate, isNotEmpty,
-  isValidDate, isValidInteger, isValidThreadType,
-  toISOString, unixTimestamp,
+  getFirstEpisodeDate, getLastEpisodeDate, isEmpty,
+  isNotEmpty, isValidDate, isValidInteger,
+  isValidThreadType, toISOString, unixTimestamp,
 } from '../../utils';
 import { isValidUuid, removePrefixFromPodcastId } from '../../podcast-id';
 import { getCachedBatchNumberForDate } from './cache/transactions';
@@ -286,7 +286,7 @@ function episodeTags(
   cachedMetadata: Partial<Podcast> = {},
   metadataBatchNumber: number | null = null,
 ) : ArweaveTag[] {
-  if (!isNotEmpty(newEpisodes)) return [];
+  if (isEmpty(newEpisodes)) return [];
 
   const firstEpisodeDate = newEpisodes[newEpisodes.length - 1].publishedAt;
   const lastEpisodeDate = newEpisodes[0].publishedAt;
@@ -338,7 +338,7 @@ export function getMetadataBatchNumber(
     throwError('invalid date found for one of its episodes.');
   }
 
-  if (!isNotEmpty(cachedMetadata)) return 0;
+  if (isEmpty(cachedMetadata)) return 0;
 
   const cachedLastBatchNr = cachedMetadata.metadataBatch;
   const cachedFirstDate = cachedMetadata.firstEpisodeDate;

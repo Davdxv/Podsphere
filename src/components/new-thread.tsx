@@ -13,7 +13,7 @@ import {
 } from '../client/interfaces';
 import {
   findEpisodeMetadata, findMetadataById,
-  isNotEmpty, isValidString,
+  isEmpty, isValidString,
 } from '../utils';
 import CloseButton from './buttons/close-button';
 import CachedImage from './cached-image';
@@ -47,7 +47,7 @@ const NewThreadDialog : React.FC<Props> = ({
 
   if (!initialized) {
     setInitialized(true);
-    const propsAreInvalid = !isNotEmpty(podcast) || !!(episodeId && !isNotEmpty(episode));
+    const propsAreInvalid = isEmpty(podcast) || !!(episodeId && isEmpty(episode));
     if (propsAreInvalid) {
       setTimeout(onClose, 250);
       toast.error('Unable to create thread: Could not find the corresponding '
