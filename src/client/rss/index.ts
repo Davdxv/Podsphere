@@ -179,15 +179,15 @@ export async function getPodcastRss2Feed(feedUrl: Podcast['feedUrl'], reformatte
   catch (ex) {
     if (!reformattedUrl) {
       // Retry fetching feed once, adding url parameter `format=xml` (required for feedburner.com)
+      // TODO: omit suffix from create-transaction, graphql-ops
       const newUrl = `${feedUrl}${feedUrl.match(/\?/) ? '&' : '?'}format=xml`;
       return getPodcastRss2Feed(newUrl, true);
     }
 
-    /* TODO: Update error message after implementation of user-specified CORS-Proxies */
     const getFeedErrorMessage = `Could not fetch RSS feed ${feedUrl}.\n`
-                                + `Is the corsProxyURL specified in src/utils.js working?\n${ex}`;
+      + `Is the CORS Proxy configured under Settings working?\n\n${ex}`;
     const formatFeedErrorMessage = (ex as Error).message;
-    errorMessage = !hasMetadata(feed) ? getFeedErrorMessage : formatFeedErrorMessage;
+    errorMessage = hasMetadata(feed) ? formatFeedErrorMessage : getFeedErrorMessage;
   }
   return { errorMessage };
 }

@@ -3,10 +3,10 @@ import Transaction from 'arweave/node/lib/transaction';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { DispatchResult } from 'arconnect';
 import {
-  ArweaveTag, Episode, MandatoryMetadataTxTags,
-  MandatoryThreadReplyTxTags, MandatoryTags, MandatoryThreadTxTags,
-  OPTIONAL_ARWEAVE_STRING_TAGS, Podcast, Thread,
-  ThreadReply, TransactionKind, TRANSACTION_KINDS,
+  AllowedTags, ArweaveTag, Episode,
+  MandatoryMetadataTxTags, MandatoryThreadReplyTxTags, MandatoryTags,
+  MandatoryThreadTxTags, OPTIONAL_ARWEAVE_STRING_TAGS, Podcast,
+  Post, TxKind, TX_KINDS,
 } from '../interfaces';
 import { WalletDeferredToArConnect } from './wallet';
 import client from './client';
@@ -15,10 +15,11 @@ import {
 } from './utils';
 import {
   getFirstEpisodeDate, getLastEpisodeDate, isEmpty,
-  isNotEmpty, isValidDate, isValidInteger,
-  isValidThreadType, toISOString, unixTimestamp,
+  isNotEmpty, isReply, isValidDate,
+  isValidInteger, isValidThreadType, isValidUuid,
+  toISOString, unixTimestamp,
 } from '../../utils';
-import { isValidUuid, removePrefixFromPodcastId } from '../../podcast-id';
+import { removePrefixFromPodcastId } from '../../podcast-id';
 import { getCachedBatchNumberForDate } from './cache/transactions';
 
 /**
@@ -46,10 +47,21 @@ const validateAndTrimTag = (tag: ArweaveTag) : ArweaveTag | null => {
   return [validName, validVal] as ArweaveTag;
 };
 
+/**
+ * @param tags
+ * @returns The `tags` trimmed to fit Arweave's limitations
+ *   - NOTE: tags exceeding {@linkcode MAX_TAGS} are omitted.
+ *     Therefore, least important tags, like `episodesKeywords`, should be last in the array.
+ */
+const validateAndTrimTags = (tags: ArweaveTag[]) : ArweaveTag[] => {
+  const validTags = tags.map(validateAndTrimTag).filter(x => x) as ArweaveTag[];
+  return validTags.length <= MAX_TAGS ? validTags : validTags.slice(0, MAX_TAGS);
+};
+
 export function formatMetadataTxTags(
   newMetadata: Partial<Podcast>,
   cachedMetadata: Partial<Podcast> = {},
-  kind: TransactionKind = 'metadataBatch',
+  kind: TxKind = 'metadataBatch',
 ) : ArweaveTag[] {
   // An updated id is assumed to have been fetched through SubscriptionsProvider.refresh()
   let id = removePrefixFromPodcastId(newMetadata.id || cachedMetadata.id || '');
@@ -57,7 +69,7 @@ export function formatMetadataTxTags(
 
   const mandatoryTags : { [K in MandatoryTags | MandatoryMetadataTxTags]: string | undefined } = {
     id: removePrefixFromPodcastId(id),
-    kind: TRANSACTION_KINDS.includes(kind) ? kind : '',
+    kind: TX_KINDS.includes(kind) ? kind : '',
     feedType: newMetadata.feedType || cachedMetadata.feedType || '',
     feedUrl: newMetadata.feedUrl || cachedMetadata.feedUrl || '',
     title: newMetadata.title || cachedMetadata.title || '',
@@ -78,40 +90,33 @@ export function formatMetadataTxTags(
   const episodeBatchTags : ArweaveTag[] =
     episodeTags(id, newMetadata.episodes, cachedMetadata, newMetadata.metadataBatch);
   const pluralTags : ArweaveTag[] = [];
-  // Add new categories and keywords in string => string format
+  // Add each element of categories[], keywords[] and episodesKeywords[] as [string, string]
   (newMetadata.categories || []).forEach(cat => pluralTags.push(['category', cat]));
   (newMetadata.keywords || []).forEach(key => pluralTags.push(['keyword', key]));
   (newMetadata.episodesKeywords || []).forEach(key => pluralTags.push(['episodesKeyword', key]));
-  const validTags : ArweaveTag[] = [
-    ...podcastTags,
-    ...episodeBatchTags,
-    ...pluralTags,
-  ].map(validateAndTrimTag).filter(x => x) as ArweaveTag[];
 
-  // pluralTags are cut off if tags exceed MAX_TAGS
-  return validTags.length <= MAX_TAGS ? validTags : validTags.slice(0, MAX_TAGS);
+  return validateAndTrimTags([...podcastTags, ...episodeBatchTags, ...pluralTags]);
 }
 
 export function formatThreadTxTags(
-  post: Thread | ThreadReply,
+  post: Post,
   cachedMetadata: Partial<Podcast> = {},
 ) : ArweaveTag[] {
-  const isReply = ('parentId' in post);
   const { id, podcastId, episodeId, content, type } = post;
+  const parentPostId = isReply(post) ? post.parentPostId : '';
 
   const primaryMandatoryTags
   : { [K in MandatoryTags | (MandatoryThreadReplyTxTags & MandatoryThreadTxTags)]: string } = {
     id: isValidUuid(podcastId) ? podcastId : '',
-    kind: isReply ? 'threadReply' : 'thread',
-    episodeId: isValidDate(episodeId) ? toISOString(episodeId) : '',
+    kind: isReply(post) ? 'threadReply' : 'thread',
     threadId: isValidUuid(id) ? id : '',
     type: isValidThreadType(type) ? type : '',
     content,
   };
   let secondaryMandatoryTags;
-  if (isReply) {
+  if (isReply(post)) {
     secondaryMandatoryTags = {
-      parentId: isValidUuid(post.parentId) ? post.parentId : '',
+      parentThreadId: isValidUuid(post.parentThreadId) ? post.parentThreadId : '',
     } as { [K in MandatoryThreadReplyTxTags]: string };
   }
   else {
@@ -121,17 +126,18 @@ export function formatThreadTxTags(
   }
   const mandatoryTags = { ...primaryMandatoryTags, ...secondaryMandatoryTags };
   Object.entries(mandatoryTags).forEach(([key, value]) => {
-    if (key !== 'episodeId' && !value) {
-      const prefix = 'subject' in mandatoryTags ? `thread "${mandatoryTags.subject}"` : 'reply';
+    if (!value) {
+      const prefix = isReply(post) ? 'reply' : `thread "${post.subject}"`;
       const name = `${prefix} in ${cachedMetadata.title || 'podcast'}`;
       throw new Error(`Could not post ${name}: ${key} is missing`);
     }
   });
 
-  const validTags = (Object.entries(mandatoryTags) as ArweaveTag[])
-    .map(validateAndTrimTag).filter(x => x) as ArweaveTag[];
+  const optionalTags : Partial<{ [K in AllowedTags]: string }> = {};
+  if (isValidDate(episodeId)) optionalTags.episodeId = toISOString(episodeId);
+  if (parentPostId) optionalTags.parentPostId = parentPostId;
 
-  return validTags.length <= MAX_TAGS ? validTags : validTags.slice(0, MAX_TAGS);
+  return validateAndTrimTags(Object.entries({ ...mandatoryTags, ...optionalTags }) as ArweaveTag[]);
 }
 
 async function newTransaction(
@@ -149,6 +155,7 @@ async function newTransaction(
     trx.addTag('App-Version', process.env.REACT_APP_VERSION || '');
     trx.addTag('Content-Type', 'application/gzip');
     trx.addTag('Unix-Time', `${unixTimestamp()}`);
+
     tags.forEach(([name, value]) => {
       trx.addTag(toTag(name), `${value}`);
     });
@@ -264,7 +271,7 @@ export async function newTransactionFromCompressedMetadata(
  */
 export async function newThreadTransaction(
   wallet: JWKInterface | WalletDeferredToArConnect,
-  thread: Thread | ThreadReply,
+  thread: Post,
   cachedMetadata: Partial<Podcast> = {},
 ) : Promise<Transaction> {
   const id = thread.podcastId;

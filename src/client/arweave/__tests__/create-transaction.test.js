@@ -141,7 +141,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  TxCache.initializeTxCache([]);
+  TxCache.initializeTxCache();
 });
 
 function assertAddTagCalls(expectedTags) {
@@ -471,11 +471,11 @@ describe('newThreadTransaction', () => {
         const expectedTags = [
           ['id', THREAD.podcastId],
           ['kind', 'thread'],
-          ['episodeId', ep1date],
           ['threadId', THREAD.id],
           ['type', THREAD.type],
-          ['content', expect.stringContaining(THREAD.content.substring(0, 3072))],
+          ['content', expect.stringContaining(THREAD.content.substring(0, 2048))],
           ['subject', THREAD.subject],
+          ['episodeId', ep1date],
         ];
 
         const result = await newThreadTransaction(stubbedWallet, THREAD, {});
@@ -540,7 +540,8 @@ describe('newThreadTransaction', () => {
       episodeId: null,
       type: 'public',
       content: 'My Reply',
-      parentId: uuid(),
+      parentThreadId: uuid(),
+      parentPostId: uuid(),
     };
 
     const assertTest = (modifiers = { useArConnect: false }) => {
@@ -551,7 +552,8 @@ describe('newThreadTransaction', () => {
           ['threadId', REPLY.id],
           ['type', REPLY.type],
           ['content', REPLY.content],
-          ['parentId', REPLY.parentId],
+          ['parentThreadId', REPLY.parentThreadId],
+          ['parentPostId', REPLY.parentPostId],
         ];
 
         const result = await newThreadTransaction(stubbedWallet, REPLY, {});
@@ -597,8 +599,8 @@ describe('newThreadTransaction', () => {
       });
 
       it('throws an Error if the parent id is invalid', async () => {
-        const insufficientMetadata = { ...REPLY, parentId: 'x' };
-        return assertThrow(insufficientMetadata, /parentId is missing/);
+        const insufficientMetadata = { ...REPLY, parentThreadId: 'x' };
+        return assertThrow(insufficientMetadata, /parentThreadId is missing/);
       });
 
       it('throws an Error if the content is empty', async () => {

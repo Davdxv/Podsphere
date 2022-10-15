@@ -12,15 +12,15 @@ import {
   ArweaveTag,
   CachedArTx,
   DispatchResultDTO,
-  MetadataTransactionKind,
+  MetadataTxKind,
   METADATA_TX_KINDS,
   Podcast,
   PodcastDTO,
-  ThreadTransactionKind,
+  ThreadTxKind,
   THREAD_TX_KINDS,
   TransactionDTO,
-  TransactionKind,
-  TRANSACTION_KINDS,
+  TxKind,
+  TX_KINDS,
 } from '../interfaces';
 
 const PLURAL_TAG_MAP = {
@@ -55,12 +55,6 @@ export function calculateTagsSize(tags: ArweaveTag[]) : number {
   return tagPrefixesSize + tagsSize;
 }
 
-export const isMetadataTx = (kind: TransactionKind) => METADATA_TX_KINDS
-  .includes(kind as MetadataTransactionKind);
-
-export const isThreadTx = (kind: TransactionKind) => THREAD_TX_KINDS
-  .includes(kind as ThreadTransactionKind);
-
 export function compressMetadata(metadata: Partial<Podcast>) : Uint8Array {
   const u8data = strToU8(JSON.stringify(metadata));
   const gzippedData = compressSync(u8data, { level: 6, mem: 4 });
@@ -90,6 +84,19 @@ export const statusToString = (status: ArSyncTxStatus) => {
   }
 };
 
+/** @returns Whether the given `kind` is a `MetadataTxKind` */
+export const isMetadataTx = (kind: TxKind | undefined) : kind is MetadataTxKind => !!kind
+  && METADATA_TX_KINDS.includes(kind as MetadataTxKind);
+
+/** @returns Whether the given `kind` is a `ThreadTxKind` */
+export const isThreadTx = (kind: TxKind | undefined) : kind is ThreadTxKind => !!kind
+  && THREAD_TX_KINDS.includes(kind as ThreadTxKind);
+
+export const hasMetadataTxKind = <T extends Pick<CachedArTx, 'kind'>>(tx: T)
+  : boolean => isMetadataTx(tx.kind);
+export const hasThreadTxKind = <T extends Pick<CachedArTx, 'kind'>>(tx: T)
+  : boolean => isThreadTx(tx.kind);
+
 export const isErrored = (tx: ArSyncTx) => tx.status === ArSyncTxStatus.ERRORED;
 export const isNotErrored = (tx: ArSyncTx) => tx.status !== ArSyncTxStatus.ERRORED;
 export const isInitialized = (tx: ArSyncTx) => tx.status === ArSyncTxStatus.INITIALIZED;
@@ -101,19 +108,16 @@ export const isNotConfirmed = (tx: ArSyncTx) => tx.status !== ArSyncTxStatus.CON
 export const isBundled = (tx: ArSyncTx) => isNotEmpty(tx.dispatchResult)
   && tx.dispatchResult.type === 'BUNDLED';
 
-export const hasValidKind = (tx: ArSyncTx | CachedArTx) => tx.kind
-  && TRANSACTION_KINDS.includes(tx.kind);
-
 /**
  * TODO: Some ArSyncTx-related functions can be refactored to return only the modified ArSyncTxs
  *       and call this function in the caller of those.
  * @param oldArSyncTxs
- * @param updatedArSyncTxs Assumed to be a subset of `oldArSyncTxs`
+ * @param updatedArSyncTxs NOTE: Assumed to be a subset of `oldArSyncTxs`
  * @returns The `oldArSyncTxs` where each of the `updatedArSyncTxs` is updated in-place.
  */
-export const mergeArSyncTxs = (oldArSyncTxs: ArSyncTx[], updatedArSyncTxs: ArSyncTx[])
-: ArSyncTx[] => oldArSyncTxs.map(oldElem => updatedArSyncTxs.find(newElem => newElem.id
-  === oldElem.id) || oldElem);
+export const updateArSyncTxs = (oldArSyncTxs: ArSyncTx[], updatedArSyncTxs: ArSyncTx[])
+: ArSyncTx[] => oldArSyncTxs.map(oldElem => updatedArSyncTxs
+  .find(newElem => newElem.id === oldElem.id) || oldElem);
 
 /**
  * @returns The id of the Arweave Transaction associated with the given ArSyncTx object;
@@ -195,12 +199,12 @@ export function arSyncTxsFromDTO(arSyncTxs: ArSyncTxDTO[], throwOnError = false)
   return result;
 }
 
-/** Defaults to true, if process.env.REACT_APP_USE_ARCONNECT != false */
+/** Defaults to true, if `process.env.REACT_APP_USE_ARCONNECT != false` */
 export function usingArConnect() : boolean {
   return (process.env.REACT_APP_USE_ARCONNECT as string) !== 'false';
 }
 
-/** Defaults to false, if process.env.REACT_APP_USE_ARLOCAL != true */
+/** Defaults to false, if `process.env.REACT_APP_USE_ARLOCAL != true` */
 export function usingArLocal() : boolean {
   return (process.env.REACT_APP_USE_ARLOCAL as string) === 'true';
 }

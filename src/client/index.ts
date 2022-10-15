@@ -3,14 +3,14 @@ import * as arweave from './arweave';
 import * as rss from './rss';
 import {
   addLastMutatedAt, findMetadataByFeedUrl, findMetadataById,
-  hasMetadata, isEmpty, partialToPodcast,
-  unixTimestamp,
+  hasMetadata, isEmpty, isValidUuid,
+  partialToPodcast, unixTimestamp,
 } from '../utils';
 import {
   hasDiff, mergeBatchMetadata, rightDiff,
   simpleDiff,
 } from './arweave/sync/diff-merge-logic';
-import { findBestId, isValidUuid } from '../podcast-id';
+import { findBestId } from '../podcast-id';
 import { getPodcastId } from './arweave/cache/podcast-id';
 
 export const { pingTxIds } = arweave;
@@ -153,6 +153,8 @@ export async function refreshSubscriptions(
     }
     else newMetadataToSync.push(newPodcastToSync);
   };
+
+  const threads = arweave.getAllThreads(podcastsToRefresh);
 
   results.forEach(({ errorMessage, newPodcastMetadata, newPodcastMetadataToSync }) => {
     if (hasMetadata(newPodcastMetadata)) {

@@ -15,8 +15,8 @@ import {
 } from '../utils';
 import {
   ArSyncTxDTO, CachedArTx, EpisodesDBTable,
-  Podcast, PodcastDTO, SearchPodcastResult,
-  Thread,
+  Podcast, PodcastDTO, Post,
+  SearchPodcastResult, Thread,
 } from '../client/interfaces';
 import { sanitizeString, sanitizeUri, isValidUrl } from '../client/metadata-filtering';
 import { usingArLocal } from '../client/arweave/utils';
@@ -31,9 +31,9 @@ import {
 if (usingArLocal()) {
   console.debug('Seeded arlocal podcast feeds:\n', dedent`
     https://feeds.simplecast.com/dHoohVNH
-     https://thejimmydoreshow.libsyn.com/rss
-     https://feeds.megaphone.fm/ADV2256857693
-     https://lexfridman.com/feed/podcast
+    https://thejimmydoreshow.libsyn.com/rss
+    https://feeds.megaphone.fm/ADV2256857693
+    https://lexfridman.com/feed/podcast
   `);
 }
 
@@ -56,7 +56,8 @@ interface SubscriptionContextType {
   dbWriteCachedArSyncTxs: (newValue: ArSyncTxDTO[]) => Promise<void>,
   dbStatus: DBStatus,
   setDbStatus: (value: DBStatus) => void,
-  handleCreateThread: (thread: Thread) => void,
+  redraftPost: (post: Post) => void,
+  handleCreatePost: (post: Post) => void,
   handleDiscardThread: (thread: Thread) => void,
 }
 
@@ -86,7 +87,8 @@ export const SubscriptionsContext = createContext<SubscriptionContextType>({
   dbWriteCachedArSyncTxs: async () => {},
   dbStatus: 0,
   setDbStatus: () => {},
-  handleCreateThread: () => {},
+  redraftPost: () => {},
+  handleCreatePost: () => {},
   handleDiscardThread: () => {},
 });
 
@@ -248,6 +250,8 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
   }
 
   async function subscribe(feedUrl: Podcast['feedUrl']) {
+    // TODO: Allow changing feedUrl while retaining the same podcast id
+
     const validUrl = sanitizeUri(feedUrl, false);
 
     const subscription = findMetadataByFeedUrl(validUrl, 'rss2', subscriptions);
@@ -256,9 +260,8 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
       return true;
     }
 
-    const { errorMessage,
-      newPodcastMetadata,
-      newPodcastMetadataToSync } = await handleFetchPodcastRss2Feed(validUrl);
+    const { errorMessage, newPodcastMetadata, newPodcastMetadataToSync } =
+      await handleFetchPodcastRss2Feed(validUrl);
 
     if (hasMetadata(newPodcastMetadata)) {
       toast.success(`Successfully subscribed to ${newPodcastMetadata.title}.`);
@@ -276,7 +279,6 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
 
   async function unsubscribe(feedUrl: Podcast['feedUrl']) {
     // TODO: warn if feedUrl has pending metadataToSync
-    //       currently, any pending metadataToSync is left but does not survive a refresh
     const sub = findMetadataByFeedUrl(feedUrl, 'rss2', subscriptions);
     if (!hasMetadata(sub)) {
       toast.error(`You are not subscribed to ${feedUrl}.`);
@@ -371,27 +373,33 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   /**
-   * Saves the new `thread` to `metadataToSync`.
-   * ArSync will skip it if `thread.isDraft = true` or if `.subject` or `.content` is missing.
-   * @param thread
+   * Moves the given Post back into `metadataToSync` as a draft.
+   * Called if the corresponding ArSyncTx is marked as REJECTED.
+   *
+   * @see {ArweaveProvider.confirmArSyncTxs}
    */
-  const handleCreateThread = (thread: Thread) => {
-    if (thread.podcastId && thread.content) {
-      const podcastToSync = {
-        ...findMetadataById(thread.podcastId, metadataToSync),
-        id: thread.podcastId,
+  function redraftPost(post: Post) : void {
+    handleCreatePost(post);
+  }
+
+  /**
+   * Saves the new `post` to `metadataToSync`.
+   * ArSync will skip it if `post.isDraft = true` or if required props are empty.
+   */
+  const handleCreatePost = (post: Post) => {
+    if (post.podcastId && post.content) {
+      const prevPodcastToSync : Partial<Podcast> = findMetadataById(post.podcastId, metadataToSync);
+      const podcastToSync : Partial<Podcast> = {
+        ...prevPodcastToSync,
+        id: post.podcastId,
+        threads: [...(prevPodcastToSync.threads || []).filter(thr => thr.id !== post.id), post],
       };
-      podcastToSync.threads = [...(podcastToSync.threads || []).filter(thr => thr.id !== thread.id),
-        thread];
-      setMetadataToSync(prev => prev.filter(podcast => podcast.id !== thread.podcastId)
+      setMetadataToSync(prev => prev.filter(podcast => podcast.id !== post.podcastId)
         .concat(podcastToSync));
     }
   };
 
-  /**
-   * Removes the given `thread` from `metadataToSync`.
-   * @param thread
-   */
+  /** Removes the given `thread` from `metadataToSync`. */
   const handleDiscardThread = (thread: Thread) => {
     if (thread.podcastId) {
       const podcastToSync = { ...findMetadataById(thread.podcastId, metadataToSync) };
@@ -445,7 +453,7 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
       }
       catch (ex) {
         const errorMessage = `An error occurred while fetching the ${errorMessageTable} table from `
-          + `IndexedDB:\n${(ex as Error).message}\n${IndexedDb.DB_ERROR_GENERIC_HELP_MESSAGE}`;
+          + `IndexedDB:\n${(ex as Error).message}\n\n${IndexedDb.DB_ERROR_GENERIC_HELP_MESSAGE}`;
         console.error(errorMessage);
         toast.error(errorMessage, { autoClose: false });
       }
@@ -458,8 +466,8 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
     const updateCachedPodcasts = async () => {
       const errorMessages = await dbWriteCachedPodcasts(subscriptions);
       if (errorMessages.length) {
-        const errorMessage = 'Some subscriptions failed to be cached into IndexedDB:\n'
-          + `${IndexedDb.DB_ERROR_GENERIC_HELP_MESSAGE}\n${concatMessages(errorMessages)}`;
+        const errorMessage = 'Some subscriptions failed to be cached into IndexedDB.\n\n'
+          + `${IndexedDb.DB_ERROR_GENERIC_HELP_MESSAGE}\n\n${concatMessages(errorMessages)}`;
         console.error(errorMessage);
         toast.error(errorMessage, { autoClose: false });
       }
@@ -509,7 +517,8 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
         dbWriteCachedArSyncTxs,
         dbStatus,
         setDbStatus,
-        handleCreateThread,
+        redraftPost,
+        handleCreatePost,
         handleDiscardThread,
       }}
     >

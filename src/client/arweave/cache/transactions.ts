@@ -4,7 +4,7 @@ import {
   Podcast,
   PodcastTags,
   Primitive,
-  TransactionKind,
+  TxKind,
 } from '../../interfaces';
 import {
   episodesCount,
@@ -12,10 +12,11 @@ import {
   isNotEmpty,
   isValidDate,
   isValidInteger,
+  isValidKind,
   isValidString,
+  isValidUuid,
 } from '../../../utils';
-import { isValidUuid } from '../../../podcast-id';
-import { hasValidKind, isMetadataTx } from '../utils';
+import { hasMetadataTxKind } from '../utils';
 
 /**
  * The cached transactions, exclusively populated from GraphQL results.
@@ -103,11 +104,10 @@ export function removeUnsubscribedIds(idsToKeep: Podcast['id'][]) {
 function isValidTx(tx: CachedArTx, metadata: Podcast | {} | undefined = undefined) : boolean {
   // TODO: add more validations for deeming txBlocked := true.
 
-  if (!hasValidKind(tx)) return false;
-  const kind = tx.kind as TransactionKind;
+  if (!isValidKind(tx.kind)) return false;
 
   if (metadata) { /* Validate metadata */
-    if (isMetadataTx(kind) && !hasMetadata(metadata)) return false;
+    if (hasMetadataTxKind(tx) && !hasMetadata(metadata)) return false;
   }
 
   if (!isValidUuid(tx.podcastId)) return false;

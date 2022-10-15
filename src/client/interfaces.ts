@@ -18,7 +18,6 @@ const MANDATORY_ARWEAVE_METADATA_TAGS = [
 ] as const;
 
 const MANDATORY_ARWEAVE_THREAD_TAGS = [
-  'episodeId',
   'threadId',
   'type',
   'content',
@@ -26,11 +25,19 @@ const MANDATORY_ARWEAVE_THREAD_TAGS = [
 ] as const;
 
 const MANDATORY_ARWEAVE_THREADREPLY_TAGS = [
-  'episodeId',
   'threadId',
   'type',
   'content',
-  'parentId',
+  'parentThreadId',
+] as const;
+
+const OPTIONAL_ARWEAVE_THREAD_TAGS = [
+  'episodeId',
+] as const;
+
+const OPTIONAL_ARWEAVE_THREADREPLY_TAGS = [
+  'episodeId',
+  'parentPostId',
 ] as const;
 
 export const OPTIONAL_ARWEAVE_STRING_TAGS = [
@@ -74,6 +81,8 @@ export const ALLOWED_ARWEAVE_TAGS = [
   ...MANDATORY_ARWEAVE_METADATA_TAGS,
   ...MANDATORY_ARWEAVE_THREAD_TAGS,
   ...MANDATORY_ARWEAVE_THREADREPLY_TAGS,
+  ...OPTIONAL_ARWEAVE_THREAD_TAGS,
+  ...OPTIONAL_ARWEAVE_THREADREPLY_TAGS,
   ...OPTIONAL_ARWEAVE_STRING_TAGS,
   ...OPTIONAL_ARWEAVE_BATCH_TAGS,
   ...OPTIONAL_ARWEAVE_SINGULAR_TAGS,
@@ -84,6 +93,8 @@ export const ALLOWED_ARWEAVE_TAGS_PLURALIZED = [
   ...MANDATORY_ARWEAVE_METADATA_TAGS,
   ...MANDATORY_ARWEAVE_THREAD_TAGS,
   ...MANDATORY_ARWEAVE_THREADREPLY_TAGS,
+  ...OPTIONAL_ARWEAVE_THREAD_TAGS,
+  ...OPTIONAL_ARWEAVE_THREADREPLY_TAGS,
   ...OPTIONAL_ARWEAVE_STRING_TAGS,
   ...OPTIONAL_ARWEAVE_BATCH_TAGS,
   ...OPTIONAL_ARWEAVE_PLURAL_TAGS,
@@ -110,16 +121,16 @@ export const THREAD_TX_KINDS = [
   'thread',
   'threadReply',
 ] as const;
-export const TRANSACTION_KINDS = [
+export const TX_KINDS = [
   ...METADATA_TX_KINDS,
   ...THREAD_TX_KINDS,
 ];
-export type MetadataTransactionKind = typeof METADATA_TX_KINDS[number];
-export type ThreadTransactionKind = typeof THREAD_TX_KINDS[number];
-export type TransactionKind = typeof TRANSACTION_KINDS[number];
+export type MetadataTxKind = typeof METADATA_TX_KINDS[number];
+export type ThreadTxKind = typeof THREAD_TX_KINDS[number];
+export type TxKind = typeof TX_KINDS[number];
 
 export interface Podcast extends PodcastTags {
-  threads?: Thread[];
+  threads?: Post[];
   lastMutatedAt?: number; /** @see unixTimestamp() */
   episodes?: Episode[];
   infoUrl?: string;
@@ -130,10 +141,12 @@ export interface Podcast extends PodcastTags {
 
 export interface PodcastTags {
   id: string;
+  kind?: TxKind;
+
   feedType: FeedType;
   feedUrl: string;
+
   title: string;
-  kind?: TransactionKind;
   description?: string;
   author?: string;
   summary?: string;
@@ -151,12 +164,20 @@ export interface PodcastTags {
   lastEpisodeDate?: Date;
   metadataBatch?: number;
   lastBuildDate?: Date;
+
+  threadId?: Thread['id'];
+  episodeId?: Thread['episodeId'];
+  content?: Thread['content'];
+  type?: Thread['type'];
+  subject?: Thread['subject'];
+  parentThreadId?: ThreadReply['parentThreadId'];
+  parentPostId?: ThreadReply['parentPostId'];
 }
 
 export interface PodcastDTO extends Omit<Podcast, 'feedType' | 'kind' | 'firstEpisodeDate'
 | 'lastEpisodeDate' | 'episodes' | 'lastBuildDate'> {
   feedType: FeedType | string;
-  kind?: TransactionKind | string;
+  kind?: TxKind | string;
   firstEpisodeDate?: string;
   lastEpisodeDate?: string;
   episodes?: EpisodeDTO[];
@@ -202,7 +223,7 @@ export interface DispatchResultDTO extends DispatchResult {
   bundledIn?: string;
 }
 
-export type BundledTxIdMapping = {
+export type StringToStringMapping = {
   [key: string]: string;
 };
 
@@ -232,11 +253,11 @@ export enum ArSyncTxStatus {
  *   user chooses to clear any of them.
  * @prop {string} id uuid of the ArSyncTx object
  * @prop {string} podcastId uuid of the relevant podcast
- * @prop {TransactionKind} kind
+ * @prop {TxKind} kind
  * @prop {string} title?
  * @prop {DispatchResult | DispatchResultDTO} dispatchResult?
  * @prop {Transaction | TransactionDTO | Error} resultObj
- * @prop {Partial<Podcast> | Thread} metadata
+ * @prop {Partial<Podcast> | Post} metadata
  * @prop {number} numEpisodes
  * @prop {ArSyncTxStatus} status
  * @prop {number} timestamp
@@ -244,11 +265,11 @@ export enum ArSyncTxStatus {
 export interface ArSyncTx {
   id: string,
   podcastId: Podcast['id'],
-  kind: TransactionKind,
+  kind: TxKind,
   title?: Podcast['title'],
   dispatchResult?: DispatchResult | DispatchResultDTO,
   resultObj: Transaction | TransactionDTO | Error,
-  metadata: Partial<Podcast> | Thread,
+  metadata: Partial<Podcast> | Post,
   numEpisodes: number,
   status: ArSyncTxStatus,
   timestamp: Podcast['lastMutatedAt'],
@@ -269,7 +290,7 @@ export interface ArSyncTxDTO extends Omit<ArSyncTx, 'metadata'> {
  *   4) TODO: global-level block lists (first maintained by our mods, later sharable among users)
  * @prop {string} podcastId
  * @prop {string} txId
- * @prop {TransactionKind} kind?
+ * @prop {TxKind} kind?
  * @prop {boolean} txBlocked defaults to false, but is set to true for erroneous transactions
  * @prop {Omit<PodcastTags, 'id' | 'kind'>} tags
  * @prop {string} ownerAddress
@@ -279,7 +300,7 @@ export interface ArSyncTxDTO extends Omit<ArSyncTx, 'metadata'> {
 export interface CachedArTx {
   podcastId: PodcastTags['id'];
   txId: string;
-  kind?: TransactionKind;
+  kind?: TxKind;
   txBlocked: boolean;
   tags: Omit<PodcastTags, 'id' | 'kind'>;
   ownerAddress: string;
@@ -331,5 +352,9 @@ export interface Thread {
 }
 
 export interface ThreadReply extends Omit<Thread, 'subject'> {
-  parentId: Thread['id'],
+  parentThreadId: Thread['id'],
+  parentPostId?: Thread['id'], // Only used when replying to a reply
 }
+
+/** @type a `Thread` or `ThreadReply` */
+export type Post = Thread | ThreadReply;

@@ -5,6 +5,7 @@ import {
 import { toast } from 'react-toastify';
 import {
   Episode, Podcast, Thread,
+  // ThreadReply,
 } from '../client/interfaces';
 import { findMetadataByFeedUrl, hasMetadata } from '../utils';
 import { SubscriptionsContext } from '../providers/subscriptions';
@@ -45,7 +46,7 @@ function TabPanel(props: TabPanelProps) {
 
 function HomePage() {
   const {
-    handleCreateThread,
+    handleCreatePost,
     handleDiscardThread,
     handleSearch,
     handleFetchPodcastRss2Feed,
@@ -57,7 +58,7 @@ function HomePage() {
     subscribe,
     unsubscribe,
   } = useContext(SubscriptionsContext);
-  const { arSyncTxs, isSyncing, removeArSyncTxs } = useContext(ArweaveContext);
+  const { arSyncTxs, hasPendingTxs, isSyncing, removeArSyncTxs } = useContext(ArweaveContext);
 
   const [tab, setTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -155,7 +156,7 @@ function HomePage() {
     if (thread) {
       toast.success('Thread saved in browser storage.\n\nTo upload it to Arweave, tap the Sync '
         + 'button twice.\n\nYou may still edit or discard it from the Drafts tab.');
-      handleCreateThread(thread);
+      handleCreatePost(thread);
       handleCloseCreateThreadDialog();
     }
   };
@@ -164,7 +165,7 @@ function HomePage() {
     if (threadDraft) {
       toast.success('Draft saved in browser storage.\n\nYou can edit, submit or discard it from '
         + 'the Drafts tab.');
-      handleCreateThread(threadDraft);
+      handleCreatePost(threadDraft);
     }
     setShowSavePrompt(false);
     handleCloseCreateThreadDialog();
@@ -232,6 +233,7 @@ function HomePage() {
           <TabPanel className={style['tab-panel']} value={tab} index={1}>
             <TransactionList
               subscriptions={subscriptions}
+              metadataToSync={metadataToSync}
               txs={arSyncTxs}
               removeArSyncTxs={removeArSyncTxs}
             />
@@ -245,9 +247,10 @@ function HomePage() {
             <DraftList
               subscriptions={subscriptions}
               metadataToSync={metadataToSync}
+              hasPendingTxs={hasPendingTxs}
               handleShowEditThreadDialog={handleShowEditThreadDialog}
               handleOpenSavePrompt={handleOpenSavePrompt}
-              handleCreateThread={handleCreateThread}
+              handleCreatePost={handleCreatePost}
             />
           </TabPanel>
         </Box>

@@ -4,7 +4,7 @@ import TrashIcon from '@mui/icons-material/DeleteRounded';
 import style from './style.module.scss';
 
 interface Props extends ButtonProps {
-  onClick: () => void;
+  onClick?: (...args: any) => void;
 }
 
 const RemoveBtn : React.FC<Props> = ({ onClick, ...props }) => (

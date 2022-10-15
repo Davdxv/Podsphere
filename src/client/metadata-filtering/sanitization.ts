@@ -29,6 +29,15 @@ export function sanitizeString(str : string, allowHtml = false, sanitizeOptions 
   return allowHtml ? sanitized : he.decode(sanitized);
 }
 
+/** Returns the given object where all string values are sanitized (shallow) */
+export function sanitizeObjectStrings<T extends { [K: string]: any }>(obj: T) : T {
+  if (typeof obj !== 'object') return obj;
+
+  const sanitized =
+    Object.entries(obj).map(([k, v]) => [k, typeof v === 'string' ? sanitizeString(v) : v]);
+  return Object.fromEntries(sanitized) as T;
+}
+
 /**
  * TODO:
  *   - employ proper URI sanitization

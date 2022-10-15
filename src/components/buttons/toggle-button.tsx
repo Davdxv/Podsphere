@@ -7,17 +7,20 @@ interface Props extends ButtonProps {
   children?: React.ReactNode;
   enabled: boolean;
   onToggle: (...args: any) => void;
+  disabled?: boolean;
   useColors?: boolean;
   classes?: string;
 }
 
 const ToggleButton : React.FC<Props> = ({
   children, enabled, onToggle,
-  useColors = true, classes = '', ...props
+  disabled, useColors = true, classes = '',
+  ...props
 }) => {
   let value = enabled;
 
-  const colorClass = style[`toggle-btn--${value ? 'on' : 'off'}`];
+  const colorClass = useColors ? style[`toggle-btn--${value ? 'on' : 'off'}`] : '';
+  const disabledClass = disabled ? style['toggle-btn--disabled'] : '';
 
   const handleToggle = (_event: React.MouseEvent<unknown>) => {
     const newValue = !value;
@@ -27,8 +30,8 @@ const ToggleButton : React.FC<Props> = ({
 
   return (
     <IconButton
-      className={`${style['toggle-btn']} ${useColors ? colorClass : ''} ${classes || ''}`}
-      onClick={handleToggle}
+      className={`${style['toggle-btn']} ${colorClass} ${disabledClass} ${classes}`}
+      onClick={disabled ? undefined : handleToggle}
       {...props}
     >
       {value ? <ToggleOn /> : <ToggleOff />}

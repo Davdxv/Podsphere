@@ -1,10 +1,10 @@
 /* eslint-disable no-await-in-loop */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import {
-  QueryTransactionsArgs,
-  TagFilter,
+  QueryTransactionsArgs as GQLQueryTransactionsArgs,
+  TagFilter as GQLTagFilter,
   Transaction as GraphQLTransaction,
-  TransactionEdge,
+  TransactionEdge as GQLTransactionEdge,
 } from 'arlocal/bin/graphql/types.d';
 import dedent from 'dedent';
 // TODO: arbundles is currently unused, but we might need it in the future.
@@ -12,12 +12,14 @@ import dedent from 'dedent';
 import {
   ALLOWED_ARWEAVE_TAGS_PLURALIZED,
   AllowedTagsPluralized,
-  BundledTxIdMapping,
   CachedArTx,
   GraphQLMetadata,
   Podcast,
   PodcastFeedError,
   PodcastTags,
+  StringToStringMapping,
+  Thread,
+  ThreadReply,
 } from '../interfaces';
 import client from './client';
 import { fetchArweaveUrlData } from '../axios';
@@ -27,20 +29,22 @@ import {
   hasMetadata,
   isEmpty,
   isNotEmpty,
+  isValidDate,
   isValidString,
+  isValidThread,
+  isValidUuid,
   podcastFromDTO,
   toDate,
 } from '../../utils';
 import { toTag, fromTag, decompressMetadata } from './utils';
 import { mergeArraysToLowerCase } from '../metadata-filtering/formatting';
 import { mergeBatchMetadata, mergeBatchTags } from './sync/diff-merge-logic';
-import { isValidUuid } from '../../podcast-id';
 import { getCachedTxForFeed, txCache } from './cache/transactions';
 
-/** Type signature accepted by the Arweave API's '/graphql' endpoint */
+/** Type signature accepted by Arweave API's `/graphql` endpoint */
 type GraphQLQuery = {
   query: string,
-  variables: QueryTransactionsArgs,
+  variables: GQLQueryTransactionsArgs,
 };
 type TagsToFilter = {
   [key: string]: string | string[];
@@ -58,8 +62,8 @@ const MAX_GRAPHQL_NODES = 100;
 const ERRONEOUS_TX_DATA = 'Erroneous data';
 
 /** Helper function mapping each {tag: value, ...} to [{name: tag, values: value}, ...] */
-const toTagFilter = (tagsToFilter: TagsToFilter) : TagFilter[] => Object
-  .entries(tagsToFilter).map(([tag, value]) => ({
+const toGQLTagFilter = (tagsToFilter: TagsToFilter) : GQLTagFilter[] => Object.entries(tagsToFilter)
+  .map(([tag, value]) => ({
     name: toTag(tag),
     values: Array.isArray(value) ? value : [value],
   }));
@@ -78,11 +82,8 @@ export async function fetchPodcastId(
   let gqlResults : ParsedGqlResult[];
 
   try {
-    const gqlQuery = gqlQueryForTags(
-      { feedUrl, feedType, metadataBatch: '0' },
-      [QueryField.TAGS],
-    );
-    gqlResults = await getPodcastFeedForGqlQuery(gqlQuery, true);
+    const gqlQuery = gqlQueryForTags({ feedUrl, feedType, metadataBatch: '0' }, [QueryField.TAGS]);
+    gqlResults = await getGqlQueryResult(gqlQuery, true);
   }
   catch (_ex) {
     return '';
@@ -148,7 +149,7 @@ export async function getPodcastRss2Feed(
       { feedUrl, feedType: 'rss2', kind: 'metadataBatch', metadataBatch: `${batch}` },
       [QueryField.OWNER_ADDRESS, QueryField.TAGS, QueryField.BUNDLEDIN],
     );
-    const parsedTxs = await getPodcastFeedForGqlQuery(gqlQuery, true);
+    const parsedTxs = await getGqlQueryResult(gqlQuery, true);
     if (parsedTxs.length) {
       if (parsedTxs.every(tx => isEmpty(tx.tags) || isEmpty(tx.gqlMetadata))) {
         // GraphQL error or batch number not found
@@ -196,9 +197,38 @@ export async function getPodcastRss2Feed(
   return mergedMetadata;
 }
 
+export async function getAllThreads(podcastIds: string[]) : Promise<Thread[]> {
+  const gqlResultsToThreads = (results: ParsedGqlResult[]) : Thread[] => results.map(({ tags }) => {
+    if (isNotEmpty(tags)) {
+      return {
+        isDraft: false,
+        id: tags.threadId || '',
+        podcastId: tags.id,
+        episodeId: isValidDate(toDate(tags.episodeId)) ? toDate(tags.episodeId) : null,
+        content: tags.content || '',
+        type: tags.type || 'public',
+        subject: tags.subject || '',
+      } as Thread;
+    }
+    return null;
+  }).filter(isValidThread);
+
+  if (isEmpty(podcastIds)) return [];
+  const gqlQueries = podcastIds.map(id => gqlQueryForTags(
+    { id, kind: 'thread' }, [QueryField.OWNER_ADDRESS, QueryField.TAGS, QueryField.BUNDLEDIN],
+  ));
+  const results = await Promise.all(gqlQueries.map(gqlQuery => getGqlQueryResult(gqlQuery, false)));
+  console.debug('results', results);
+
+  const threads = results.map(gqlResultsToThreads).filter(isNotEmpty).flat();
+  console.debug('threads', threads);
+
+  return threads;
+}
+
 // TODO: to be used in ArSync v1.6+ when user can specify whitelisted/blacklisted txIds per podcast
-export async function getPodcastFeedForTxIds(ids: string[]) {
-  return getPodcastFeedForGqlQuery(gqlQueryForIds(ids, [QueryField.TAGS]));
+export async function getPodcastFeedForTxIds(txIds: string[]) {
+  return getGqlQueryResult(gqlQueryForIds(txIds, [QueryField.TAGS]));
 }
 
 /** @returns the id's that are unreachable through GraphQL */
@@ -209,8 +239,8 @@ export async function pingTxIds(ids: string[]) : Promise<string[]> {
   const candidateIds = ids.slice(0, MAX_GRAPHQL_NODES);
   if (edges.length === candidateIds.length) return [];
 
-  const onlineIds = edges.map(edge => (isValidUuid(edge?.node?.id) ? edge.node.id : null))
-    .filter(x => x);
+  const onlineIds =
+    edges.map(edge => (isValidUuid(edge?.node?.id) ? edge.node.id : null)).filter(x => x);
   const downIds = candidateIds.filter(id => !onlineIds.includes(id));
   console.debug(`The following id's are down: ${downIds}\nRefresh subscriptions to update txCache`);
   return downIds;
@@ -231,8 +261,8 @@ const getParentTxId = (node: GraphQLTransaction) : string => (
 
 const isBundledTx = (node: GraphQLTransaction) => isNotEmpty(node.bundledIn) && node.bundledIn.id;
 
-export async function getArBundledParentIds(ids: string[]) : Promise<BundledTxIdMapping> {
-  const result : BundledTxIdMapping = {};
+export async function getArBundledParentIds(ids: string[]) : Promise<StringToStringMapping> {
+  const result : StringToStringMapping = {};
   const { edges } = await getGqlResponse(gqlQueryForIds(ids, [QueryField.BUNDLEDIN]));
 
   edges.forEach(edge => {
@@ -245,7 +275,7 @@ export async function getArBundledParentIds(ids: string[]) : Promise<BundledTxId
 }
 
 async function getGqlResponse(gqlQuery: GraphQLQuery)
-  : Promise<{ edges: TransactionEdge[], errorMessage?: string }> {
+  : Promise<{ edges: GQLTransactionEdge[], errorMessage?: string }> {
   let edges = [];
   let errorMessage;
 
@@ -367,10 +397,10 @@ async function parseGqlResult(tx: GraphQLTransaction, getData: boolean) : Promis
   return { metadata, tags, gqlMetadata };
 }
 
-async function getPodcastFeedForGqlQuery(gqlQuery: GraphQLQuery, getData = true)
+async function getGqlQueryResult(gqlQuery: GraphQLQuery, getData = true)
   : Promise<ParsedGqlResult[]> {
   const { edges, errorMessage } = await getGqlResponse(gqlQuery);
-  if (isEmpty(edges)) {
+  if (errorMessage || isEmpty(edges)) {
     return [{ errorMessage, metadata: {}, tags: {}, gqlMetadata: {} }];
   }
 
@@ -397,11 +427,12 @@ enum QueryField {
 
 /**
  * @param tagsToFilter
+ * @param queryFields The fields of the node structure to query, besides `id`
  * @returns An Object with the query formatted for Arweave's '/graphql' endpoint
  */
 function gqlQueryForTags(tagsToFilter: TagsToFilter, queryFields: QueryField[] = [QueryField.TAGS])
   : GraphQLQuery {
-  const tags = toTagFilter(tagsToFilter);
+  const tags = toGQLTagFilter(tagsToFilter);
 
   return {
     query: dedent`

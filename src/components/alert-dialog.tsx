@@ -10,7 +10,7 @@ type FunctionHandler = (...args: any) => void;
 type DialogButton = [string, FunctionHandler, ButtonProps?];
 
 interface AlertDialogProps {
-  onClose: () => void,
+  onClose: FunctionHandler,
   isOpen: boolean,
   title: string,
   description: string,

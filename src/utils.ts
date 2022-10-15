@@ -1,16 +1,9 @@
 import {
-  EmptyTypes,
-  Episode,
-  EpisodeDTO,
-  FeedType,
-  FEED_TYPES,
-  Podcast,
-  PodcastDTO,
-  PodcastFeedError,
-  ThreadType,
-  THREAD_TYPES,
-  TransactionKind,
-  TRANSACTION_KINDS,
+  EmptyTypes, Episode, EpisodeDTO,
+  FeedType, FEED_TYPES, Podcast,
+  PodcastDTO, PodcastFeedError, Post,
+  Thread, ThreadReply, ThreadType,
+  THREAD_TYPES, TxKind, TX_KINDS,
 } from './client/interfaces';
 import { isValidUrl } from './client/metadata-filtering';
 import { initializeKeywords } from './client/metadata-filtering/generation';
@@ -103,16 +96,66 @@ export function isValidDate(date: unknown) : date is Date {
   return date instanceof Date && !!date.getTime();
 }
 
-export function isValidKind(kind: unknown) : kind is TransactionKind {
-  return typeof kind === 'string' && TRANSACTION_KINDS.some(txKind => txKind === kind);
+/**
+ * Fast & loose uuid validation.
+ * @param id If the `id` has a `temp-` prefix, the prefix is excluded from the validation
+ * @returns true if the given `id` is a string comprised of 32-64 hex chars and any dashes
+ */
+export function isValidUuid(id: unknown) : id is Podcast['id'] {
+  const isHex = (char: string) => '0123456789abcdef'.includes(char.toLowerCase());
+
+  if (!id || typeof id !== 'string') return false;
+
+  const guid = removePrefixFromPodcastId(id).replaceAll('-', '');
+  return guid.length >= 32 && guid.length <= 64 && [...guid].every(isHex);
 }
 
-export function isValidFeedType(feedType: unknown) : feedType is FeedType {
-  return typeof feedType === 'string' && FEED_TYPES.some(t => t === feedType);
+/**
+ * @returns true iff the given `thread` has well-defined Thread props (a ThreadReply returns false)
+ */
+export function isValidThread(thread: unknown) : thread is Thread {
+  if (isEmpty(thread)) return false;
+
+  const { id, podcastId, content, type, subject } = thread as Thread;
+  return isValidUuid(id) && isValidUuid(podcastId) && isValidString(content)
+    && isValidThreadType(type) && isValidString(subject);
+}
+
+/**
+ * @returns true iff the given `reply` has well-defined ThreadReply props (a Thread returns false)
+ */
+export function isValidThreadReply(reply: unknown) : reply is ThreadReply {
+  if (isEmpty(reply)) return false;
+
+  const { id, podcastId, content, type, parentThreadId } = reply as ThreadReply;
+  return isReply(reply as Post) && isValidUuid(id) && isValidUuid(podcastId)
+    && isValidString(content) && isValidThreadType(type) && isValidUuid(parentThreadId);
+}
+
+export function isValidPost(post: unknown) : post is Post {
+  return (isReply(post as Post) && isValidThreadReply(post)) || isValidThread(post);
+}
+
+/** @returns Whether the given `post` is a `ThreadReply` */
+export function isReply(post: Post) : post is ThreadReply {
+  return !('subject' in post) && 'parentThreadId' in post;
+}
+
+/** @returns Whether the given `post` is a `Thread` */
+export function isThread(post: Post) : post is Thread {
+  return !isReply(post);
 }
 
 export function isValidThreadType(type: unknown) : type is ThreadType {
   return typeof type === 'string' && THREAD_TYPES.some(t => t === type);
+}
+
+export function isValidKind(kind: unknown) : kind is TxKind {
+  return typeof kind === 'string' && TX_KINDS.some(txKind => txKind === kind);
+}
+
+export function isValidFeedType(feedType: unknown) : feedType is FeedType {
+  return typeof feedType === 'string' && FEED_TYPES.some(t => t === feedType);
 }
 
 export function datesEqual(a: Date, b: Date) {
@@ -144,7 +187,7 @@ export function getLastEpisodeDate(metadata: Partial<Podcast>) : Date {
  */
 export function concatMessages(messages : string[] = [], filterDuplicates = false) {
   return (filterDuplicates ? [...new Set(messages.flat())] : messages.flat())
-    .filter(x => x) // Filter out any null elements
+    .filter(x => x)
     .join('\n').trim();
 }
 
@@ -155,7 +198,7 @@ export function concatMessages(messages : string[] = [], filterDuplicates = fals
  *   - A `0` Date object, if `date` is not a valid date string.
  *   - `date`, if `date` is already a Date object.
  */
-export function toDate(date: string | Date | undefined) : Date {
+export function toDate(date: string | Date | null | undefined) : Date {
   if (!date) return new Date(0);
   if (date instanceof Date) return date;
 
@@ -170,9 +213,9 @@ export function toDate(date: string | Date | undefined) : Date {
  *   - an empty episodes list
  *   - `Episode['publishedAt']`
  */
-export function hasMetadata<K extends Partial<Podcast> | Partial<Episode>, T extends K[]>(
-  metadata: K | T | EmptyTypes,
-) : metadata is T | K {
+export function hasMetadata<U extends Partial<Podcast> | Partial<Episode>, T extends U[]>(
+  metadata: U | T | EmptyTypes,
+) : metadata is T | U {
   if (isEmpty(metadata)) return false;
   if (Array.isArray(metadata)) return !!metadata.length;
   if (isNotEmpty(metadata) && metadata.title) return true;
@@ -222,6 +265,21 @@ export function findEpisodeMetadata<T extends Podcast | Partial<Podcast> | Episo
   return null;
 }
 
+export function findThreadInMetadata(id: Thread['id'], subscriptions: Podcast[],
+  metadataToSync: Partial<Podcast>[] = []) : Thread | null {
+  const list1 = metadataToSync.map(p => p.threads?.filter(isThread)).flat().filter(isNotEmpty);
+  const result1 = findPostById(id, list1);
+  if (result1) return result1 as Thread;
+
+  const list2 = subscriptions.map(p => p.threads?.filter(isThread)).flat().filter(isNotEmpty);
+  const result2 = findPostById(id, list2);
+  return (result2 as Thread) || null;
+}
+
+export function findPostById(id: Thread['id'], threads: Post[] = []) : Post | null {
+  return threads.find(thr => thr.id === id) || null;
+}
+
 export function partialToPodcast(partialMetadata: Partial<Podcast>) : Podcast | PodcastFeedError {
   const result : Podcast = {
     ...partialMetadata,
@@ -255,14 +313,14 @@ export function podcastFromDTO(podcast: Partial<PodcastDTO>, sortEpisodes = true
 
   let { feedType, metadataBatch,
     // eslint-disable-next-line prefer-const
-    firstEpisodeDate, lastEpisodeDate, lastBuildDate, kind, ...mainMetadata } : any = podcast;
+    firstEpisodeDate, lastEpisodeDate, lastBuildDate, ...mainMetadata } : any = podcast;
 
   feedType = isValidFeedType(feedType) ? feedType : 'rss2';
   metadataBatch = Number(metadataBatch);
   firstEpisodeDate = toDate(firstEpisodeDate);
   lastEpisodeDate = toDate(lastEpisodeDate);
   lastBuildDate = toDate(lastBuildDate);
-  kind ||= 'metadataBatch';
+  // kind ||= 'metadataBatch';
 
   const result : Podcast = {
     ...mainMetadata as Podcast,
@@ -275,7 +333,7 @@ export function podcastFromDTO(podcast: Partial<PodcastDTO>, sortEpisodes = true
   if (isValidDate(firstEpisodeDate)) result.firstEpisodeDate = firstEpisodeDate;
   if (isValidDate(lastEpisodeDate)) result.lastEpisodeDate = lastEpisodeDate;
   if (isValidDate(lastBuildDate)) result.lastBuildDate = lastBuildDate;
-  if (isValidKind(kind)) result.kind = kind;
+  // if (isValidKind(kind)) result.kind = kind;
 
   return result;
 }
@@ -395,18 +453,20 @@ export function valuesEqual(a: object = {}, b: object = {}) : boolean {
 
   // See https://stackoverflow.com/a/32922084/8691102
   const ok = Object.keys;
-  const tx = typeof a;
-  const ty = typeof b;
-  return tx === 'object' && tx === ty ? (
+  return typeof a === 'object' && typeof a === typeof b ? (
     ok(a).length === ok(b).length
     && ok(a).every(key => valuesEqual(a[key as keyof typeof a], b[key as keyof typeof b]))
   ) : (a === b);
 }
 
+/** @returns The headers for the currently configured {@linkcode corsProxyURL()} */
 export function corsApiHeaders() {
   switch (corsProxyURL()) {
     default:
-      return {};
+      return {
+        'Access-Control-Allow-Headers': 'X-Requested-With, X-Requested-By',
+        'X-Requested-With': 'XMLHttpRequest',
+      };
   }
 }
 

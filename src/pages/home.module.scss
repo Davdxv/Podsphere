@@ -33,12 +33,12 @@
 }
 
 .wrapper {
-  margin-top:  32px;
+  margin-top: 1rem;
   min-width: 100%;
   display: flex;
-  padding: 0 16px;
+  padding: 0 1rem;
   @media only screen and (max-width: breakpoints.$md) {
-    margin-top:  15px;
+    margin-top: 15px;
     flex-direction: column;
   }
 }

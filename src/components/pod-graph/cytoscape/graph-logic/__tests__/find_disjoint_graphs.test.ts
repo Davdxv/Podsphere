@@ -35,7 +35,7 @@ describe('findAllDisjointGraphs works correctly for', () => {
       { id: '3', keywordsAndCategories: ['a', 'b'], visited: false }];
 
     const disjointGraphs = findAllDisjointGraphs(nodes);
-    const ids = disjointGraphs.map(graph => getIdsFromGraphs(graph));
+    const ids = disjointGraphs.map(getIdsFromGraphs);
     const keywords = disjointGraphs.map(graph => graph.sharedKeywordsAndCategories);
 
     const expectedIds = [['1', '2', '3']];
@@ -52,7 +52,7 @@ describe('findAllDisjointGraphs works correctly for', () => {
       { id: '3', keywordsAndCategories: ['b'], visited: false }];
 
     const disjointGraphs = findAllDisjointGraphs(nodes);
-    const ids = disjointGraphs.map(graph => getIdsFromGraphs(graph));
+    const ids = disjointGraphs.map(getIdsFromGraphs);
     const keywords = disjointGraphs.map(graph => graph.sharedKeywordsAndCategories);
 
     const expectedIds = [['1'], ['2'], ['3']];
@@ -69,7 +69,7 @@ describe('findAllDisjointGraphs works correctly for', () => {
       { id: '3', keywordsAndCategories: ['f'], visited: false }];
 
     const disjointGraphs = findAllDisjointGraphs(nodes);
-    const ids = disjointGraphs.map(graph => getIdsFromGraphs(graph));
+    const ids = disjointGraphs.map(getIdsFromGraphs);
     const keywords = disjointGraphs.map(graph => graph.sharedKeywordsAndCategories);
 
     const expectedIds = [['1', '2'], ['3']];
@@ -88,7 +88,7 @@ describe('findAllDisjointGraphs works correctly for', () => {
       { id: '5', keywordsAndCategories: ['f', 'b', 'a'], visited: false }];
 
     const disjointGraphs = findAllDisjointGraphs(nodes);
-    const ids = disjointGraphs.map(graph => getIdsFromGraphs(graph));
+    const ids = disjointGraphs.map(getIdsFromGraphs);
     const keywords = disjointGraphs.map(graph => graph.sharedKeywordsAndCategories);
 
     const expectedIds = [['1', '4', '5'], ['2', '3']];

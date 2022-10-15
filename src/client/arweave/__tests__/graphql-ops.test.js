@@ -149,7 +149,7 @@ afterAll(() => {
 describe('getPodcastRss2Feed', () => {
   afterEach(() => {
     // Empty transaction cache
-    TxCache.initializeTxCache([]);
+    TxCache.initializeTxCache();
   });
 
   describe('With 1 metadata batch, 1 tx', () => {

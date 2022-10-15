@@ -9,7 +9,7 @@ const PODCAST_ID_REGEX = new RegExp(`^${PODCAST_ID_PREFIX}`);
  * @param id If the `id` has a `temp-` prefix, the prefix is excluded from the validation
  * @returns true if the given `id` is a string comprised of 32-64 hex chars and any dashes
  */
-export function isValidUuid(id: unknown) : id is Podcast['id'] {
+export function isValidPodcastId(id: unknown) : id is Podcast['id'] {
   const isHex = (char: string) => '0123456789abcdef'.includes(char.toLowerCase());
 
   if (!id || typeof id !== 'string') return false;
@@ -40,7 +40,7 @@ export function isCandidatePodcastId(id: Podcast['id']) : boolean {
 }
 
 export function findBestId(ids: string[]) : string {
-  const validIds = ids.filter(isValidUuid);
+  const validIds = ids.filter(isValidPodcastId);
   const bestId = validIds.find(id => !isCandidatePodcastId(id));
   return bestId || validIds.at(-1) || ids.at(-1) || '';
 }

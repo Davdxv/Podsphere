@@ -24,10 +24,11 @@ import { JWKInterface } from 'arweave/node/lib/wallet';
 import { DispatchResult } from 'arconnect';
 import {
   ArSyncTx, ArSyncTxStatus, ArweaveTag,
-  Episode, Podcast, Thread,
+  Episode, Podcast, Post,
 } from '../../interfaces';
 import {
-  findMetadataById, hasMetadata, isNotEmpty,
+  episodesCount, findMetadataById, hasMetadata,
+  isNotEmpty, isReply, isValidPost,
   unixTimestamp,
 } from '../../../utils';
 import { throwDevError } from '../../../errors';
@@ -35,8 +36,9 @@ import { formatMetadataTxTags, withMetadataBatchNumber } from '../create-transac
 import { mergeBatchMetadata, rightDiff } from './diff-merge-logic';
 import { WalletDeferredToArConnect } from '../wallet';
 import {
-  calculateTagsSize, compressMetadata, isConfirmed,
-  isInitialized, isPosted, usingArConnect,
+  calculateTagsSize, compressMetadata, hasThreadTxKind,
+  isConfirmed, isInitialized, isPosted,
+  usingArConnect,
 } from '../utils';
 import { removePrefixFromPodcastId } from '../../../podcast-id';
 import {
@@ -56,7 +58,7 @@ const MAX_BATCH_SIZE = 96 * 1024; // KiloBytes
  *   {@linkcode newTransactionFromCompressedMetadata}. Local precursor to an (exported) `ArSyncTx`.
  * @prop {string} podcastId uuid of the relevant podcast `= metadata.id`
  * @prop {string} title?
- * @prop {Partial<Podcast> | Thread} metadata
+ * @prop {Partial<Podcast> | Post} metadata
  * @prop {number} numEpisodes
  * @prop {Uint8Array} compressedMetadata?
  * @prop {ArweaveTag[]} tags?
@@ -94,7 +96,8 @@ export async function initSync(
           .push(...partitionMetadataBatches(cachedMetadata, podcastMetadataToSync, maxBatchSize));
       }
       catch (ex) {
-        console.error(`Failed to sync ${title || podcastToSync.feedUrl} due to: ${ex}`);
+        console.error(`Failed to sync ${title || podcastToSync.feedUrl} due to: ${ex}\n\n`
+          + 'Th');
       }
     }
   });
@@ -103,8 +106,8 @@ export async function initSync(
     await Promise.all([...metadataBatches, ...otherBatches].map(async b => {
       let newTx : Transaction | Error;
       try {
-        if (['thread', 'threadReply'].includes(b.kind)) {
-          newTx = await newThreadTransaction(wallet, b.metadata as Thread, b.cachedMetadata);
+        if (hasThreadTxKind(b)) {
+          newTx = await newThreadTransaction(wallet, b.metadata as Post, b.cachedMetadata);
         }
         else {
           newTx = isNotEmpty(b.compressedMetadata) && isNotEmpty(b.tags)
@@ -146,15 +149,17 @@ function extractNonMetadataBatchesToSync(
   const nonMetadataBatches : PartitionedBatch[] = [];
 
   if (isNotEmpty(threads)) {
-    threads.forEach(thread => {
-      nonMetadataBatches.push({
-        podcastId: podcastToSync.id || '',
-        kind: 'thread',
-        title: podcastToSync.title || cachedMetadata.title || '',
-        numEpisodes: 0,
-        metadata: thread,
-        cachedMetadata,
-      });
+    threads.forEach(post => {
+      if (isValidPost(post) && !post.isDraft) {
+        nonMetadataBatches.push({
+          podcastId: podcastToSync.id || '',
+          kind: isReply(post) ? 'threadReply' : 'thread',
+          title: podcastToSync.title || cachedMetadata.title || '',
+          numEpisodes: 0,
+          metadata: post,
+          cachedMetadata,
+        });
+      }
     });
   }
   return { nonMetadataBatches, podcastMetadataToSync };
@@ -324,6 +329,7 @@ function partitionMetadataBatches(
   return batches.filter(batch => hasMetadata(batch.metadata));
 }
 
+// TODO: set isDraft true upon startSync & remove it after confirmation ?
 export async function startSync(
   allTxs: ArSyncTx[],
   wallet: JWKInterface | WalletDeferredToArConnect,
@@ -360,6 +366,7 @@ export function formatNewMetadataToSync(
   allTxs: ArSyncTx[],
   prevMetadataToSync: Partial<Podcast>[] = [],
 ) : Partial<Podcast>[] {
+  console.debug('formatNewMetadataToSync prevMetadataToSync:', prevMetadataToSync);
   let diffs = prevMetadataToSync;
   allTxs.forEach(tx => {
     if (isPosted(tx) || isConfirmed(tx)) {
@@ -369,6 +376,9 @@ export function formatNewMetadataToSync(
       if (hasMetadata(prevPodcastToSyncDiff)) {
         newDiff = rightDiff(metadata, prevPodcastToSyncDiff, ['id', 'feedType', 'feedUrl']);
       }
+      // // TODO: new code
+      // if (!episodesCount(newDiff))
+      // // end new code
 
       const { threads } = prevPodcastToSyncDiff;
       const newDiffWithThreads = isNotEmpty(threads) ? { ...newDiff, id: podcastId, threads } :
@@ -378,5 +388,6 @@ export function formatNewMetadataToSync(
     }
   });
 
+  console.debug('formatNewMetadataToSync returned:', diffs);
   return diffs;
 }
