@@ -1,22 +1,3 @@
-/**
- * @module ArSync Main module for ArSync
- *
- * Current version: v1.5
- *
- * ArSync comprises all necessary logic for creating, fetching and tracking Podsphere's transactions
- * on Arweave.
- * At present, these transactions comprise incremental (podcast) metadata or user threads/replies.
- * Future updates will expand this with more types of transactions.
- *
- * A modular API is not available yet, but the code is to be maintained with this prospect in mind.
- *
- * Main intrinsic interfaces/types (see {@link ../../interfaces.ts}):
- * @see {ArSyncTx}
- *   Main data structure used to track an Arweave transaction through its various stages.
- * @see {ArSyncTxStatus}
- *   An enum comprising all supported stages of an ArSyncTx object. Used to track and update status.
- */
-
 import { v4 as uuid } from 'uuid';
 import Transaction from 'arweave/node/lib/transaction';
 import { JWKInterface } from 'arweave/node/lib/wallet';
@@ -24,11 +5,15 @@ import { JWKInterface } from 'arweave/node/lib/wallet';
 import { DispatchResult } from 'arconnect';
 import {
   ArSyncTx, ArSyncTxStatus, ArweaveTag,
-  Episode, Podcast, Post,
+  Episode, Podcast,
 } from '../../interfaces';
 import {
-  episodesCount, findMetadataById, hasMetadata,
-  isNotEmpty, isReply, isValidPost,
+  findMetadataById,
+  hasMetadata,
+  isNotEmpty,
+  isReply,
+  isValidPost,
+  removePostFromPodcast,
   unixTimestamp,
 } from '../../../utils';
 import { throwDevError } from '../../../errors';
@@ -48,8 +33,42 @@ import {
   signAndPostTransaction,
 } from '..';
 
+/**
+ * @module ArSync Main module for ArSync
+ *
+ * Current version: v1.5
+ *
+ * ArSync comprises all necessary logic for creating, fetching and tracking Podsphere's transactions
+ * on Arweave.
+ * At present, these transactions comprise incremental (podcast) metadata or user threads/replies.
+ * Future updates will expand this with more types of transactions.
+ *
+ * A modular API is not available yet, but the code is to be maintained with this prospect in mind.
+ *
+ * The flow for getting metadata from subscribed feeds onto Arweave roughly goes as follows:
+ *   1) User clicks the Sync button => `ArweaveProvider.prepareSync()`:
+ *     > - Refreshes all `subscriptions` & updates `metadataToSync` with the new diffs
+ *     > - Calls {@linkcode initSync()} which returns initialized txs
+ *     > - Updates `ArweaveProvider.arSyncTxs` with the initialized txs
+ *   2) User inspects the Transactions tab & clicks Sync again => `ArweaveProvider.startSync()`:
+ *     > - Calls {@linkcode startSync()} which returns new `arSyncTxs`, where each previously
+ *         initialized tx now has a new status of either POSTED or ERRORED
+ *     > - Calls {@linkcode formatNewMetadataToSync()} which returns new `metadataToSync`, which is
+ *         a diff vs the old one, where each POSTED or CONFIRMED tx has its (podcast/thread)
+ *         metadata omitted
+ *   3) `ArweaveProvider` periodically updates the status of each tx
+ *
+ * Main intrinsic interfaces/types (see {@link ../../interfaces.ts}):
+ * @see {ArSyncTx}
+ *   Main data structure used to track an Arweave transaction through its various stages.
+ * @see {ArSyncTxStatus}
+ *   An enum comprising all supported stages of an ArSyncTx object. Used to track and update status.
+ */
+const ArSync = Object.freeze({ initSync, startSync, formatNewMetadataToSync });
+export default ArSync;
+
 /** Max size of compressed metadata per transaction (including tags) */
-const MAX_BATCH_SIZE = 96 * 1024; // KiloBytes
+const MAX_BATCH_SIZE = 96 /* KiloBytes */ * 1024;
 
 /**
  * @interface PartitionedBatch
@@ -70,7 +89,12 @@ interface PartitionedBatch extends
   tags?: ArweaveTag[];
 }
 
-export async function initSync(
+/**
+ * Initializes Arweave transactions from the current `metadataToSync`.
+ * @returns `ArSyncTx[]` where each element is an initialized transaction
+ * @see {@linkcode ArSync}
+ */
+async function initSync(
   subscriptions: Podcast[],
   metadataToSync: Partial<Podcast>[],
   wallet: JWKInterface | WalletDeferredToArConnect,
@@ -97,7 +121,8 @@ export async function initSync(
       }
       catch (ex) {
         console.error(`Failed to sync ${title || podcastToSync.feedUrl} due to: ${ex}\n\n`
-          + 'Th');
+          + 'This might be caused by having unsubscribed from a feed with pending Sync data.');
+        // TODO: confirm error message reason & solve cause
       }
     }
   });
@@ -107,12 +132,12 @@ export async function initSync(
       let newTx : Transaction | Error;
       try {
         if (hasThreadTxKind(b)) {
-          newTx = await newThreadTransaction(wallet, b.metadata as Post, b.cachedMetadata);
+          newTx = await newThreadTransaction(wallet, b.metadata, b.cachedMetadata);
         }
         else {
-          newTx = isNotEmpty(b.compressedMetadata) && isNotEmpty(b.tags)
+          newTx = (isNotEmpty(b.compressedMetadata) && isNotEmpty(b.tags)
             ? await newTransactionFromCompressedMetadata(wallet, b.compressedMetadata, b.tags)
-            : new Error('Transaction invalid due to missing metadata');
+            : new Error('Transaction invalid due to missing metadata'));
         }
       }
       catch (ex) {
@@ -329,8 +354,12 @@ function partitionMetadataBatches(
   return batches.filter(batch => hasMetadata(batch.metadata));
 }
 
-// TODO: set isDraft true upon startSync & remove it after confirmation ?
-export async function startSync(
+/**
+ * Dispatches or signs and posts the `allTxs` that were initialized through {@linkcode initSync()}.
+ * @returns `allTxs` where each initialized tx now has a new status: POSTED or ERRORED
+ * @see {@linkcode ArSync}
+ */
+async function startSync(
   allTxs: ArSyncTx[],
   wallet: JWKInterface | WalletDeferredToArConnect,
 ) : Promise<ArSyncTx[]> {
@@ -362,12 +391,13 @@ export async function startSync(
   return result;
 }
 
-export function formatNewMetadataToSync(
+/** Called after {@linkcode startSync()} by `ArweaveProvider` */
+function formatNewMetadataToSync(
   allTxs: ArSyncTx[],
   prevMetadataToSync: Partial<Podcast>[] = [],
 ) : Partial<Podcast>[] {
   console.debug('formatNewMetadataToSync prevMetadataToSync:', prevMetadataToSync);
-  let diffs = prevMetadataToSync;
+  let diffs = [...prevMetadataToSync];
   allTxs.forEach(tx => {
     if (isPosted(tx) || isConfirmed(tx)) {
       const { podcastId, metadata } = tx;
@@ -376,15 +406,11 @@ export function formatNewMetadataToSync(
       if (hasMetadata(prevPodcastToSyncDiff)) {
         newDiff = rightDiff(metadata, prevPodcastToSyncDiff, ['id', 'feedType', 'feedUrl']);
       }
-      // // TODO: new code
-      // if (!episodesCount(newDiff))
-      // // end new code
 
-      const { threads } = prevPodcastToSyncDiff;
-      const newDiffWithThreads = isNotEmpty(threads) ? { ...newDiff, id: podcastId, threads } :
-        { ...newDiff };
+      if (hasThreadTxKind(tx)) newDiff = removePostFromPodcast(tx.metadata, newDiff);
+
       diffs = diffs.filter(oldDiff => oldDiff.id !== podcastId);
-      if (hasMetadata(newDiffWithThreads)) diffs.push(newDiffWithThreads);
+      if (hasMetadata(newDiff)) diffs.push(newDiff);
     }
   });
 

@@ -3,7 +3,12 @@ import { ArSyncTx, DispatchResultDTO, StringToStringMapping } from '../interface
 import { isNotEmpty } from '../../utils';
 import client from './client';
 import { getArBundledParentIds } from './graphql-ops';
-import { getBundleTxId, getTxId, isBundled } from './utils';
+import {
+  getLayer1TxId,
+  getLayer2TxId,
+  getTxId,
+  isBundled,
+} from './utils';
 
 export { getAllThreads, getPodcastRss2Feed, pingTxIds } from './graphql-ops';
 export { createNewDevWallet, getWalletAddress } from './wallet';
@@ -20,8 +25,7 @@ export async function getTxConfirmationStatus(arSyncTx: ArSyncTx)
   : Promise<TransactionStatusResponse> {
   let result : TransactionStatusResponse;
   try {
-    const txId = getBundleTxId(arSyncTx) || getTxId(arSyncTx);
-    result = await client.transactions.getStatus(txId);
+    result = await client.transactions.getStatus(getTxId(arSyncTx));
   }
   catch (_ex) {
     result = { status: 500, confirmed: null };
@@ -40,9 +44,8 @@ export async function getTxConfirmationStatus(arSyncTx: ArSyncTx)
 export async function updateArBundledParentIds(arSyncTxs: ArSyncTx[]) : Promise<ArSyncTx[]> {
   const updatedTxs : ArSyncTx[] = [];
   const bundledTxs : ArSyncTx[] = arSyncTxs.filter(isBundled);
-  const idsToLookUp : string[] = bundledTxs.filter(arSyncTx => !getBundleTxId(arSyncTx))
-    .map(getTxId).filter(x => x);
-
+  const idsToLookUp : string[] = bundledTxs.filter(arSyncTx => !getLayer2TxId(arSyncTx))
+    .map(getLayer1TxId).filter(x => x);
   if (!idsToLookUp.length) return [] as ArSyncTx[];
 
   const mapping : StringToStringMapping = await getArBundledParentIds(idsToLookUp);

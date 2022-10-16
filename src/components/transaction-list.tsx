@@ -1,17 +1,21 @@
 import React from 'react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { Box } from '@mui/material';
+import { Box, Link } from '@mui/material';
 import CachedImage from './cached-image';
 import RemoveBtn from './buttons/remove-button';
 import {
-  hasThreadTxKind, isNotInitialized, isNotPosted,
+  arSyncTxToString,
+  getTxId,
+  hasThreadTxKind,
+  isNotInitialized,
+  isNotPosted,
   statusToString,
 } from '../client/arweave/utils';
 import style from './shared-elements.module.scss';
-import { findMetadataById, findThreadInMetadata, isReply } from '../utils';
+import { findMetadataById } from '../utils';
 import {
-  ArSyncTx, Podcast, Post,
+  ArSyncTx, ArSyncTxStatus, Podcast,
 } from '../client/interfaces';
 
 dayjs.extend(relativeTime);
@@ -33,21 +37,11 @@ const TransactionList : React.FC<Props> = ({
 
   const completedTxIds = txs.filter(tx => isNotInitialized(tx) && isNotPosted(tx)).map(tx => tx.id);
 
-  const txDetails = (tx: ArSyncTx) : string => {
-    if (hasThreadTxKind(tx)) {
-      const post = tx.metadata as Post;
-      if (isReply(post)) {
-        const parent = findThreadInMetadata(post.parentThreadId, subscriptions, metadataToSync);
-        return parent ? `RE: ${parent.subject}` : `Reply in ${tx.title}`;
-      }
-      return `${post.subject}`;
-    }
-    return `${tx.numEpisodes} episodes`;
-  };
-
   const txDetailsTooltip = (tx: ArSyncTx) => (
-    hasThreadTxKind(tx) ? `${(tx.metadata as Post).content}` : undefined
+    hasThreadTxKind(tx) ? `${tx.metadata.content || undefined}` : undefined
   );
+
+  const viewBlockUrl = (txId: string) => `https://v2.viewblock.io/arweave/tx/${txId}`;
 
   return (
     <Box className={style['list-container']}>
@@ -56,7 +50,7 @@ const TransactionList : React.FC<Props> = ({
           <Box className={style['list-item']} key="total-txs">
             <Box className={style['title-detail']} />
             <Box className={style['call-to-action']}>
-              <Box className={style['action-info']}>
+              <Box className={`${style['action-info']} ${style['status-color--all-txs']}`}>
                 total: <b>{txs.length}</b>
               </Box>
               <Box className={style['action-btn']}>
@@ -68,7 +62,7 @@ const TransactionList : React.FC<Props> = ({
           <Box className={style['list-item']} key="completed-txs">
             <Box className={style['title-detail']} />
             <Box className={style['call-to-action']}>
-              <Box className={style['action-info']}>
+              <Box className={`${style['action-info']} ${style['status-color--all-txs']}`}>
                 completed: <b>{completedTxIds.length}</b>
               </Box>
               <Box className={style['action-btn']}>
@@ -79,8 +73,10 @@ const TransactionList : React.FC<Props> = ({
           {
             [...txs].reverse().map(tx => {
               const podcastImageUrl = findImageUrl(tx.podcastId);
+              const status = statusToString(tx.status);
+              const txId = getTxId(tx);
+              // TODO: Show tx.timestamp
 
-              // TODO: add viewblock.io tx url
               return (
                 <Box className={style['list-item']} key={tx.id}>
                   <Box className={style['title-detail']}>
@@ -95,21 +91,28 @@ const TransactionList : React.FC<Props> = ({
                         {tx.title}
                       </Box>
                       <Box className={style['meta-detail']}>
-                        {txDetails(tx)}
+                        {arSyncTxToString(tx, subscriptions, metadataToSync)}
                       </Box>
                     </Box>
                   </Box>
 
                   <Box className={style['call-to-action']}>
-                    <Box className={style['action-info']}>
-                      {statusToString(tx.status)}
+                    <Box className={`${style['action-info']} ${style[`status-color--${status}`]}`}>
+                      {txId && tx.status >= ArSyncTxStatus.POSTED ? (
+                        <Link
+                          href={viewBlockUrl(txId)}
+                          title={`View the transaction on ${viewBlockUrl(txId)}`}
+                          target="_blank"
+                        >
+                          {status}
+                        </Link>
+                      ) : status}
                     </Box>
                     <Box className={style['action-btn']}>
                       <RemoveBtn onClick={() => removeArSyncTxs([tx.id])} />
                     </Box>
                   </Box>
                 </Box>
-
               );
             })
           }

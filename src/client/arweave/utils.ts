@@ -4,7 +4,10 @@ import {
   strFromU8,
   strToU8,
 } from 'fflate';
-import { isNotEmpty, podcastFromDTO, podcastToDTO } from '../../utils';
+import {
+  findThreadInMetadata, isNotEmpty, isReply,
+  podcastFromDTO, podcastToDTO,
+} from '../../utils';
 import {
   ArSyncTx,
   ArSyncTxDTO,
@@ -16,11 +19,11 @@ import {
   METADATA_TX_KINDS,
   Podcast,
   PodcastDTO,
+  Post,
   ThreadTxKind,
   THREAD_TX_KINDS,
   TransactionDTO,
   TxKind,
-  TX_KINDS,
 } from '../interfaces';
 
 const PLURAL_TAG_MAP = {
@@ -84,6 +87,19 @@ export const statusToString = (status: ArSyncTxStatus) => {
   }
 };
 
+export const arSyncTxToString = (tx: ArSyncTx, subscriptions: Podcast[] = [],
+  metadataToSync: Partial<Podcast>[] = []) : string => {
+  if (hasThreadTxKind(tx)) {
+    const post = tx.metadata;
+    if (isReply(post)) {
+      const parent = findThreadInMetadata(post.parentThreadId, subscriptions, metadataToSync);
+      return parent ? `RE: ${parent.subject}` : 'Reply';
+    }
+    return `${post.subject}`;
+  }
+  return `${tx.numEpisodes} new episodes`;
+};
+
 /** @returns Whether the given `kind` is a `MetadataTxKind` */
 export const isMetadataTx = (kind: TxKind | undefined) : kind is MetadataTxKind => !!kind
   && METADATA_TX_KINDS.includes(kind as MetadataTxKind);
@@ -93,9 +109,9 @@ export const isThreadTx = (kind: TxKind | undefined) : kind is ThreadTxKind => !
   && THREAD_TX_KINDS.includes(kind as ThreadTxKind);
 
 export const hasMetadataTxKind = <T extends Pick<CachedArTx, 'kind'>>(tx: T)
-  : boolean => isMetadataTx(tx.kind);
+  : tx is T & { metadata: Partial<Podcast> } => isMetadataTx(tx.kind);
 export const hasThreadTxKind = <T extends Pick<CachedArTx, 'kind'>>(tx: T)
-  : boolean => isThreadTx(tx.kind);
+  : tx is T & { metadata: Post } => isThreadTx(tx.kind);
 
 export const isErrored = (tx: ArSyncTx) => tx.status === ArSyncTxStatus.ERRORED;
 export const isNotErrored = (tx: ArSyncTx) => tx.status !== ArSyncTxStatus.ERRORED;
@@ -120,18 +136,24 @@ export const updateArSyncTxs = (oldArSyncTxs: ArSyncTx[], updatedArSyncTxs: ArSy
   .find(newElem => newElem.id === oldElem.id) || oldElem);
 
 /**
- * @returns The id of the Arweave Transaction associated with the given ArSyncTx object;
- *   returns an empty string if not found.
+ * @returns - The id of the Arweave Transaction associated with the given ArSyncTx object;
+ *   - an empty string if not found.
  */
-export const getTxId = (tx: ArSyncTx) : string => (isBundled(tx) ? tx.dispatchResult!.id
+export const getLayer1TxId = (tx: ArSyncTx) : string => (isBundled(tx) ? tx.dispatchResult!.id
   : (tx.resultObj as TransactionDTO).id) || '';
 
 /**
- * @returns The id of the parent ArBundle Arweave Transaction enclosing the ArBundled Transaction
- *   associated with the given ArSyncTx object; returns an empty string if not found.
+ * @returns - The id of the parent ArBundle Arweave Transaction enclosing the ArBundled Transaction;
+ *   - an empty string if not found.
  */
-export const getBundleTxId = (tx: ArSyncTx) : string => (isNotEmpty(tx.dispatchResult)
+export const getLayer2TxId = (tx: ArSyncTx) : string => (isNotEmpty(tx.dispatchResult)
   ? (tx.dispatchResult as DispatchResultDTO).bundledIn : '') || '';
+
+/**
+ * @returns - The ArBundled tx id if there is one, else returns the main tx id;
+ *   - an empty string if neither are present.
+ */
+export const getTxId = (tx: ArSyncTx) : string => getLayer2TxId(tx) || getLayer1TxId(tx);
 
 /**
  * @param arSyncTxs

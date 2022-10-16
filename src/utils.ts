@@ -280,6 +280,36 @@ export function findPostById(id: Thread['id'], threads: Post[] = []) : Post | nu
   return threads.find(thr => thr.id === id) || null;
 }
 
+/** @returns `podcastToSync` with the matching `post` omitted from its `threads` */
+export function removePostFromPodcast(post: Post, podcastToSync: Partial<Podcast>)
+  : typeof podcastToSync {
+  if (!Array.isArray(podcastToSync.threads)) return podcastToSync;
+
+  return { ...podcastToSync, threads: podcastToSync.threads.filter(thr => thr.id !== post.id) };
+}
+
+/** @returns `metadataToSync` with the matching `post` omitted */
+export function removePost(post: Post, metadataToSync: Partial<Podcast>[] = [])
+  : typeof metadataToSync {
+  const podcastToSync = { ...findMetadataById(post.podcastId, metadataToSync) };
+  if (isEmpty(podcastToSync)) return metadataToSync;
+
+  return metadataToSync.filter(podcast => podcast.id !== post.podcastId)
+    .concat(removePostFromPodcast(post, podcastToSync));
+}
+
+/** @returns `metadataToSync` with the matching post added */
+export function addPost(post: Post, metadataToSync: Partial<Podcast>[] = [])
+  : typeof metadataToSync {
+  const prevPodcastToSync : Partial<Podcast> = findMetadataById(post.podcastId, metadataToSync);
+  const podcastToSync : Partial<Podcast> = {
+    ...prevPodcastToSync,
+    id: post.podcastId,
+    threads: [...(prevPodcastToSync.threads || []).filter(thr => thr.id !== post.id), post],
+  };
+  return metadataToSync.filter(podcast => podcast.id !== post.podcastId).concat(podcastToSync);
+}
+
 export function partialToPodcast(partialMetadata: Partial<Podcast>) : Podcast | PodcastFeedError {
   const result : Podcast = {
     ...partialMetadata,

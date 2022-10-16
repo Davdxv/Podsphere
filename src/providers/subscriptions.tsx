@@ -9,9 +9,9 @@ import {
   updatePodcastIds,
 } from '../client';
 import {
-  concatMessages, findMetadataByFeedUrl, findMetadataById,
-  hasMetadata, isNotEmpty, podcastsFromDTO,
-  unixTimestamp,
+  addPost, concatMessages, findMetadataByFeedUrl,
+  hasMetadata,
+  podcastsFromDTO, removePost, unixTimestamp,
 } from '../utils';
 import {
   ArSyncTxDTO, CachedArTx, EpisodesDBTable,
@@ -379,7 +379,7 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
    * @see {ArweaveProvider.confirmArSyncTxs}
    */
   function redraftPost(post: Post) : void {
-    handleCreatePost(post);
+    handleCreatePost({ ...post, isDraft: true });
   }
 
   /**
@@ -387,29 +387,12 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
    * ArSync will skip it if `post.isDraft = true` or if required props are empty.
    */
   const handleCreatePost = (post: Post) => {
-    if (post.podcastId && post.content) {
-      const prevPodcastToSync : Partial<Podcast> = findMetadataById(post.podcastId, metadataToSync);
-      const podcastToSync : Partial<Podcast> = {
-        ...prevPodcastToSync,
-        id: post.podcastId,
-        threads: [...(prevPodcastToSync.threads || []).filter(thr => thr.id !== post.id), post],
-      };
-      setMetadataToSync(prev => prev.filter(podcast => podcast.id !== post.podcastId)
-        .concat(podcastToSync));
-    }
+    if (post.podcastId && post.content) setMetadataToSync(addPost(post, metadataToSync));
   };
 
   /** Removes the given `thread` from `metadataToSync`. */
   const handleDiscardThread = (thread: Thread) => {
-    if (thread.podcastId) {
-      const podcastToSync = { ...findMetadataById(thread.podcastId, metadataToSync) };
-      if (isNotEmpty(podcastToSync) && Array.isArray(podcastToSync.threads)) {
-        setMetadataToSync(prev => prev.filter(podcast => podcast.id !== thread.podcastId).concat({
-          ...podcastToSync,
-          threads: podcastToSync.threads!.filter(thr => thr.id !== thread.id),
-        }));
-      }
-    }
+    if (thread.podcastId) setMetadataToSync(removePost(thread, metadataToSync));
   };
 
   useEffect(() => {

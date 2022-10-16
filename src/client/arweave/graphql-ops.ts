@@ -3,7 +3,7 @@
 import {
   QueryTransactionsArgs as GQLQueryTransactionsArgs,
   TagFilter as GQLTagFilter,
-  Transaction as GraphQLTransaction,
+  Transaction as GQLTransaction,
   TransactionEdge as GQLTransactionEdge,
 } from 'arlocal/bin/graphql/types.d';
 import dedent from 'dedent';
@@ -19,7 +19,6 @@ import {
   PodcastTags,
   StringToStringMapping,
   Thread,
-  ThreadReply,
 } from '../interfaces';
 import client from './client';
 import { fetchArweaveUrlData } from '../axios';
@@ -197,6 +196,7 @@ export async function getPodcastRss2Feed(
   return mergedMetadata;
 }
 
+/** NOTE: TODO: Replies are fetched later */
 export async function getAllThreads(podcastIds: string[]) : Promise<Thread[]> {
   const gqlResultsToThreads = (results: ParsedGqlResult[]) : Thread[] => results.map(({ tags }) => {
     if (isNotEmpty(tags)) {
@@ -218,12 +218,8 @@ export async function getAllThreads(podcastIds: string[]) : Promise<Thread[]> {
     { id, kind: 'thread' }, [QueryField.OWNER_ADDRESS, QueryField.TAGS, QueryField.BUNDLEDIN],
   ));
   const results = await Promise.all(gqlQueries.map(gqlQuery => getGqlQueryResult(gqlQuery, false)));
-  console.debug('results', results);
 
-  const threads = results.map(gqlResultsToThreads).filter(isNotEmpty).flat();
-  console.debug('threads', threads);
-
-  return threads;
+  return results.map(gqlResultsToThreads).filter(isNotEmpty).flat();
 }
 
 // TODO: to be used in ArSync v1.6+ when user can specify whitelisted/blacklisted txIds per podcast
@@ -256,10 +252,10 @@ export async function pingTxIds(ids: string[]) : Promise<string[]> {
  * @returns The transaction id to be used with `getData()`, which if it was bundled is the parent
  *   id; otherwise simply the `node.id`.
  */
-const getParentTxId = (node: GraphQLTransaction) : string => (
+const getParentTxId = (node: GQLTransaction) : string => (
   isBundledTx(node) ? node.bundledIn!.id : node.id);
 
-const isBundledTx = (node: GraphQLTransaction) => isNotEmpty(node.bundledIn) && node.bundledIn.id;
+const isBundledTx = (node: GQLTransaction) => isNotEmpty(node.bundledIn) && node.bundledIn.id;
 
 export async function getArBundledParentIds(ids: string[]) : Promise<StringToStringMapping> {
   const result : StringToStringMapping = {};
@@ -298,7 +294,7 @@ async function getGqlResponse(gqlQuery: GraphQLQuery)
 //   return (dataItem ? dataItem.rawData : []) as Uint8Array;
 // }
 
-function parseGqlTags(tx: GraphQLTransaction) : Pick<ParsedGqlResult, 'tags' | 'gqlMetadata'> {
+function parseGqlTags(tx: GQLTransaction) : Pick<ParsedGqlResult, 'tags' | 'gqlMetadata'> {
   let tags : Partial<PodcastTags> = {};
   let gqlMetadata : GraphQLMetadata | {} = {};
 
@@ -333,7 +329,7 @@ function parseGqlTags(tx: GraphQLTransaction) : Pick<ParsedGqlResult, 'tags' | '
   return { tags, gqlMetadata };
 }
 
-async function parseGqlPodcastMetadata(tx: GraphQLTransaction)
+async function parseGqlPodcastMetadata(tx: GQLTransaction)
   : Promise<ParsedGqlResult['metadata']> {
   let metadata : Podcast | {};
   let getDataResult;
@@ -364,7 +360,7 @@ async function parseGqlPodcastMetadata(tx: GraphQLTransaction)
   return metadata;
 }
 
-async function parseGqlResult(tx: GraphQLTransaction, getData: boolean) : Promise<ParsedGqlResult> {
+async function parseGqlResult(tx: GQLTransaction, getData: boolean) : Promise<ParsedGqlResult> {
   let errorMessage : ParsedGqlResult['errorMessage'];
   let tags : ParsedGqlResult['tags'] = {};
   let gqlMetadata : ParsedGqlResult['gqlMetadata'] = {};
@@ -404,7 +400,7 @@ async function getGqlQueryResult(gqlQuery: GraphQLQuery, getData = true)
     return [{ errorMessage, metadata: {}, tags: {}, gqlMetadata: {} }];
   }
 
-  const txs : GraphQLTransaction[] = edges.map(edge => edge.node);
+  const txs : GQLTransaction[] = edges.map(edge => edge.node);
   const result : ParsedGqlResult[] = await Promise.all(txs.map(tx => parseGqlResult(tx, getData)));
   return result;
 }

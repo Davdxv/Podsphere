@@ -1,6 +1,6 @@
 import { Podcast } from './interfaces';
-import * as arweave from './arweave';
-import * as rss from './rss';
+import * as Arweave from './arweave';
+import * as RSS from './rss';
 import {
   addLastMutatedAt, findMetadataByFeedUrl, findMetadataById,
   hasMetadata, isEmpty, isValidUuid,
@@ -13,7 +13,7 @@ import {
 import { findBestId } from '../podcast-id';
 import { getPodcastId } from './arweave/cache/podcast-id';
 
-export const { pingTxIds } = arweave;
+export const { pingTxIds } = Arweave;
 
 export type GetPodcastResult = {
   errorMessage?: string;
@@ -23,8 +23,8 @@ export type GetPodcastResult = {
 
 async function fetchRss2Feeds(feedUrl: Podcast['feedUrl']) {
   const [arweaveFeed, rssFeed] = await Promise.all([
-    arweave.getPodcastRss2Feed(feedUrl),
-    rss.getPodcastRss2Feed(feedUrl),
+    Arweave.getPodcastRss2Feed(feedUrl),
+    RSS.getPodcastRss2Feed(feedUrl),
   ]);
   return {
     arweave: arweaveFeed,
@@ -71,7 +71,7 @@ export async function fetchPodcastRss2Feed(
   if ('errorMessage' in newPodcastMetadata) return newPodcastMetadata;
 
   const newPodcastMetadataToSync = {
-    ...rightDiff(feed.arweave, metadataToSyncWithNewEpisodes, ['id', 'feedUrl', 'title']),
+    ...rightDiff(feed.arweave, metadataToSyncWithNewEpisodes, ['id', 'feedUrl']),
     id: findBestId([feed.arweave.id || '', metadataToSyncWithNewEpisodes.id || '']),
   };
 
@@ -154,7 +154,8 @@ export async function refreshSubscriptions(
     else newMetadataToSync.push(newPodcastToSync);
   };
 
-  const threads = arweave.getAllThreads(podcastsToRefresh);
+  const threads = Arweave.getAllThreads(podcastsToRefresh);
+  console.debug('threads', threads);
 
   results.forEach(({ errorMessage, newPodcastMetadata, newPodcastMetadataToSync }) => {
     if (hasMetadata(newPodcastMetadata)) {

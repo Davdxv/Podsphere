@@ -1,5 +1,4 @@
 import { randomBytes } from 'crypto';
-import { initSync, startSync } from '..';
 import { podcastFromDTO, unixTimestamp } from '../../../../utils';
 import { ArSyncTxStatus } from '../../../interfaces';
 import { decompressMetadata } from '../../utils';
@@ -12,6 +11,9 @@ import {
   newTransactionFromCompressedMetadata,
   signAndPostTransaction,
 } from '../../create-transaction';
+import arsync from '..';
+
+const { initSync, startSync } = arsync;
 
 jest.mock('../../create-transaction', () => ({
   ...jest.requireActual('../../create-transaction'),

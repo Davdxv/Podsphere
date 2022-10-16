@@ -65,7 +65,7 @@
 }
 
 .title-header {
-  color: colors.$orange-medium;
+  color: colors.$orange-md;
   font-weight: 600;
   font-size: 0.875rem;
   line-height: 1.25rem;
@@ -87,6 +87,7 @@
 .item-title {
   width: 90%;
   text-decoration: none;
+  padding-right: 0.5rem;
 }
 
 .podcast-image-whalephant {
@@ -133,6 +134,31 @@
 
   @media only screen and (max-width: breakpoints.$md) {
     margin-left: auto;
+  }
+}
+
+.status-color {
+  &--Error {
+    color: colors.$red !important;
+  }
+  &--Initialized {
+    color: colors.$yellow !important;
+  }
+  &--Posted > a {
+    color: colors.$green !important;
+  }
+  &--Confirmed > a {
+    color: colors.$green-md !important;
+  }
+  &--Rejected > a {
+    color: colors.$red-md !important;
+  }
+  &--Unknown > a {
+    color: colors.$red !important;
+  }
+
+  &--all-txs {
+    color: colors.$orange-md !important;
   }
 }
 

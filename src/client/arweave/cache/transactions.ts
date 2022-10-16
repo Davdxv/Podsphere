@@ -4,7 +4,6 @@ import {
   Podcast,
   PodcastTags,
   Primitive,
-  TxKind,
 } from '../../interfaces';
 import {
   episodesCount,

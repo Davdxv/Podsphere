@@ -29,6 +29,13 @@ interface TabPanelProps {
   className?: string;
 }
 
+enum TAB {
+  SUBS = 0,
+  TXS,
+  THREADS,
+  DRAFTS,
+}
+
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, className, ...other } = props;
 
@@ -60,7 +67,7 @@ function HomePage() {
   } = useContext(SubscriptionsContext);
   const { arSyncTxs, hasPendingTxs, isSyncing, removeArSyncTxs } = useContext(ArweaveContext);
 
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState<TAB>(TAB.SUBS);
   const [searchQuery, setSearchQuery] = useState('');
 
   const [selectedPodcastId, setSelectedPodcastId] = useState<string | null>(null);
@@ -156,6 +163,7 @@ function HomePage() {
     if (thread) {
       toast.success('Thread saved in browser storage.\n\nTo upload it to Arweave, tap the Sync '
         + 'button twice.\n\nYou may still edit or discard it from the Drafts tab.');
+      setTab(TAB.DRAFTS);
       handleCreatePost(thread);
       handleCloseCreateThreadDialog();
     }
@@ -165,6 +173,7 @@ function HomePage() {
     if (threadDraft) {
       toast.success('Draft saved in browser storage.\n\nYou can edit, submit or discard it from '
         + 'the Drafts tab.');
+      setTab(TAB.DRAFTS);
       handleCreatePost(threadDraft);
     }
     setShowSavePrompt(false);
@@ -181,7 +190,7 @@ function HomePage() {
   };
 
   useEffect(() => {
-    if (isSyncing) setTab(1);
+    if (isSyncing) setTab(TAB.TXS);
   }, [isSyncing]);
 
   useEffect(() => {
@@ -222,7 +231,7 @@ function HomePage() {
             </Tabs>
           </Box>
 
-          <TabPanel className={style['tab-panel']} value={tab} index={0}>
+          <TabPanel className={style['tab-panel']} value={tab} index={TAB.SUBS}>
             <PodcastList
               subscriptions={subscriptions}
               unsubscribe={unsubscribe}
@@ -230,7 +239,7 @@ function HomePage() {
             />
           </TabPanel>
 
-          <TabPanel className={style['tab-panel']} value={tab} index={1}>
+          <TabPanel className={style['tab-panel']} value={tab} index={TAB.TXS}>
             <TransactionList
               subscriptions={subscriptions}
               metadataToSync={metadataToSync}
@@ -239,11 +248,11 @@ function HomePage() {
             />
           </TabPanel>
 
-          <TabPanel className={style['tab-panel']} value={tab} index={2}>
+          <TabPanel className={style['tab-panel']} value={tab} index={TAB.THREADS}>
             <div />
           </TabPanel>
 
-          <TabPanel className={style['tab-panel']} value={tab} index={3}>
+          <TabPanel className={style['tab-panel']} value={tab} index={TAB.DRAFTS}>
             <DraftList
               subscriptions={subscriptions}
               metadataToSync={metadataToSync}

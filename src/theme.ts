@@ -48,6 +48,13 @@ export const theme = createTheme({
     },
   },
   components: {
+    MuiLink: {
+      styleOverrides: {
+        root: {
+          textDecorationColor: 'inherit',
+        },
+      },
+    },
     MuiButton: {
       styleOverrides: {
         root: {

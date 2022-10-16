@@ -19,6 +19,7 @@ import {
   valuesEqual,
 } from '../utils';
 import {
+  arSyncTxToString,
   hasMetadataTxKind,
   hasThreadTxKind,
   isErrored,
@@ -38,8 +39,8 @@ import {
   ArSyncTxStatus,
   Post,
 } from '../client/interfaces';
-import * as arweave from '../client/arweave';
-import * as arsync from '../client/arweave/sync';
+import * as Arweave from '../client/arweave';
+import ArSync from '../client/arweave/sync';
 
 interface ArweaveContextType {
   isSyncing: boolean,
@@ -94,7 +95,7 @@ const ARCONNECT_GATEWAY : GatewayConfig | undefined = clientApiConfig.host && cl
   } : undefined;
 /** End */
 
-const TX_CONFIRMATION_INTERVAL = 10 /* seconds */ * 1000;
+const TX_CONFIRMATION_INTERVAL = 60 /* seconds */ * 1000;
 const TX_EXPIRY_TIME = 1 /* minutes */ * 60;
 
 // TODO: ArSync v1.5+, test me
@@ -135,13 +136,13 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     let newTxs : ArSyncTx[];
     try {
       if (usingArConnect()) {
-        newTxs = await arsync.initSync(newSubscriptions, newMetadataToSync, wallet);
+        newTxs = await ArSync.initSync(newSubscriptions, newMetadataToSync, wallet);
       }
       // else if (usingArLocal()) { /** Uncomment temporarily to generate batched arlocal seeds */
       //   const batchSize = 96 * 1024;
-      //   newTxs = await arsync.initSync(newSubscriptions, newMetadataToSync, wallet, batchSize);
+      //   newTxs = await ArSync.initSync(newSubscriptions, newMetadataToSync, wallet, batchSize);
       // }
-      else newTxs = await arsync.initSync(newSubscriptions, newMetadataToSync, wallet, null);
+      else newTxs = await ArSync.initSync(newSubscriptions, newMetadataToSync, wallet, null);
     }
     catch (ex) {
       console.error(ex);
@@ -189,7 +190,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     const txsToSyncIds = txsToSync.map(tx => tx.id);
     let allTxs : ArSyncTx[];
     try {
-      allTxs = await arsync.startSync(arSyncTxs, wallet);
+      allTxs = await ArSync.startSync(arSyncTxs, wallet);
     }
     catch (ex) {
       console.error(ex);
@@ -202,18 +203,19 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
 
     try {
       if (isNotEmpty(postedTxs)) {
-        const message = concatMessages(postedTxs
-          .map(elem => `${elem.title} (${elem.numEpisodes} new episodes)`));
+        const message =
+          concatMessages(postedTxs.map(tx => `\n${tx.title}:\n${arSyncTxToString(tx)}`));
         toast.success(`${postedTxs.length} Transaction${pluralize(postedTxs)} successfully posted `
-          + `to Arweave with metadata for:\n${message}`, { autoClose: 8000 });
+          + `to Arweave:\n${message}`, { autoClose: 8000 });
       }
       if (isNotEmpty(erroredTxs)) {
-        const message = concatMessages(erroredTxs
-          .map(elem => `${elem.title}, reason:\n${elem.resultObj}\n`));
+        const message = concatMessages(erroredTxs.map(tx => (
+          `\n${tx.title} (${arSyncTxToString(tx)}), reason:\n${tx.resultObj}\n`
+        )));
         toast.error(`${erroredTxs.length} Transaction${pluralize(erroredTxs)} failed to post to `
-          + `Arweave with metadata for:\n${message}`, { autoClose: false });
+          + `Arweave:\n${message}`, { autoClose: false });
       }
-      setMetadataToSync(arsync.formatNewMetadataToSync(allTxs, metadataToSync));
+      setMetadataToSync(ArSync.formatNewMetadataToSync(allTxs, metadataToSync));
     }
     catch (ex) {
       console.error(`An unexpected error occurred during synchronization with Arweave: ${ex}`);
@@ -242,16 +244,15 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
    */
   const confirmArSyncTxs = useCallback(async () => {
     if (isSyncing || isRefreshing) return;
-    console.debug('Checking for transaction confirmations...');
+    // console.debug('Checking for transaction confirmations...');
 
     const confirmedArSyncTxs : ArSyncTx[] = [];
-    const idUpdatedArSyncTxs : ArSyncTx[] = await arweave.updateArBundledParentIds(arSyncTxs);
+    const idUpdatedArSyncTxs : ArSyncTx[] = await Arweave.updateArBundledParentIds(arSyncTxs);
     const newArSyncTxs : ArSyncTx[] = updateArSyncTxs(arSyncTxs, idUpdatedArSyncTxs);
 
     await Promise.all(newArSyncTxs.filter(isPosted).map(async postedTx => {
-      const status : TransactionStatusResponse = await arweave.getTxConfirmationStatus(postedTx);
+      const status : TransactionStatusResponse = await Arweave.getTxConfirmationStatus(postedTx);
       const age = postedTx.timestamp ? (unixTimestamp() - postedTx.timestamp) : 0;
-      console.debug('age', age);
 
       if (status.status === 200 && status.confirmed) {
         // TODO: make number_of_confirmations configurable
@@ -274,7 +275,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
       console.debug('At least one posted transaction has been confirmed or expired.');
       const confirmedMetadataTxs = confirmedArSyncTxs.filter(hasMetadataTxKind);
       const confirmedPodcastIds = new Set<string>(confirmedMetadataTxs.map(tx => tx.podcastId));
-      await refresh([...confirmedPodcastIds], true, 0);
+      if (confirmedPodcastIds.size) await refresh([...confirmedPodcastIds], true, 0);
     }
   }, [isSyncing, isRefreshing, arSyncTxs, redraftPost, refresh]);
 
@@ -290,15 +291,15 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
       loadingWallet.current = true;
 
       if (usingArConnect()) {
-        const address = newWalletAddress || await arweave.getWalletAddress(loadedWallet);
+        const address = newWalletAddress || await Arweave.getWalletAddress(loadedWallet);
         setWalletAddress(address);
         setWallet(loadedWallet);
       }
       else {
         const newWallet : JWKInterface | WalletDeferredToArConnect = isNotEmpty(loadedWallet)
-          ? loadedWallet : await arweave.createNewDevWallet();
+          ? loadedWallet : await Arweave.createNewDevWallet();
         if (!valuesEqual(wallet, newWallet)) {
-          const address = await arweave.getWalletAddress(newWallet);
+          const address = await Arweave.getWalletAddress(newWallet);
           setWalletAddress(address);
           setWallet(newWallet);
         }
@@ -366,7 +367,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     const initializeArSyncTxs = async () => {
       try {
         const fetchedData : ArSyncTxDTO[] = await dbReadCachedArSyncTxs() || [];
-        const arSyncTxsObject : ArSyncTx[] = arweave.arSyncTxsFromDTO(fetchedData);
+        const arSyncTxsObject : ArSyncTx[] = Arweave.arSyncTxsFromDTO(fetchedData);
         setArSyncTxs(arSyncTxsObject);
       }
       catch (ex) {
@@ -387,7 +388,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     const updateCachedArSyncTxs = async () => {
       try {
         const txsToCache = arSyncTxs.filter(isNotInitialized);
-        const arSyncTxsDto : ArSyncTxDTO[] = arweave.arSyncTxsToDTO(txsToCache, true);
+        const arSyncTxsDto : ArSyncTxDTO[] = Arweave.arSyncTxsToDTO(txsToCache, true);
         await dbWriteCachedArSyncTxs(arSyncTxsDto);
       }
       catch (ex) {
