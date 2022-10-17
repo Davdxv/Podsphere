@@ -13,8 +13,6 @@ import {
   valuePresent,
 } from '../../../utils';
 import { mergeArraysToLowerCase } from '../../metadata-filtering/formatting';
-// TODO: move Thread sanitization to graphql-ops
-import { sanitizeObjectStrings } from '../../metadata-filtering/sanitization';
 import { findBestId } from '../../../podcast-id';
 
 /**
@@ -133,15 +131,13 @@ export function mergeBatchMetadata(
 }
 
 /**
- * @returns The given arrays of threads, concatenated, with string-props sanitized.
+ * @returns All posts present in the params, where posts last in the lists override any duplicates
  */
-export function mergeThreads(list1 : Post[] = [], list2 : Post[] = []) : Post[] {
-  return [...list1, ...list2].reduce((acc: Post[], thr: Post) => [
-    ...(acc || []).filter(t => t.id !== thr.id),
-    ...(isValidPost(thr) ? [sanitizeObjectStrings(thr)] : []),
-  ], [] as Post[]);
+export function mergePosts(list1 : Post[] = [], list2 : Post[] = []) : Post[] {
+  return [...list1, ...list2]
+    .reduce((acc: Post[], thr: Post) => (isValidPost(thr)
+      ? acc.filter(t => t.id !== thr.id).concat(thr) : acc), [] as Post[]);
 }
-
 /**
  * Helper function to run in the body of a reduce operation on an array of objects.
  * @returns
@@ -186,7 +182,7 @@ const mergeSpecialTags = (tags: Partial<Podcast>, metadata: Partial<Podcast>) =>
           mergeArraysToLowerCase(acc[tag] || [], value as string[]);
         break;
       case 'threads':
-        acc[tag as 'threads'] = mergeThreads(acc[tag] || [], value as Post[]);
+        acc[tag as 'threads'] = mergePosts(acc[tag] || [], value as Post[]);
         break;
       default:
         acc = { ...acc, [tag]: value };

@@ -159,7 +159,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     }
     const successfulTxs = newTxs.filter(isNotErrored);
     toast.success(`${successfulTxs.length} transaction${pluralize(successfulTxs)} initialized.\n`
-                  + 'Click the Sync button again to post pending transactions.');
+      + 'Click the Sync button again to post pending transactions.');
 
     setArSyncTxs(prev => prev.concat(newTxs));
     setIsSyncing(false);
@@ -206,14 +206,14 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
         const message =
           concatMessages(postedTxs.map(tx => `\n${tx.title}:\n${arSyncTxToString(tx)}`));
         toast.success(`${postedTxs.length} Transaction${pluralize(postedTxs)} successfully posted `
-          + `to Arweave:\n${message}`, { autoClose: 8000 });
+          + `to Arweave:\n\n${message}`, { autoClose: 8000 });
       }
       if (isNotEmpty(erroredTxs)) {
         const message = concatMessages(erroredTxs.map(tx => (
           `\n${tx.title} (${arSyncTxToString(tx)}), reason:\n${tx.resultObj}\n`
         )));
         toast.error(`${erroredTxs.length} Transaction${pluralize(erroredTxs)} failed to post to `
-          + `Arweave:\n${message}`, { autoClose: false });
+          + `Arweave:\n\n${message}`, { autoClose: false });
       }
       setMetadataToSync(ArSync.formatNewMetadataToSync(allTxs, metadataToSync));
     }
@@ -261,7 +261,6 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
         }
       }
       else if (status.status === 404 && age >= TX_EXPIRY_TIME) {
-        console.debug(status.status);
         confirmedArSyncTxs.push({ ...postedTx, status: ArSyncTxStatus.REJECTED });
 
         if (hasThreadTxKind(postedTx)) redraftPost(postedTx.metadata as Post);
@@ -296,8 +295,8 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
         setWallet(loadedWallet);
       }
       else {
-        const newWallet : JWKInterface | WalletDeferredToArConnect = isNotEmpty(loadedWallet)
-          ? loadedWallet : await Arweave.createNewDevWallet();
+        const newWallet : JWKInterface | WalletDeferredToArConnect = (isNotEmpty(loadedWallet)
+          ? loadedWallet : await Arweave.createNewDevWallet());
         if (!valuesEqual(wallet, newWallet)) {
           const address = await Arweave.getWalletAddress(newWallet);
           setWalletAddress(address);
@@ -314,14 +313,11 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
       loadingWallet.current = true;
 
       try {
-        await window.arweaveWallet.connect(
-          ARCONNECT_PERMISSIONS,
-          ARCONNECT_APPINFO,
-          ARCONNECT_GATEWAY,
-        );
+        await window.arweaveWallet.connect(ARCONNECT_PERMISSIONS, ARCONNECT_APPINFO,
+          ARCONNECT_GATEWAY);
         const allowedPermissions : PermissionType[] = await window.arweaveWallet.getPermissions();
         if (!ARCONNECT_PERMISSIONS.every(perm => allowedPermissions.includes(perm))) {
-          // TODO: explain to the user why we need these permissions
+          // TODO minor: explain to the user why we need these permissions
           toast.error('Insufficient permissions! Please try reconnecting your ArConnect wallet.');
           await window.arweaveWallet.disconnect();
           setTimeout(connectArConnect, 5000); // User can click 'cancel' to break this loop
@@ -343,19 +339,19 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
 
   useEffect(() => {
     if (usingArLocal()) loadNewWallet(wallet);
-    if (eventListenersLoaded.current) return;
 
-    // Setup event listeners
-    eventListenersLoaded.current = true;
-    window.addEventListener('walletSwitch', event => {
-      const newAddress = event.detail.address;
-      loadNewWallet(wallet, newAddress);
-    });
+    if (!eventListenersLoaded.current) { /* Setup event listeners */
+      eventListenersLoaded.current = true;
+      window.addEventListener('walletSwitch', event => {
+        const newAddress = event.detail.address;
+        loadNewWallet(wallet, newAddress);
+      });
 
-    window.addEventListener('arweaveWalletLoaded', () => {
-      console.debug('ArConnect loaded => initializing config and permissions');
-      connectArConnect();
-    });
+      window.addEventListener('arweaveWalletLoaded', () => {
+        console.debug('ArConnect loaded => initializing config and permissions');
+        connectArConnect();
+      });
+    }
   }, [wallet, loadNewWallet, connectArConnect]);
 
   useEffect(() => {

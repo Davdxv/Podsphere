@@ -1,6 +1,7 @@
 /* eslint-disable no-await-in-loop */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import {
+  Bundle as GQLBundle,
   QueryTransactionsArgs as GQLQueryTransactionsArgs,
   TagFilter as GQLTagFilter,
   Transaction as GQLTransaction,
@@ -37,6 +38,7 @@ import {
 } from '../../utils';
 import { toTag, fromTag, decompressMetadata } from './utils';
 import { mergeArraysToLowerCase } from '../metadata-filtering/formatting';
+import { sanitizeString } from '../metadata-filtering/sanitization';
 import { mergeBatchMetadata, mergeBatchTags } from './sync/diff-merge-logic';
 import { getCachedTxForFeed, txCache } from './cache/transactions';
 
@@ -45,9 +47,8 @@ type GraphQLQuery = {
   query: string,
   variables: GQLQueryTransactionsArgs,
 };
-type TagsToFilter = {
-  [key: string]: string | string[];
-};
+type GQLBundledIn = { bundledIn: GQLBundle };
+type TagsToFilter = { [key: string]: string | string[] };
 
 export type ParsedGqlResult = {
   errorMessage?: string;
@@ -217,9 +218,10 @@ export async function getAllThreads(podcastIds: string[]) : Promise<Thread[]> {
   const gqlQueries = podcastIds.map(id => gqlQueryForTags(
     { id, kind: 'thread' }, [QueryField.OWNER_ADDRESS, QueryField.TAGS, QueryField.BUNDLEDIN],
   ));
+  // TODO: getData=true for large threads (if content.length == MAX_LEN)
   const results = await Promise.all(gqlQueries.map(gqlQuery => getGqlQueryResult(gqlQuery, false)));
 
-  return results.map(gqlResultsToThreads).filter(isNotEmpty).flat();
+  return results.map(gqlResultsToThreads).flat();
 }
 
 // TODO: to be used in ArSync v1.6+ when user can specify whitelisted/blacklisted txIds per podcast
@@ -253,9 +255,10 @@ export async function pingTxIds(ids: string[]) : Promise<string[]> {
  *   id; otherwise simply the `node.id`.
  */
 const getParentTxId = (node: GQLTransaction) : string => (
-  isBundledTx(node) ? node.bundledIn!.id : node.id);
+  isBundledTx(node) ? node.bundledIn.id : node.id);
 
-const isBundledTx = (node: GQLTransaction) => isNotEmpty(node.bundledIn) && node.bundledIn.id;
+const isBundledTx = (node: GQLTransaction) : node is GQLTransaction & GQLBundledIn => (
+  isNotEmpty(node.bundledIn) && !!node.bundledIn.id);
 
 export async function getArBundledParentIds(ids: string[]) : Promise<StringToStringMapping> {
   const result : StringToStringMapping = {};
@@ -301,7 +304,7 @@ function parseGqlTags(tx: GQLTransaction) : Pick<ParsedGqlResult, 'tags' | 'gqlM
   if (tx?.id && tx?.owner?.address) {
     gqlMetadata = { txId: tx.id, ownerAddress: tx.owner.address };
   }
-  if (isBundledTx(tx)) gqlMetadata = { ...gqlMetadata, txBundledIn: tx.bundledIn!.id };
+  if (isBundledTx(tx)) gqlMetadata = { ...gqlMetadata, txBundledIn: tx.bundledIn.id };
 
   if (isNotEmpty(tx.tags)) {
     tags = tx.tags
@@ -309,11 +312,10 @@ function parseGqlTags(tx: GQLTransaction) : Pick<ParsedGqlResult, 'tags' | 'gqlM
         fromTag(tag.name) as AllowedTagsPluralized,
       ))
       .map(tag => ({
-        ...tag,
         name: fromTag(tag.name),
         value: (['firstEpisodeDate', 'lastEpisodeDate', 'lastBuildDate'].includes(
           fromTag(tag.name),
-        ) ? toDate(tag.value) : tag.value),
+        ) ? toDate(tag.value) : sanitizeString(tag.value)),
       }))
       .reduce((acc, tag) => ({
         ...acc,
@@ -329,8 +331,7 @@ function parseGqlTags(tx: GQLTransaction) : Pick<ParsedGqlResult, 'tags' | 'gqlM
   return { tags, gqlMetadata };
 }
 
-async function parseGqlPodcastMetadata(tx: GQLTransaction)
-  : Promise<ParsedGqlResult['metadata']> {
+async function parseGqlPodcastMetadata(tx: GQLTransaction) : Promise<ParsedGqlResult['metadata']> {
   let metadata : Podcast | {};
   let getDataResult;
   try {
@@ -352,7 +353,7 @@ async function parseGqlPodcastMetadata(tx: GQLTransaction)
 
   try {
     const decompressedMetadata = decompressMetadata(getDataResult);
-    metadata = podcastFromDTO(decompressedMetadata, true);
+    metadata = podcastFromDTO(decompressedMetadata, true, true);
   }
   catch (ex) {
     throw new Error(`${ERRONEOUS_TX_DATA} for transaction id ${tx.id}: ${ex}`);

@@ -22,6 +22,8 @@ import {
 import { removePrefixFromPodcastId } from '../../podcast-id';
 import { getCachedBatchNumberForDate } from './cache/transactions';
 
+// TODO: sanitize
+
 /**
  * {@linkcode https://github.com/joshbenaron/arweave-standards/blob/ans104/ans/ANS-104.md ANS-104}
  *   Arweave standard limits max tags to 128, but mind leaving some space for extra meta tags

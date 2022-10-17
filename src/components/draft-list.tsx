@@ -29,8 +29,8 @@ const DraftList : React.FC<Props> = ({
   subscriptions, metadataToSync, hasPendingTxs,
   handleShowEditThreadDialog, handleOpenSavePrompt, handleCreatePost,
 }) => {
-  const drafts = metadataToSync.map(podcast => podcast.threads).filter(isNotEmpty).flat() as
-    Thread[];
+  const drafts =
+    metadataToSync.map(podcast => podcast.threads).flat().filter(isNotEmpty) as Thread[];
   const itemClasses = `${style['list-item']} ${hasPendingTxs ? style['list-item--disabled'] : ''}`;
   const SYNC_PENDING = 'Synchronization pending. Please inspect the initialized transactions '
     + 'in the Transactions tab and press the Sync button again to sync them.';

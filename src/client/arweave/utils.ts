@@ -53,8 +53,8 @@ export function fromTag(tagName: string) {
  */
 export function calculateTagsSize(tags: ArweaveTag[]) : number {
   const tagPrefixesSize = tags.length * toTag('').length;
-  const tagsSize = tags.flat().reduce((acc: number, str: string | undefined) => (
-    acc + (str ? str.length : 0)), 0);
+  const tagsSize =
+    tags.flat().reduce((acc: number, str: string | undefined) => (acc + (str ? str.length : 0)), 0);
   return tagPrefixesSize + tagsSize;
 }
 
@@ -110,6 +110,7 @@ export const isThreadTx = (kind: TxKind | undefined) : kind is ThreadTxKind => !
 
 export const hasMetadataTxKind = <T extends Pick<CachedArTx, 'kind'>>(tx: T)
   : tx is T & { metadata: Partial<Podcast> } => isMetadataTx(tx.kind);
+
 export const hasThreadTxKind = <T extends Pick<CachedArTx, 'kind'>>(tx: T)
   : tx is T & { metadata: Post } => isThreadTx(tx.kind);
 
@@ -208,7 +209,7 @@ export function arSyncTxsFromDTO(arSyncTxs: ArSyncTxDTO[], throwOnError = false)
         ...tx,
         dispatchResult,
         resultObj,
-        metadata: podcastFromDTO(metadata),
+        metadata: podcastFromDTO(metadata, false, false),
       });
     }
     catch (ex) {

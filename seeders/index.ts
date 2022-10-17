@@ -30,7 +30,7 @@ export default async function seed(dtoMetadataBatches: PodcastDTO[], ms = 3000) 
   console.log('Begin seeding...');
 
   const wallet : JWKInterface = await createNewDevWallet();
-  const batches : Podcast[] = podcastsFromDTO(dtoMetadataBatches);
+  const batches : Podcast[] = podcastsFromDTO(dtoMetadataBatches, true, true);
   const txs : Transaction[] = await Promise.all(
     batches.map(batch => newTransactionFromMetadata(wallet, batch)),
   );

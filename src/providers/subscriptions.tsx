@@ -10,7 +10,7 @@ import {
 } from '../client';
 import {
   addPost, concatMessages, findMetadataByFeedUrl,
-  hasMetadata,
+  findMetadataById, hasMetadata, isNotEmpty,
   podcastsFromDTO, removePost, unixTimestamp,
 } from '../utils';
 import {
@@ -120,13 +120,12 @@ async function dbReadCachedPodcasts() : Promise<PodcastDTO[]> {
 
   let cachedSubscriptions : SchemaType[typeof DB_SUBSCRIPTIONS] = [];
   let cachedEpisodes : SchemaType[typeof DB_EPISODES] = [];
-  [cachedSubscriptions, cachedEpisodes] = await Promise.all([db.getAllValues(DB_SUBSCRIPTIONS),
-    db.getAllValues(DB_EPISODES)]);
+  [cachedSubscriptions, cachedEpisodes] =
+    await Promise.all([db.getAllValues(DB_SUBSCRIPTIONS), db.getAllValues(DB_EPISODES)]);
 
   cachedSubscriptions.forEach(sub => {
-    const episodesTable : EpisodesDBTable | undefined = cachedEpisodes
-      .find(table => table.id === sub.id);
-    const episodes = episodesTable ? episodesTable.episodes : [];
+    const episodesTable = findMetadataById(sub.id, cachedEpisodes);
+    const episodes = isNotEmpty(episodesTable) ? episodesTable.episodes : [];
     const podcast = { ...sub, episodes };
     readPodcasts.push(podcast);
   });
@@ -143,11 +142,8 @@ async function dbWriteCachedPodcasts(subscriptions: Podcast[]) : Promise<string[
       const cachedSub : Podcast = await db.getByPodcastId(DB_SUBSCRIPTIONS, podcast.id);
 
       if (!cachedSub || cachedSub.lastMutatedAt !== podcast.lastMutatedAt) {
+        const episodesTable = { id: podcast.id, episodes: isNotEmpty(episodes) ? episodes : [] };
         await removeCachedSubscription(podcast.feedUrl);
-        const episodesTable = {
-          id: podcast.id,
-          episodes,
-        };
         await db.putValue(DB_SUBSCRIPTIONS, podcast);
         await db.putValue(DB_EPISODES, episodesTable);
       }
@@ -161,8 +157,8 @@ async function dbWriteCachedPodcasts(subscriptions: Podcast[]) : Promise<string[
 }
 
 async function dbReadCachedMetadataToSync() : Promise<Partial<PodcastDTO>[]> {
-  const fetchedData : SchemaType[typeof DB_METADATATOSYNC] = await db
-    .getAllValues(DB_METADATATOSYNC);
+  const fetchedData : SchemaType[typeof DB_METADATATOSYNC] =
+    await db.getAllValues(DB_METADATATOSYNC);
   return fetchedData;
 }
 
@@ -266,6 +262,7 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
     if (hasMetadata(newPodcastMetadata)) {
       toast.success(`Successfully subscribed to ${newPodcastMetadata.title}.`);
 
+      // TODO: Previously saved Thread drafts are lost here after unsubscribe, subscribe
       setMetadataToSync(prev => prev.filter(podcast => podcast.feedUrl !== validUrl)
         .concat(hasMetadata(newPodcastMetadataToSync) ? newPodcastMetadataToSync : []));
       setSubscriptions(prev => prev.concat(newPodcastMetadata));
@@ -278,16 +275,15 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
   }
 
   async function unsubscribe(feedUrl: Podcast['feedUrl']) {
-    // TODO: warn if feedUrl has pending metadataToSync
     const sub = findMetadataByFeedUrl(feedUrl, 'rss2', subscriptions);
-    if (!hasMetadata(sub)) {
-      toast.error(`You are not subscribed to ${feedUrl}.`);
-    }
-    else {
+    if (hasMetadata(sub)) {
+      // TODO: warn if feedUrl has pending metadataToSync
+
       toast.success(`Successfully unsubscribed from ${sub.title}.`);
       await removeCachedSubscription(feedUrl);
       setSubscriptions(prev => prev.filter(podcast => podcast.feedUrl !== feedUrl));
     }
+    else toast.error(`You are not subscribed to ${feedUrl}.`);
   }
 
   /**
@@ -403,13 +399,14 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
       };
 
       const fetchedData = await dbReadCachedPodcasts();
-      initializePodcastIdCache(podcastsFromDTO(fetchedData));
-      setSubscriptions(podcastsFromDTO(fetchedData));
+      const podcasts = podcastsFromDTO(fetchedData, false, false);
+      initializePodcastIdCache(podcasts);
+      setSubscriptions(podcasts);
     };
 
     const initializeMetadataToSync = async () => {
       const fetchedData = await dbReadCachedMetadataToSync();
-      setMetadataToSync(podcastsFromDTO(fetchedData));
+      setMetadataToSync(podcastsFromDTO(fetchedData, false, false));
     };
 
     const initializeCachedTransactions = async () => {

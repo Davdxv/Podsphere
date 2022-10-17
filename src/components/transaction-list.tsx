@@ -54,7 +54,7 @@ const TransactionList : React.FC<Props> = ({
                 total: <b>{txs.length}</b>
               </Box>
               <Box className={style['action-btn']}>
-                <RemoveBtn onClick={() => removeArSyncTxs(null)} />
+                <RemoveBtn onClick={() => removeArSyncTxs(null) /* TODO: user confirmation */} />
               </Box>
             </Box>
           </Box>

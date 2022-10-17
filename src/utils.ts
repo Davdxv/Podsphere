@@ -7,6 +7,7 @@ import {
 } from './client/interfaces';
 import { isValidUrl } from './client/metadata-filtering';
 import { initializeKeywords } from './client/metadata-filtering/generation';
+import { sanitizeObjectStrings } from './client/metadata-filtering/sanitization';
 import { CorsProxyStorageKey } from './pages/settings-utils';
 import {
   addPrefixToPodcastId,
@@ -50,13 +51,15 @@ export function bytesToString(bytes: string | number) {
   }
 }
 
-export function toISOString(date: Date) {
+export function toISOString(date: Date | string | null | undefined) : string {
   try {
-    return date.toISOString();
+    if (!date) return '';
+    if (date instanceof Date) return date.toISOString();
   }
   catch (_ex) {
     return '';
   }
+  return typeof date === 'string' ? date : '';
 }
 
 /**
@@ -237,11 +240,11 @@ export function findMetadataByFeedUrl<T extends Podcast | Partial<Podcast>>(
     || {} as T;
 }
 
-export function findMetadataById<T extends Podcast | Partial<Podcast>>(
+export function findMetadataById<T extends { id?: Podcast['id'] }>(
   id: Podcast['id'],
   metadataList: T[] = [],
 ) : T {
-  let result = metadataList.find(obj => isNotEmpty(obj) && obj.id === id);
+  let result = metadataList.find(obj => obj?.id && obj.id === id);
   if (!result) {
     if (isCandidatePodcastId(id)) {
       result = metadataList.find(obj => obj?.id && addPrefixToPodcastId(obj.id) === id);
@@ -298,7 +301,7 @@ export function removePost(post: Post, metadataToSync: Partial<Podcast>[] = [])
     .concat(removePostFromPodcast(post, podcastToSync));
 }
 
-/** @returns `metadataToSync` with the matching post added */
+/** @returns `metadataToSync` with the matching `post` added */
 export function addPost(post: Post, metadataToSync: Partial<Podcast>[] = [])
   : typeof metadataToSync {
   const prevPodcastToSync : Partial<Podcast> = findMetadataById(post.podcastId, metadataToSync);
@@ -329,28 +332,29 @@ export function partialToPodcast(partialMetadata: Partial<Podcast>) : Podcast | 
 /** TODO: expand episode validation */
 export const isValidEpisode = (ep?: Episode) => isNotEmpty(ep) && isValidDate(ep.publishedAt);
 
-/** NOTE: should not throw if resulting Podcast is incomplete */
-export function podcastFromDTO(podcast: Partial<PodcastDTO>, sortEpisodes = true) : Podcast {
-  const conditionalSort = (episodes: Podcast['episodes'] = []) => (sortEpisodes
-    ? episodes.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
-    : episodes);
+export function podcastFromDTO(podcast: Partial<PodcastDTO>, sanitize = false, sortEpisodes = true)
+  : Podcast {
+  let episodes : Podcast['episodes'] = (podcast.episodes || [])
+    .map(episode => ({ ...episode, publishedAt: toDate(episode.publishedAt) }))
+    .filter(isValidEpisode);
 
-  const episodes : Podcast['episodes'] = conditionalSort(
-    (podcast.episodes || [])
-      .map(episode => ({ ...episode, publishedAt: toDate(episode.publishedAt) }))
-      .filter(isValidEpisode),
-  );
+  if (sanitize) episodes = episodes.map(sanitizeObjectStrings);
+  if (sortEpisodes) {
+    episodes = episodes.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
+  }
 
   let { feedType, metadataBatch,
     // eslint-disable-next-line prefer-const
     firstEpisodeDate, lastEpisodeDate, lastBuildDate, ...mainMetadata } : any = podcast;
+  // TODO: destructure Podcast['*'] only => maybe add param, exclude_tags / include_tags
+  //       ensure 'threads' is not allowed from parseGqlPodcastMetadata
+  //       but they should be included from SubscriptionsProvider
 
   feedType = isValidFeedType(feedType) ? feedType : 'rss2';
   metadataBatch = Number(metadataBatch);
   firstEpisodeDate = toDate(firstEpisodeDate);
   lastEpisodeDate = toDate(lastEpisodeDate);
   lastBuildDate = toDate(lastBuildDate);
-  // kind ||= 'metadataBatch';
 
   const result : Podcast = {
     ...mainMetadata as Podcast,
@@ -363,13 +367,13 @@ export function podcastFromDTO(podcast: Partial<PodcastDTO>, sortEpisodes = true
   if (isValidDate(firstEpisodeDate)) result.firstEpisodeDate = firstEpisodeDate;
   if (isValidDate(lastEpisodeDate)) result.lastEpisodeDate = lastEpisodeDate;
   if (isValidDate(lastBuildDate)) result.lastBuildDate = lastBuildDate;
-  // if (isValidKind(kind)) result.kind = kind;
 
-  return result;
+  return sanitize ? sanitizeObjectStrings(result) : result;
 }
 
-export function podcastsFromDTO(podcasts: Partial<PodcastDTO>[], sortEpisodes = true) {
-  return podcasts.filter(isNotEmpty).map(podcast => podcastFromDTO(podcast, sortEpisodes));
+export function podcastsFromDTO(podcasts: Partial<PodcastDTO>[], sanitize = false,
+  sortEpisodes = true) {
+  return podcasts.filter(isNotEmpty).map(pod => podcastFromDTO(pod, sanitize, sortEpisodes));
 }
 
 export function podcastToDTO(podcast: Partial<Podcast>) : Partial<PodcastDTO> {
