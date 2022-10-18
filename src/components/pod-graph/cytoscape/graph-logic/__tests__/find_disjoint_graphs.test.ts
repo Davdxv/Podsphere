@@ -1,5 +1,6 @@
 import sample from 'lodash.samplesize';
 import { v4 as uuid } from 'uuid';
+import { Podcast } from '../../../../../client/interfaces';
 import {
   computeEdgeWeight, DisjointGraph, findAllDisjointGraphs,
   generateEdges, groupSubscriptionsBySharedKeywords,
@@ -13,7 +14,7 @@ const fakeCategories = ['comedy', 'drama', 'humor', 'history', 'news', 'sports',
 const createFakePodcast = (id = '1') => {
   const numberOfCategories = Math.floor(Math.random() * 5);
 
-  return ({
+  return {
     id,
     feedUrl: 'https://server.dummy/rss',
     feedType: 'rss2',
@@ -25,7 +26,7 @@ const createFakePodcast = (id = '1') => {
     metadataBatch: 1,
     firstEpisodeDate: new Date(),
     lastEpisodeDate: new Date(),
-  });
+  } as Podcast;
 };
 
 describe('findAllDisjointGraphs works correctly for', () => {
@@ -103,7 +104,7 @@ describe('findAllDisjointGraphs works correctly for', () => {
 
   test('Basic performance regression test', () => {
     const SampleSize = 5;
-    const MaxTime = 150; // miliseconds
+    const MaxTime = 200; // ms
     const N = 100;
 
     const start = Date.now();

@@ -8,8 +8,7 @@ export async function createNewDevWallet() : Promise<JWKInterface> {
   return wallet;
 }
 
-export async function getWalletAddress(wallet: WalletTypes)
-  : Promise<string> {
+export async function getWalletAddress(wallet: WalletTypes) : Promise<string> {
   if (usingArConnect()) return window.arweaveWallet.getActiveAddress();
 
   return client.wallets.jwkToAddress(wallet as JWKInterface);

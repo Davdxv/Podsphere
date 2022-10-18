@@ -10,7 +10,6 @@ import {
   ArSyncTx,
   ArSyncTxDTO,
   ArSyncTxStatus,
-  Post,
   TransactionStatusResponse,
   WalletTypes,
 } from '../client/interfaces';
@@ -94,7 +93,7 @@ const ARCONNECT_GATEWAY : GatewayConfig | undefined = clientApiConfig.host && cl
 /** End */
 
 const TX_CONFIRMATION_INTERVAL = 60 /* seconds */ * 1000;
-const TX_EXPIRY_TIME = 1 /* minutes */ * 60;
+const TX_EXPIRY_TIME = 1 /* minutes */ * 60; // TODO MVP: 60 mins
 
 // TODO: ArSync v1.5+, test me
 const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -261,7 +260,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
       else if (status.status === 404 && age >= TX_EXPIRY_TIME) {
         confirmedArSyncTxs.push({ ...postedTx, status: ArSyncTxStatus.REJECTED });
 
-        if (hasThreadTxKind(postedTx)) redraftPost(postedTx.metadata as Post);
+        if (hasThreadTxKind(postedTx)) redraftPost(postedTx.metadata);
       }
     }));
 
@@ -269,7 +268,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
       setArSyncTxs(updateArSyncTxs(newArSyncTxs, confirmedArSyncTxs));
     }
     if (confirmedArSyncTxs.length) {
-      console.debug('At least one posted transaction has been confirmed or expired.');
+      console.debug('At least one posted transaction has been confirmed or has expired.');
       const confirmedMetadataTxs = confirmedArSyncTxs.filter(hasMetadataTxKind);
       const confirmedPodcastIds = new Set<string>(confirmedMetadataTxs.map(tx => tx.podcastId));
       if (confirmedPodcastIds.size) await refresh([...confirmedPodcastIds], true, 0);
@@ -278,7 +277,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
 
   /**
    * Loads the state variables `wallet` and `walletAddress` for the given `loadedWallet`.
-   * If `loadedWallet` is empty, a new developer wallet is created and some AR tokens are minted.
+   * If `loadedWallet` is empty, a new developer wallet is created and ample AR tokens are minted.
    */
   const loadNewWallet = useCallback(async (loadedWallet: WalletTypes, newWalletAddress = '') => {
     if (!loadingWallet.current) {
@@ -292,6 +291,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
       else {
         const newWallet : WalletTypes =
           isNotEmpty(loadedWallet) ? loadedWallet : await Arweave.createNewDevWallet();
+
         if (!valuesEqual(wallet, newWallet)) {
           const address = await Arweave.getWalletAddress(newWallet);
           setWalletAddress(address);
@@ -337,6 +337,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
 
     if (!eventListenersLoaded.current) { /* Setup event listeners */
       eventListenersLoaded.current = true;
+
       window.addEventListener('walletSwitch', event => {
         const newAddress = event.detail.address;
         loadNewWallet(wallet, newAddress);

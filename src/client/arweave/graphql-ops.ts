@@ -123,22 +123,19 @@ export async function getPodcastRss2Feed(
         if (!errorMessage.match(ERRONEOUS_TX_DATA)) return false;
       }
 
-      if (isEmpty(tags) || isEmpty(gqlMetadata)) return false;
+      if (isNotEmpty(tags) && isNotEmpty(gqlMetadata)) {
+        const cachedTx : CachedArTx | null = getCachedTxForFeed(gqlMetadata, tags, metadata);
 
-      const cachedTx : CachedArTx | null = getCachedTxForFeed(
-        gqlMetadata as GraphQLMetadata,
-        tags as PodcastTags,
-        metadata,
-      );
-
-      if (cachedTx && !hasMetadata(metadata)) {
-        cachedTx.txBlocked = true;
+        if (cachedTx && !hasMetadata(metadata)) {
+          cachedTx.txBlocked = true;
+        }
+        if (!cachedTx || cachedTx.txBlocked) {
+          // tx has invalid/empty gqlMetadata or metadata, or is set as blocked
+          return false;
+        }
+        return true;
       }
-      if (!cachedTx || cachedTx.txBlocked) {
-        // tx has invalid/empty gqlMetadata or metadata, or is set as blocked
-        return false;
-      }
-      return true;
+      return false;
     })
     .sort((a, b) => (episodesCount(b.metadata) - episodesCount(a.metadata)));
 
@@ -247,6 +244,7 @@ export async function pingTxIds(ids: string[]) : Promise<string[]> {
 /**
  * Arweave API's `getData()` queries the `/tx` endpoint which (Aug 2022) only supports Layer 1
  * Arweave transactions, not bundled transactions.
+ *
  * In order to getData() the data contained within a bundled transaction, we have to first find out
  * the parent id. This functionality is deprecated by fetchArweaveUrlData(). However, we still use
  * this function for adding the bundle id to the transaction history.

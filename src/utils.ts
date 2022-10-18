@@ -7,7 +7,7 @@ import {
 } from './client/interfaces';
 import { isValidUrl } from './client/metadata-filtering';
 import { initializeKeywords } from './client/metadata-filtering/generation';
-import { sanitizeObjectStrings } from './client/metadata-filtering/sanitization';
+import { sanitizeObject } from './client/metadata-filtering/sanitization';
 import { CorsProxyStorageKey } from './pages/settings-utils';
 import {
   addPrefixToPodcastId,
@@ -217,7 +217,7 @@ export function toDate(date: string | Date | null | undefined) : Date {
  *   - `Episode['publishedAt']`
  */
 export function hasMetadata<U extends Partial<Podcast> | Partial<Episode>, T extends U[]>(
-  metadata: U | T | EmptyTypes,
+  metadata: T | U | EmptyTypes,
 ) : metadata is T | U {
   if (isEmpty(metadata)) return false;
   if (Array.isArray(metadata)) return !!metadata.length;
@@ -334,11 +334,10 @@ export const isValidEpisode = (ep?: Episode) => isNotEmpty(ep) && isValidDate(ep
 
 export function podcastFromDTO(podcast: Partial<PodcastDTO>, sanitize = false, sortEpisodes = true)
   : Podcast {
-  let episodes : Podcast['episodes'] = (podcast.episodes || [])
+  let episodes : Episode[] = (podcast.episodes || [])
     .map(episode => ({ ...episode, publishedAt: toDate(episode.publishedAt) }))
     .filter(isValidEpisode);
 
-  if (sanitize) episodes = episodes.map(sanitizeObjectStrings);
   if (sortEpisodes) {
     episodes = episodes.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
   }
@@ -368,7 +367,7 @@ export function podcastFromDTO(podcast: Partial<PodcastDTO>, sanitize = false, s
   if (isValidDate(lastEpisodeDate)) result.lastEpisodeDate = lastEpisodeDate;
   if (isValidDate(lastBuildDate)) result.lastBuildDate = lastBuildDate;
 
-  return sanitize ? sanitizeObjectStrings(result) : result;
+  return sanitize ? sanitizeObject(result) : result;
 }
 
 export function podcastsFromDTO(podcasts: Partial<PodcastDTO>[], sanitize = false,
