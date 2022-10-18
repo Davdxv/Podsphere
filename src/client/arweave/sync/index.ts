@@ -1,11 +1,8 @@
 import { v4 as uuid } from 'uuid';
-import Transaction from 'arweave/node/lib/transaction';
-import { JWKInterface } from 'arweave/node/lib/wallet';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { DispatchResult } from 'arconnect';
 import {
   ArSyncTx, ArSyncTxStatus, ArweaveTag,
-  Episode, Podcast,
+  DispatchResult, Episode, Podcast,
+  Transaction, WalletTypes,
 } from '../../interfaces';
 import {
   findMetadataById,
@@ -19,7 +16,6 @@ import {
 import { throwDevError } from '../../../errors';
 import { formatMetadataTxTags, withMetadataBatchNumber } from '../create-transaction';
 import { mergeBatchMetadata, rightDiff } from './diff-merge-logic';
-import { WalletDeferredToArConnect } from '../wallet';
 import {
   calculateTagsSize, compressMetadata, hasThreadTxKind,
   isConfirmed, isInitialized, isPosted,
@@ -97,7 +93,7 @@ interface PartitionedBatch extends
 async function initSync(
   subscriptions: Podcast[],
   metadataToSync: Partial<Podcast>[],
-  wallet: JWKInterface | WalletDeferredToArConnect,
+  wallet: WalletTypes,
   maxBatchSize: number | null = MAX_BATCH_SIZE,
 ) : Promise<ArSyncTx[]> {
   // A transaction will be created for each PartitionedBatch
@@ -361,7 +357,7 @@ function partitionMetadataBatches(
  */
 async function startSync(
   allTxs: ArSyncTx[],
-  wallet: JWKInterface | WalletDeferredToArConnect,
+  wallet: WalletTypes,
 ) : Promise<ArSyncTx[]> {
   const result : ArSyncTx[] = [...allTxs];
   await Promise.all(allTxs.map(async (tx, index) => {

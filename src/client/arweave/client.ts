@@ -1,5 +1,5 @@
 import Arweave from 'arweave';
-import { ApiConfig } from 'arweave/node/lib/api.d';
+import { ApiConfig } from '../interfaces';
 import { usingArLocal } from './utils';
 
 declare global {

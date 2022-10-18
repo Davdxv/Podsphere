@@ -2,12 +2,18 @@ import React, {
   createContext, useState, useContext,
   useRef, useEffect, useCallback,
 } from 'react';
-import { JWKInterface } from 'arweave/node/lib/wallet';
-import { TransactionStatusResponse } from 'arweave/node/transactions';
-import { ApiConfig } from 'arweave/node/lib/api';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { AppInfo, GatewayConfig, PermissionType } from 'arconnect';
 import { toast } from 'react-toastify';
+import {
+  ApiConfig,
+  ArSyncTx,
+  ArSyncTxDTO,
+  ArSyncTxStatus,
+  Post,
+  TransactionStatusResponse,
+  WalletTypes,
+} from '../client/interfaces';
 import useRerenderEffect from '../hooks/use-rerender-effect';
 import { IndexedDb } from '../indexed-db';
 import { DBStatus, SubscriptionsContext } from './subscriptions';
@@ -31,23 +37,15 @@ import {
   usingArConnect,
   usingArLocal,
 } from '../client/arweave/utils';
-import { WalletDeferredToArConnect } from '../client/arweave/wallet';
 import client from '../client/arweave/client';
-import {
-  ArSyncTx,
-  ArSyncTxDTO,
-  ArSyncTxStatus,
-  Post,
-} from '../client/interfaces';
 import * as Arweave from '../client/arweave';
 import ArSync from '../client/arweave/sync';
 
 interface ArweaveContextType {
   isSyncing: boolean,
-  wallet: JWKInterface | WalletDeferredToArConnect,
+  wallet: WalletTypes,
   walletAddress: string,
-  loadNewWallet: (loadedWallet: JWKInterface | WalletDeferredToArConnect,
-    newWalletAddress: string | undefined) => Promise<void>,
+  loadNewWallet: (loadedWallet: WalletTypes, newWalletAddress: string | undefined) => Promise<void>,
   arSyncTxs: ArSyncTx[],
   prepareSync: () => Promise<void>,
   startSync: () => Promise<void>,
@@ -105,7 +103,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     isRefreshing, metadataToSync, redraftPost,
     refresh, setDbStatus, setMetadataToSync,
   } = useContext(SubscriptionsContext);
-  const [wallet, setWallet] = useState<JWKInterface | WalletDeferredToArConnect>({});
+  const [wallet, setWallet] = useState<WalletTypes>({});
   const [walletAddress, setWalletAddress] = useState('');
   const loadingWallet = useRef(false);
   const eventListenersLoaded = useRef(false);
@@ -282,10 +280,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
    * Loads the state variables `wallet` and `walletAddress` for the given `loadedWallet`.
    * If `loadedWallet` is empty, a new developer wallet is created and some AR tokens are minted.
    */
-  const loadNewWallet = useCallback(async (
-    loadedWallet: JWKInterface | WalletDeferredToArConnect,
-    newWalletAddress: string = '',
-  ) => {
+  const loadNewWallet = useCallback(async (loadedWallet: WalletTypes, newWalletAddress = '') => {
     if (!loadingWallet.current) {
       loadingWallet.current = true;
 
@@ -295,8 +290,8 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
         setWallet(loadedWallet);
       }
       else {
-        const newWallet : JWKInterface | WalletDeferredToArConnect = (isNotEmpty(loadedWallet)
-          ? loadedWallet : await Arweave.createNewDevWallet());
+        const newWallet : WalletTypes =
+          isNotEmpty(loadedWallet) ? loadedWallet : await Arweave.createNewDevWallet();
         if (!valuesEqual(wallet, newWallet)) {
           const address = await Arweave.getWalletAddress(newWallet);
           setWalletAddress(address);

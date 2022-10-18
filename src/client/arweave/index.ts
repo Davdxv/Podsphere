@@ -1,5 +1,7 @@
-import { TransactionStatusResponse } from 'arweave/node/transactions';
-import { ArSyncTx, DispatchResultDTO, StringToStringMapping } from '../interfaces';
+import {
+  ArSyncTx, DispatchResultDTO, StringToStringMapping,
+  TransactionStatusResponse,
+} from '../interfaces';
 import { isNotEmpty } from '../../utils';
 import client from './client';
 import { getArBundledParentIds } from './graphql-ops';

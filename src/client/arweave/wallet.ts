@@ -1,9 +1,6 @@
-import { JWKInterface } from 'arweave/node/lib/wallet';
+import { JWKInterface, WalletTypes } from '../interfaces';
 import client from './client';
 import { usingArConnect } from './utils';
-
-/** If using ArConnect, the wallet object is not used (and vice versa). */
-export interface WalletDeferredToArConnect {}
 
 export async function createNewDevWallet() : Promise<JWKInterface> {
   const wallet = await client.wallets.generate();
@@ -11,7 +8,7 @@ export async function createNewDevWallet() : Promise<JWKInterface> {
   return wallet;
 }
 
-export async function getWalletAddress(wallet: JWKInterface | WalletDeferredToArConnect)
+export async function getWalletAddress(wallet: WalletTypes)
   : Promise<string> {
   if (usingArConnect()) return window.arweaveWallet.getActiveAddress();
 

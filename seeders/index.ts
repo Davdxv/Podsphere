@@ -1,6 +1,9 @@
-import { JWKInterface } from 'arweave/node/lib/wallet';
-import Transaction from 'arweave/node/lib/transaction';
-import { Podcast, PodcastDTO } from '../src/client/interfaces';
+import {
+  JWKInterface,
+  Podcast,
+  PodcastDTO,
+  Transaction,
+} from '../src/client/interfaces';
 import { podcastsFromDTO } from '../src/utils';
 import { createNewDevWallet } from '../src/client/arweave/wallet';
 import {

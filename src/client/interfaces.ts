@@ -1,9 +1,18 @@
+import Transaction from 'arweave/node/lib/transaction';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { DispatchResult } from 'arconnect';
-import Transaction from 'arweave/node/lib/transaction';
+import { JWKInterface } from 'arweave/node/lib/wallet';
+import { TransactionStatusResponse } from 'arweave/node/transactions';
+import { ApiConfig } from 'arweave/node/lib/api.d';
+
+export { Transaction };
+export type { ApiConfig, DispatchResult, JWKInterface, TransactionStatusResponse };
+
+/** If using ArConnect, the wallet param is omitted */
+export interface WalletDeferredToArConnect {}
+export type WalletTypes = JWKInterface | WalletDeferredToArConnect;
 
 export type Primitive = string | boolean | number;
-
 export type EmptyTypes = null | undefined | {} | [];
 
 export const MANDATORY_ARWEAVE_TAGS = [

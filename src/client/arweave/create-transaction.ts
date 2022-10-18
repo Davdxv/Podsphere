@@ -1,14 +1,9 @@
-import { JWKInterface } from 'arweave/node/lib/wallet';
-import Transaction from 'arweave/node/lib/transaction';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { DispatchResult } from 'arconnect';
 import {
-  AllowedTags, ArweaveTag, Episode,
-  MandatoryMetadataTxTags, MandatoryThreadReplyTxTags, MandatoryTags,
+  AllowedTags, ArweaveTag, DispatchResult, Episode,
+  JWKInterface, MandatoryMetadataTxTags, MandatoryThreadReplyTxTags, MandatoryTags,
   MandatoryThreadTxTags, OPTIONAL_ARWEAVE_STRING_TAGS, Podcast,
-  Post, TxKind, TX_KINDS,
+  Post, Transaction, TxKind, TX_KINDS, WalletTypes,
 } from '../interfaces';
-import { WalletDeferredToArConnect } from './wallet';
 import client from './client';
 import {
   compressMetadata, toTag, usingArConnect,
@@ -143,7 +138,7 @@ export function formatThreadTxTags(
 }
 
 async function newTransaction(
-  wallet: JWKInterface | WalletDeferredToArConnect,
+  wallet: WalletTypes,
   compressedMetadata: Uint8Array,
   tags: ArweaveTag[] = [],
 ) : Promise<Transaction> {
@@ -175,10 +170,7 @@ async function newTransaction(
  * @returns `trx` if signed and posted successfully
  * @throws if signing or posting fails
  */
-export async function signAndPostTransaction(
-  trx: Transaction,
-  wallet: JWKInterface | WalletDeferredToArConnect,
-)
+export async function signAndPostTransaction(trx: Transaction, wallet: WalletTypes)
   : Promise<Transaction> {
   let postResponse;
 
@@ -234,7 +226,7 @@ export async function dispatchTransaction(trx: Transaction) : Promise<DispatchRe
  * @throws if `newMetadata` is incomplete or if newTransaction() throws
  */
 export async function newTransactionFromMetadata(
-  wallet: JWKInterface | WalletDeferredToArConnect,
+  wallet: WalletTypes,
   newMetadata: Partial<Podcast>,
   cachedMetadata: Partial<Podcast> = {},
 ) : Promise<Transaction> {
@@ -256,7 +248,7 @@ export async function newTransactionFromMetadata(
  * @throws if typecheck of parameters fails or if newTransaction() throws
  */
 export async function newTransactionFromCompressedMetadata(
-  wallet: JWKInterface | WalletDeferredToArConnect,
+  wallet: WalletTypes,
   compressedMetadata: Uint8Array,
   tags: ArweaveTag[],
 ) : Promise<Transaction> {
@@ -266,19 +258,19 @@ export async function newTransactionFromCompressedMetadata(
 
 /**
  * @param wallet
- * @param thread
+ * @param post
  * @param cachedMetadata
  * @returns a new Arweave Transaction object
  * @throws if `newMetadata` is incomplete or if newTransaction() throws
  */
 export async function newThreadTransaction(
-  wallet: JWKInterface | WalletDeferredToArConnect,
-  thread: Post,
+  wallet: WalletTypes,
+  post: Post,
   cachedMetadata: Partial<Podcast> = {},
 ) : Promise<Transaction> {
-  const id = thread.podcastId;
-  const newCompressedMetadata : Uint8Array = compressMetadata(thread);
-  const tags : ArweaveTag[] = formatThreadTxTags(thread, { ...cachedMetadata, id });
+  const id = post.podcastId;
+  const newCompressedMetadata : Uint8Array = compressMetadata(post);
+  const tags : ArweaveTag[] = formatThreadTxTags(post, { ...cachedMetadata, id });
   return newTransactionFromCompressedMetadata(wallet, newCompressedMetadata, tags);
 }
 
