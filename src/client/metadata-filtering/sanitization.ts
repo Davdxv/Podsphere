@@ -30,7 +30,7 @@ export function sanitizeString(str : string, allowHtml = false, sanitizeOptions 
 }
 
 /** Helper function to skip sanitization of e.g. Date instances */
-const isAnyClassInstance = (obj: object) => !!Object.getPrototypeOf(Object.getPrototypeOf(obj));
+const isAnyClassInstance = (o: object) => Object.getPrototypeOf(o).constructor.name !== 'Object';
 
 /** Returns the given object where all values (not the keys) are sanitized (deep) */
 export function sanitizeObject<T extends { [K: string]: any }>(obj: T) : T {

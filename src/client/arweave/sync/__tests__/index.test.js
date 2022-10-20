@@ -375,8 +375,8 @@ describe('initSync', () => {
           };
 
           // Assert that the compressedMetadata comprise a complete subset of pod2
-          const result2DecompressedMetadata = newTxMockCalls.slice(1)
-            .map(params => podcastFromDTO(decompressMetadata(params[1]), true, true));
+          const result2DecompressedMetadata = newTxMockCalls.slice(1).map(params => (
+            podcastFromDTO(decompressMetadata(params[1]), { sanitize: true, sortEpisodes: true })));
           const result2MergedDecompressedMetadata = {
             ...mergeBatchMetadata(result2DecompressedMetadata, true),
             kind: 'metadataBatch',

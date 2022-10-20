@@ -399,14 +399,14 @@ const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ child
       };
 
       const fetchedData = await dbReadCachedPodcasts();
-      const podcasts = podcastsFromDTO(fetchedData, false, false);
+      const podcasts = podcastsFromDTO(fetchedData);
       initializePodcastIdCache(podcasts);
       setSubscriptions(podcasts);
     };
 
     const initializeMetadataToSync = async () => {
       const fetchedData = await dbReadCachedMetadataToSync();
-      setMetadataToSync(podcastsFromDTO(fetchedData, false, false));
+      setMetadataToSync(podcastsFromDTO(fetchedData));
     };
 
     const initializeCachedTransactions = async () => {

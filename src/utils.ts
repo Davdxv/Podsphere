@@ -15,6 +15,11 @@ import {
   removePrefixFromPodcastId,
 } from './podcast-id';
 
+interface PodcastOptions {
+  sanitize?: boolean;
+  sortEpisodes?: boolean;
+}
+
 export const getTextSelection = () => (window.getSelection
   ? (window.getSelection() || '').toString()
   : (document.getSelection() || '').toString());
@@ -23,8 +28,8 @@ export function unixTimestamp(date : Date | null = null) {
   return Math.floor(date ? date.getTime() : Date.now() / 1000);
 }
 
-export function addLastMutatedAt(subscription: Podcast) : Podcast {
-  return { ...subscription, lastMutatedAt: unixTimestamp() };
+export function addLastMutatedAt<T extends Partial<Podcast>>(podcast: T) : T {
+  return { ...podcast, lastMutatedAt: unixTimestamp() };
 }
 
 export function metadatumToString<K extends keyof Podcast>(field: Podcast[K]) {
@@ -329,16 +334,15 @@ export function partialToPodcast(partialMetadata: Partial<Podcast>) : Podcast | 
   return result;
 }
 
-/** TODO: expand episode validation */
 export const isValidEpisode = (ep?: Episode) => isNotEmpty(ep) && isValidDate(ep.publishedAt);
 
-export function podcastFromDTO(podcast: Partial<PodcastDTO>, sanitize = false, sortEpisodes = true)
+export function podcastFromDTO(podcast: Partial<PodcastDTO>, options: PodcastOptions = {})
   : Podcast {
   let episodes : Episode[] = (podcast.episodes || [])
     .map(episode => ({ ...episode, publishedAt: toDate(episode.publishedAt) }))
     .filter(isValidEpisode);
 
-  if (sortEpisodes) {
+  if (options?.sortEpisodes) {
     episodes = episodes.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
   }
 
@@ -367,12 +371,11 @@ export function podcastFromDTO(podcast: Partial<PodcastDTO>, sanitize = false, s
   if (isValidDate(lastEpisodeDate)) result.lastEpisodeDate = lastEpisodeDate;
   if (isValidDate(lastBuildDate)) result.lastBuildDate = lastBuildDate;
 
-  return sanitize ? sanitizeObject(result) : result;
+  return options?.sanitize ? sanitizeObject(result) : result;
 }
 
-export function podcastsFromDTO(podcasts: Partial<PodcastDTO>[], sanitize = false,
-  sortEpisodes = true) {
-  return podcasts.filter(isNotEmpty).map(pod => podcastFromDTO(pod, sanitize, sortEpisodes));
+export function podcastsFromDTO(podcasts: Partial<PodcastDTO>[], options: PodcastOptions = {}) {
+  return podcasts.filter(isNotEmpty).map(pod => podcastFromDTO(pod, options));
 }
 
 export function podcastToDTO(podcast: Partial<Podcast>) : Partial<PodcastDTO> {

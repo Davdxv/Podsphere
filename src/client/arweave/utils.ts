@@ -209,7 +209,7 @@ export function arSyncTxsFromDTO(arSyncTxs: ArSyncTxDTO[], throwOnError = false)
         ...tx,
         dispatchResult,
         resultObj,
-        metadata: podcastFromDTO(metadata, false, false),
+        metadata: podcastFromDTO(metadata),
       });
     }
     catch (ex) {

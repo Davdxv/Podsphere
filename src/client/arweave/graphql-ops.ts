@@ -99,6 +99,7 @@ export async function fetchPodcastId(
 
 export async function getPodcastRss2Feed(
   feedUrl: Podcast['feedUrl'],
+  title: Podcast['title'],
 ) : Promise<Partial<Podcast> | PodcastFeedError> {
   const errorMessages : string[] = [];
   const metadataBatches : Podcast[] = [];
@@ -183,18 +184,23 @@ export async function getPodcastRss2Feed(
   while (batch < MAX_BATCHES);
   console.debug('new txCache after fetching batches', txCache);
 
-  const mergedMetadata : Partial<Podcast> = { ...mergeBatchMetadata(metadataBatches),
-    ...mergeBatchTags(tagBatches) };
+  const mergedMetadata : Partial<Podcast> =
+    { ...mergeBatchMetadata(metadataBatches), ...mergeBatchTags(tagBatches) };
   if (!hasMetadata(mergedMetadata) && errorMessages.length) {
     // Only return an errorMessage if no metadata was found, since GraphQL likely was unreachable.
-    return { errorMessage: `Encountered the following errors when fetching ${feedUrl} `
+    return { errorMessage: `Encountered the following errors when fetching ${title}'s `
                            + `metadata from Arweave:\n${concatMessages(errorMessages, true)}` };
   }
 
   return mergedMetadata;
 }
 
-/** NOTE: TODO: Replies are fetched later */
+/**
+ * Called when refreshing subscriptions.
+ * - NOTE: Only fetches Threads. Replies are fetched elsewhere, upon viewing the Threads list.
+ * - NOTE: `tags` are sanitized already through:
+ *         {@linkcode getGqlQueryResult} => {@linkcode parseGqlResult} => {@linkcode parseGqlTags}
+ */
 export async function getAllThreads(podcastIds: string[]) : Promise<Thread[]> {
   const gqlResultsToThreads = (results: ParsedGqlResult[]) : Thread[] => results.map(({ tags }) => {
     if (isNotEmpty(tags)) {
@@ -277,6 +283,7 @@ async function getGqlResponse(gqlQuery: GraphQLQuery)
   let errorMessage;
 
   try {
+    // console.debug('GraphQL query:', gqlQuery);
     const response = await client.api.post('/graphql', gqlQuery);
     // console.debug('GraphQL response:', response);
     edges = response.data.data.transactions.edges;
@@ -299,9 +306,8 @@ function parseGqlTags(tx: GQLTransaction) : Pick<ParsedGqlResult, 'tags' | 'gqlM
   let tags : Partial<PodcastTags> = {};
   let gqlMetadata : GraphQLMetadata | {} = {};
 
-  if (tx?.id && tx?.owner?.address) {
-    gqlMetadata = { txId: tx.id, ownerAddress: tx.owner.address };
-  }
+  if (tx?.id && tx?.owner?.address) gqlMetadata = { txId: tx.id, ownerAddress: tx.owner.address };
+
   if (isBundledTx(tx)) gqlMetadata = { ...gqlMetadata, txBundledIn: tx.bundledIn.id };
 
   if (isNotEmpty(tx.tags)) {
@@ -351,7 +357,7 @@ async function parseGqlPodcastMetadata(tx: GQLTransaction) : Promise<ParsedGqlRe
 
   try {
     const decompressedMetadata = decompressMetadata(getDataResult);
-    metadata = podcastFromDTO(decompressedMetadata, true, true);
+    metadata = podcastFromDTO(decompressedMetadata, { sanitize: true, sortEpisodes: true });
   }
   catch (ex) {
     throw new Error(`${ERRONEOUS_TX_DATA} for transaction id ${tx.id}: ${ex}`);
@@ -384,9 +390,7 @@ async function parseGqlResult(tx: GQLTransaction, getData: boolean) : Promise<Pa
       errorMessage = (ex as Error).message;
       console.warn(errorMessage);
     }
-    if (errorMessage || isEmpty(metadata)) {
-      return { errorMessage, metadata: {}, tags, gqlMetadata };
-    }
+    if (errorMessage || isEmpty(metadata)) return { errorMessage, metadata: {}, tags, gqlMetadata };
   }
 
   return { metadata, tags, gqlMetadata };
