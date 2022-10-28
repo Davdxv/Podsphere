@@ -7,6 +7,7 @@ import {
   partialToPodcast,
 } from '../utils';
 import {
+  hasDiff,
   mergeBatchMetadata,
   mergePosts,
   rightDiff,
@@ -73,13 +74,13 @@ export async function fetchPodcastRss2Feed(
     mergeBatchMetadata([feed.arweave, metadataToSyncWithNewEpisodes], true);
   const newPodcastMetadata = partialToPodcast({
     ...newPartialPodcastMetadata,
-    id: findBestId([newPartialPodcastMetadata.id || '', id || '']),
+    id: findBestId([newPartialPodcastMetadata.id, id]),
   });
   if ('errorMessage' in newPodcastMetadata) return newPodcastMetadata;
 
   const newPodcastMetadataToSync = {
     ...rightDiff(feed.arweave, metadataToSyncWithNewEpisodes, ['id', 'feedUrl']),
-    id: findBestId([feed.arweave.id || '', id || '', metadataToSyncWithNewEpisodes.id || '']),
+    id: findBestId([feed.arweave.id, id, metadataToSyncWithNewEpisodes.id]),
   };
 
   return { newPodcastMetadata: addLastMutatedAt(newPodcastMetadata), newPodcastMetadataToSync };
@@ -132,27 +133,21 @@ export async function refreshSubscriptions(
   metadataToSync: Partial<Podcast>[] = [],
   idsToRefresh: Podcast['id'][] | null = null,
 ) {
-  const errorMessages : string[] = [];
-  const newSubscriptions : Podcast[] = [...subscriptions];
-  const newMetadataToSync : Partial<Podcast>[] = [...metadataToSync];
-
   const updateSubscriptionInPlace = (newSubscription: Podcast) : void => {
-    const { id } = newSubscription;
-    if (!id) return;
-    const index = newSubscriptions.findIndex(sub => sub.id === id);
+    const index = newSubscriptions.findIndex(sub => sub.id === newSubscription.id);
     if (index >= 0) newSubscriptions[index] = newSubscription;
   };
 
-  const updateMetadataToSyncInPlace = (newPodcastToSync: Partial<Podcast>) : void => {
-    const { id } = newPodcastToSync;
-    if (!id) return;
-    const index = newMetadataToSync.findIndex(sub => sub.id === id);
-    if (index >= 0) {
-      const { threads } = newMetadataToSync[index];
-      const prevToSync = isEmpty(threads) ? {} : { id, threads };
-      newMetadataToSync[index] = mergeBatchMetadata([prevToSync, newPodcastToSync], true);
+  const updateMetadataToSyncInPlace = (newPodcastToSync: Partial<Podcast>, id: string) : void => {
+    if (id) {
+      const index = newMetadataToSync.findIndex(sub => sub.id === id);
+      if (index >= 0) {
+        const { threads } = newMetadataToSync[index];
+        const prevToSync = isEmpty(threads) ? {} : { id, threads };
+        newMetadataToSync[index] = mergeBatchMetadata([prevToSync, newPodcastToSync], true);
+      }
+      else newMetadataToSync.push(newPodcastToSync);
     }
-    else newMetadataToSync.push(newPodcastToSync);
   };
 
   const withMergedPosts = (subscription: Podcast, newPodcastMetadata: Podcast, allThreads: Thread[])
@@ -161,6 +156,10 @@ export async function refreshSubscriptions(
     const mergedPosts = mergePosts(subscription.threads, fetchedThreads);
     return { ...newPodcastMetadata, threads: mergedPosts };
   };
+
+  const errorMessages : string[] = [];
+  const newSubscriptions : Podcast[] = [...subscriptions];
+  const newMetadataToSync : Partial<Podcast>[] = [...metadataToSync];
 
   const podcastsToRefresh = idsToRefresh || subscriptions.map(sub => sub.id);
   const results = await Promise.all(
@@ -171,15 +170,21 @@ export async function refreshSubscriptions(
   results.forEach(({ errorMessage, newPodcastMetadata, newPodcastMetadataToSync }) => {
     if (hasMetadata(newPodcastMetadata)) {
       const subscription = subscriptions.find(sub => sub.id === newPodcastMetadata.id);
-      if (subscription) { /* if (subscription && hasDiff(subscription, newPodcastMetadata)) */
-        updateSubscriptionInPlace(withMergedPosts(subscription, newPodcastMetadata, allThreads));
-        if (hasMetadata(newPodcastMetadataToSync)) {
-          updateMetadataToSyncInPlace(newPodcastMetadataToSync);
-        }
+      const id = findBestId([subscription?.id, newPodcastMetadata.id]);
+      if (subscription && id) {
+        const newPodcastMerged = withMergedPosts(subscription, newPodcastMetadata, allThreads);
+        if (hasDiff(subscription, newPodcastMerged)) updateSubscriptionInPlace(newPodcastMerged);
+
+        const newToSync = hasMetadata(newPodcastMetadataToSync) ? newPodcastMetadataToSync : { id };
+        updateMetadataToSyncInPlace(newToSync, id);
       }
     }
     else if (errorMessage) errorMessages.push(errorMessage);
   });
 
-  return { errorMessages, newSubscriptions, newMetadataToSync };
+  return {
+    errorMessages,
+    newSubscriptions,
+    newMetadataToSync: newMetadataToSync.filter(hasMetadata),
+  };
 }

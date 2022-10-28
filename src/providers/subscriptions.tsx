@@ -200,7 +200,7 @@ async function removeCachedSubscription(feedUrl: Podcast['feedUrl']) {
   }
 }
 
-// TODO: ArSync v1.5+, test me
+// TODO: ArSync v1.6+, test me
 const SubscriptionsProvider : React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchPodcastResult[]>([]);

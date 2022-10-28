@@ -6,6 +6,7 @@ import React, {
 import { AppInfo, GatewayConfig, PermissionType } from 'arconnect';
 import { toast } from 'react-toastify';
 import {
+  AnyFunction,
   ApiConfig,
   ArSyncTx,
   ArSyncTxDTO,
@@ -20,6 +21,7 @@ import {
   concatMessages,
   isEmpty,
   isNotEmpty,
+  pluralize,
   unixTimestamp,
   valuesEqual,
 } from '../utils';
@@ -36,21 +38,54 @@ import {
   usingArConnect,
   usingArLocal,
 } from '../client/arweave/utils';
-import client from '../client/arweave/client';
 import * as Arweave from '../client/arweave';
 import ArSync from '../client/arweave/sync';
+import { getApiConfig } from '../client/arweave/client';
 
 interface ArweaveContextType {
   isSyncing: boolean,
   wallet: WalletTypes,
   walletAddress: string,
-  loadNewWallet: (loadedWallet: WalletTypes, newWalletAddress: string | undefined) => Promise<void>,
+  loadNewWallet: (loadedWallet: WalletTypes, newWalletAddress?: string) => Promise<void>,
   arSyncTxs: ArSyncTx[],
   prepareSync: () => Promise<void>,
   startSync: () => Promise<void>,
   removeArSyncTxs: (ids: string[] | null) => void,
   hasPendingTxs: boolean,
 }
+
+type ArConnectConfig = {
+  PERMISSIONS: PermissionType[],
+  APPINFO: AppInfo,
+  GATEWAY?: GatewayConfig,
+};
+
+const clientApiCfg : ApiConfig = getApiConfig();
+
+/** ArConnect config params @see https://github.com/th8ta/ArConnect#permissions */
+const ARCONNECT : ArConnectConfig = Object.freeze({
+  PERMISSIONS: [
+    'ACCESS_ADDRESS', // Required
+    'ACCESS_ALL_ADDRESSES', // Required for wallet switching
+    // 'ACCESS_ARWEAVE_CONFIG', // TODO: prefer this over clientApiCfg under GATEWAY
+    'ACCESS_PUBLIC_KEY', // Required
+    // 'DECRYPT',
+    'DISPATCH', // Required
+    // 'ENCRYPT',
+    // 'SIGNATURE',
+    'SIGN_TRANSACTION', // Required // TODO minor: request this permission when needed
+  ],
+  APPINFO: {
+    name: `Podsphere ${process.env.REACT_APP_VERSION}`,
+    // logo: '', // TODO
+  },
+  // Optional gateway config. NOTE: This cfg is not observed when using ArConnect's dispatch().
+  GATEWAY: (!clientApiCfg.host || !clientApiCfg.port || !clientApiCfg.protocol ? undefined : {
+    host: clientApiCfg.host,
+    port: +clientApiCfg.port,
+    protocol: clientApiCfg.protocol === 'http' ? 'http' : 'https',
+  }),
+});
 
 export const ArweaveContext = createContext<ArweaveContextType>({
   isSyncing: false,
@@ -64,56 +99,28 @@ export const ArweaveContext = createContext<ArweaveContextType>({
   hasPendingTxs: false,
 });
 
-/**
- * Start of ArConnect config params @see https://github.com/th8ta/ArConnect#permissions
- */
-const ARCONNECT_PERMISSIONS : PermissionType[] = [
-  'ACCESS_ADDRESS',
-  'ACCESS_ALL_ADDRESSES', // Required for wallet switching
-  // 'ACCESS_ARWEAVE_CONFIG', // TODO: prefer this over clientApiConfig under ARCONNECT_GATEWAY
-  'ACCESS_PUBLIC_KEY',
-  // 'DECRYPT',
-  'DISPATCH',
-  // 'ENCRYPT',
-  // 'SIGNATURE',
-  'SIGN_TRANSACTION', // TODO: request this permission when needed
-];
-const ARCONNECT_APPINFO : AppInfo = {
-  name: `Podsphere ${process.env.REACT_APP_VERSION}`,
-  // logo: '', TODO
-};
-const clientApiConfig : ApiConfig = client.getConfig().api;
-// Optional gateway config. NOTE: these aren't observed when using ArConnect's dispatch().
-const ARCONNECT_GATEWAY : GatewayConfig | undefined = clientApiConfig.host && clientApiConfig.port
-  && clientApiConfig.protocol ? {
-    host: clientApiConfig.host,
-    port: +clientApiConfig.port,
-    protocol: clientApiConfig.protocol === 'http' ? 'http' : 'https',
-  } : undefined;
-/** End */
-
 const TX_CONFIRMATION_INTERVAL = 60 /* seconds */ * 1000;
 const TX_EXPIRY_TIME = 1 /* minutes */ * 60; // TODO MVP: 60 mins
 
-// TODO: ArSync v1.5+, test me
+// TODO: ArSync v1.6+, test me
 const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const {
     dbReadCachedArSyncTxs, dbStatus, dbWriteCachedArSyncTxs,
     isRefreshing, metadataToSync, redraftPost,
     refresh, setDbStatus, setMetadataToSync,
   } = useContext(SubscriptionsContext);
+
   const [wallet, setWallet] = useState<WalletTypes>({});
   const [walletAddress, setWalletAddress] = useState('');
-  const loadingWallet = useRef(false);
-  const eventListenersLoaded = useRef(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [arSyncTxs, setArSyncTxs] = useState<ArSyncTx[]>([]);
 
-  function hasPendingTxs() {
-    return arSyncTxs.some(isInitialized);
-  }
+  /** Used to prevent duplicate setTimeout calls */
+  const timedFnRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadingWallet = useRef(false);
+  const eventListenersLoaded = useRef(false);
 
-  const pluralize = (array: any[]) => (array.length > 1 ? 's' : '');
+  const hasPendingTxs = useCallback(() => arSyncTxs.some(isInitialized), [arSyncTxs]);
 
   async function prepareSync() {
     if (isEmpty(wallet) && !usingArConnect()) return cancelSync('Wallet is undefined');
@@ -123,11 +130,9 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
 
     const [newSubscriptions, newMetadataToSync] = await refresh(null, true, 600); // TODO MVP: => 30
 
-    if (!newSubscriptions || isEmpty(newSubscriptions)) {
-      return cancelSync('Failed to refresh subscriptions.');
-    }
-    if (!newMetadataToSync || isEmpty(newMetadataToSync)) {
-      return cancelSync('Subscribed podcasts are already up-to-date.', 'info');
+    if (!isNotEmpty(newSubscriptions)) return cancelSync('Failed to refresh subscriptions.');
+    if (!isNotEmpty(newMetadataToSync)) {
+      return cancelSync('Subscribed podcasts are already up-to-date.', toast.info);
     }
 
     let newTxs : ArSyncTx[];
@@ -149,27 +154,27 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     const failedTxs = newTxs.filter(isErrored);
     if (!newTxs.some(isInitialized)) {
       if (!failedTxs.length) {
-        return cancelSync('Subscribed podcasts are already up-to-date.', 'info');
+        return cancelSync('Subscribed podcasts are already up-to-date.', toast.info);
       }
       // All transactions failed to create; probably due to invalid wallet or disconnectivity
       return cancelSync(`Failed to sync with Arweave: ${failedTxs[0].resultObj}`);
     }
     const successfulTxs = newTxs.filter(isNotErrored);
-    toast.success(`${successfulTxs.length} transaction${pluralize(successfulTxs)} initialized.\n`
+    toast.success(`${pluralize('Transaction', successfulTxs)} initialized.\n`
       + 'Click the Sync button again to post pending transactions.');
 
     setArSyncTxs(prev => prev.concat(newTxs));
     setIsSyncing(false);
   }
 
-  async function cancelSync(toastMessage = '', toastVariant = 'danger') {
-    setIsSyncing(false);
+  async function cancelSync(toastMessage = '', toastFn = toast.error) {
+    setTimeout(() => setIsSyncing(false), 400);
 
     if (toastMessage) {
-      if (toastVariant === 'danger') {
+      if (toastFn === toast.error) {
         toast.error(`${toastMessage}\nPlease try to sync again.`, { autoClose: 15000 });
       }
-      else toast.info(toastMessage);
+      else if (typeof toastFn === 'function') toastFn(toastMessage);
     }
     if (hasPendingTxs()) {
       toast.warn('Pending transactions have been cleared, but their data is still cached.');
@@ -178,7 +183,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
   }
 
   async function startSync() {
-    if (isEmpty(wallet) && !usingArConnect()) throw new Error('wallet is undefined');
+    if (isEmpty(wallet) && !usingArConnect()) return cancelSync('Wallet is undefined');
     if (!hasPendingTxs()) return cancelSync();
 
     setIsSyncing(true);
@@ -200,17 +205,16 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
 
     try {
       if (isNotEmpty(postedTxs)) {
-        const message =
-          concatMessages(postedTxs.map(tx => `\n${tx.title}:\n${arSyncTxToString(tx)}`));
-        toast.success(`${postedTxs.length} Transaction${pluralize(postedTxs)} successfully posted `
-          + `to Arweave:\n\n${message}`, { autoClose: 8000 });
+        const msg = concatMessages(postedTxs.map(tx => `\n${tx.title}:\n${arSyncTxToString(tx)}`));
+        toast.success(`${pluralize('Transaction', postedTxs)} successfully posted to Arweave:\n\n`
+          + `${msg}`, { autoClose: 8000 });
       }
       if (isNotEmpty(erroredTxs)) {
-        const message = concatMessages(erroredTxs.map(tx => (
+        const msg = concatMessages(erroredTxs.map(tx => (
           `\n${tx.title} (${arSyncTxToString(tx)}), reason:\n${tx.resultObj}\n`
         )));
-        toast.error(`${erroredTxs.length} Transaction${pluralize(erroredTxs)} failed to post to `
-          + `Arweave:\n\n${message}`, { autoClose: false });
+        toast.error(`${pluralize('Transaction', erroredTxs)} failed to post to Arweave:\n\n`
+          + `${msg}`, { autoClose: false });
       }
       setMetadataToSync(ArSync.formatNewMetadataToSync(allTxs, metadataToSync));
     }
@@ -223,12 +227,8 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     }
   }
 
-  /**
-   * Removes elements matching `ids` from the `arSyncTxs` state.
-   * Clears all `arSyncTxs` if `ids` is null.
-   * @param ids
-   */
-  function removeArSyncTxs(ids: string[] | null) {
+  /** Removes elements matching `ids` from `arSyncTxs`. Clears all `arSyncTxs` if `ids` is null. */
+  function removeArSyncTxs(ids: string[] | null) : void {
     if (ids === null) setArSyncTxs([]);
     else {
       const newValue : ArSyncTx[] = arSyncTxs.filter(tx => !ids.includes(tx.id));
@@ -236,11 +236,18 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
     }
   }
 
-  /**
-   * Determines the transaction status of the posted `arSyncTxs` and updates the confirmed ones.
-   */
+  /** Wrapper for a setTimeout() call that first clears the previous timer spawned here */
+  const timedFnCall = (fn: AnyFunction, delay = 500) : void => {
+    if (timedFnRef.current) clearInterval(timedFnRef.current);
+    timedFnRef.current = setInterval(fn, delay);
+  };
+
+  /** Determines the transaction status of the posted `arSyncTxs` and updates the confirmed ones. */
   const confirmArSyncTxs = useCallback(async () => {
-    if (isSyncing || isRefreshing) return;
+    if (isSyncing || isRefreshing || hasPendingTxs()) {
+      // Retry once, at halftime before the next timed call
+      return timedFnCall(confirmArSyncTxs, Math.floor(TX_CONFIRMATION_INTERVAL / 2));
+    }
     // console.debug('Checking for transaction confirmations...');
 
     const confirmedArSyncTxs : ArSyncTx[] = [];
@@ -273,7 +280,7 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
       const confirmedPodcastIds = new Set<string>(confirmedMetadataTxs.map(tx => tx.podcastId));
       if (confirmedPodcastIds.size) await refresh([...confirmedPodcastIds], true, 0);
     }
-  }, [isSyncing, isRefreshing, arSyncTxs, redraftPost, refresh]);
+  }, [arSyncTxs, hasPendingTxs, isRefreshing, isSyncing, redraftPost, refresh]);
 
   /**
    * Loads the state variables `wallet` and `walletAddress` for the given `loadedWallet`.
@@ -308,10 +315,11 @@ const ArweaveProvider : React.FC<{ children: React.ReactNode }> = ({ children })
       loadingWallet.current = true;
 
       try {
-        await window.arweaveWallet.connect(ARCONNECT_PERMISSIONS, ARCONNECT_APPINFO,
-          ARCONNECT_GATEWAY);
+        const { PERMISSIONS, APPINFO, GATEWAY } = ARCONNECT;
+        await window.arweaveWallet.connect(PERMISSIONS, APPINFO, GATEWAY);
+
         const allowedPermissions : PermissionType[] = await window.arweaveWallet.getPermissions();
-        if (!ARCONNECT_PERMISSIONS.every(perm => allowedPermissions.includes(perm))) {
+        if (!PERMISSIONS.every(perm => allowedPermissions.includes(perm))) {
           // TODO minor: explain to the user why we need these permissions
           toast.error('Insufficient permissions! Please try reconnecting your ArConnect wallet.');
           await window.arweaveWallet.disconnect();

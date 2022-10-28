@@ -155,10 +155,7 @@ const mergeSpecialTags = (tags: Partial<Podcast>, metadata: Partial<Podcast>) =>
   Object.entries(omitEmptyMetadata(metadata)).forEach(([tag, value]) => {
     switch (tag) {
       case 'id':
-        if (typeof value === 'string') {
-          const bestId = findBestId([acc.id || '', value]);
-          acc.id = bestId || value;
-        }
+        if (typeof value === 'string') acc.id = findBestId([acc.id, value]) || value;
         break;
       case 'episodes':
         break;

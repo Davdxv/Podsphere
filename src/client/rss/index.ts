@@ -39,61 +39,66 @@ type OptionalPodcastTags = Omit<Podcast, 'id' | 'feedType' | 'feedUrl' | 'title'
 type OptionalEpisodeTags = Omit<Episode, 'title' | 'publishedAt'>;
 type CategoriesWithSubs = {
   name?: string,
-  subs?: [
-    {
-      name: string,
-    },
-  ],
+  subs?: { name: string }[],
 };
 
+/**
+ * @param items The list of episodes as returned by `node_modules/rss-parser#parseURL()`.
+ * @param optionalPodcastTags Used to diff away ep metadata duplicated from the podcast tags.
+ *   > - RSS feed admins often leave non-mandatory Episode metadata empty, upon which their feed
+ *       generator/host likely attempts to populate a subset of these,
+ *       by copying certain identically-named Podcast metadata.
+ *   > - For data-efficiency, we always omit each Episode's optional metadata that are exact
+ *       duplicates of those in `optionalPodcastTags`.
+ * @returns An indexed object with:
+ *   - The parsed, validated, sanitized and data-optimized `episodes`
+ *   - The merged `episodesKeywords`, to be appended to the Podcast tags
+ */
 function formatEpisodes(items: any[] = [], optionalPodcastTags: OptionalPodcastTags = {})
   : { episodes: Episode[], episodesKeywords: string[] } {
   const episodesKeywords = new Set<string>();
-  const episodes : Episode[] = items
-    .map(episode => {
-      const itunes = isNotEmpty(episode.itunes) ? episode.itunes : {};
+  const episodes : Episode[] = items.map(episode => {
+    const itunes = isNotEmpty(episode.itunes) ? episode.itunes : {};
 
-      // TODO: find a way to parse episodes' guest(s) to episodeKeywords
-      const episodeKeywords = mergeArraysToLowerCase(episode.keywords, itunes.keywords);
+    // TODO: find a way to parse episodes' guest(s) to episodeKeywords
+    const episodeKeywords = mergeArraysToLowerCase(episode.keywords, itunes.keywords);
 
-      const optionalEpisodeTags : OptionalEpisodeTags = {
-        subtitle: sanitizeString(episode.subtitle || itunes.subtitle || ''),
-        contentHtml: sanitizeString(episode['content:encoded'] || episode.content || '', true),
-        summary: sanitizeString(itunes.summary || episode.contentSnippet || ''),
-        guid: sanitizeString(episode.guid || itunes.guid || ''),
-        infoUrl: sanitizeUri(episode.link || episode.docs || ''),
-        mediaUrl: sanitizeUri(episode.enclosure?.url || ''),
-        mediaType: sanitizeString(episode.enclosure?.type || ''),
-        mediaLength: sanitizeString(episode.enclosure?.length || episode.length || ''),
-        duration: sanitizeString(episode.duration || itunes.duration || ''),
-        imageUrl: sanitizeUri(episode.image?.url || itunes.image || ''),
-        imageTitle: sanitizeString(episode.image?.title || ''),
-        explicit: sanitizeString(episode.explicit || itunes.explicit || ''),
-        categories: mergeArraysToLowerCase(episode.categories, itunes.categories),
-        keywords: episodeKeywords,
-      };
-      // Select only the optionalEpisodeTags not yet present in the optionalPodcastTags
-      let selectedEpisodeTags : OptionalEpisodeTags = {};
-      Object.entries(optionalEpisodeTags).forEach(([tagName, value]) => {
-        if (optionalPodcastTags[tagName as keyof OptionalPodcastTags] !== value) {
-          selectedEpisodeTags = { ...selectedEpisodeTags, [tagName]: value };
-        }
-      });
-
-      const mandatoryEpisodeTags = {
-        title: sanitizeString(episode.title || itunes.title),
-        publishedAt: toDate(episode.isoDate || episode.pubDate),
-      };
-      const formattedEpisode = omitEmptyMetadata({ ...mandatoryEpisodeTags,
-        ...selectedEpisodeTags }) as Episode;
-
-      if (isValidString(formattedEpisode.title)) {
-        episodeKeywords.forEach(key => episodesKeywords.add(key));
-        return formattedEpisode;
+    const optionalEpisodeTags : OptionalEpisodeTags = {
+      subtitle: sanitizeString(episode.subtitle || itunes.subtitle || ''),
+      contentHtml: sanitizeString(episode['content:encoded'] || episode.content || '', true),
+      summary: sanitizeString(itunes.summary || episode.contentSnippet || ''),
+      guid: sanitizeString(episode.guid || itunes.guid || ''),
+      infoUrl: sanitizeUri(episode.link || episode.docs || ''),
+      mediaUrl: sanitizeUri(episode.enclosure?.url || ''),
+      mediaType: sanitizeString(episode.enclosure?.type || ''),
+      mediaLength: sanitizeString(episode.enclosure?.length || episode.length || ''),
+      duration: sanitizeString(episode.duration || itunes.duration || ''),
+      imageUrl: sanitizeUri(episode.image?.url || itunes.image || ''),
+      imageTitle: sanitizeString(episode.image?.title || ''),
+      explicit: sanitizeString(episode.explicit || itunes.explicit || ''),
+      categories: mergeArraysToLowerCase(episode.categories, itunes.categories),
+      keywords: episodeKeywords,
+    };
+    // Select only the optionalEpisodeTags not yet present in the optionalPodcastTags
+    let selectedEpisodeTags : OptionalEpisodeTags = {};
+    Object.entries(optionalEpisodeTags).forEach(([tagName, value]) => {
+      if (optionalPodcastTags[tagName as keyof OptionalPodcastTags] !== value) {
+        selectedEpisodeTags = { ...selectedEpisodeTags, [tagName]: value };
       }
-      return {} as Episode;
-    })
-    .filter(episode => Object.keys(episode).length !== 0);
+    });
+
+    const mandatoryEpisodeTags = {
+      title: sanitizeString(episode.title || itunes.title),
+      publishedAt: toDate(episode.isoDate || episode.pubDate),
+    };
+    const formattedEpisode =
+      omitEmptyMetadata({ ...mandatoryEpisodeTags, ...selectedEpisodeTags }) as Episode;
+
+    const isValidEpisode = isValidString(formattedEpisode.title);
+    if (isValidEpisode) episodeKeywords.forEach(key => episodesKeywords.add(key));
+
+    return isValidEpisode ? formattedEpisode : {} as Episode;
+  }).filter(episode => Object.keys(episode).length !== 0);
 
   return { episodes: fillMissingEpisodeDates(episodes), episodesKeywords: [...episodesKeywords] };
 }

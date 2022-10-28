@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 
-type UseEffect = (effect: React.EffectCallback, deps?: React.DependencyList | undefined) => void;
+type UseEffect = (effect: React.EffectCallback, deps?: React.DependencyList) => void;
+
 /**
  * Similar to React.useEffect except it doesn't run the effect
  * on mount but only after subsequent rerenders.

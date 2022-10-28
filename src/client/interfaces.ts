@@ -5,17 +5,21 @@ import { JWKInterface } from 'arweave/node/lib/wallet';
 import { TransactionStatusResponse } from 'arweave/node/transactions';
 import { ApiConfig } from 'arweave/node/lib/api.d';
 
+export type { ApiConfig, DispatchResult, JWKInterface, TransactionStatusResponse, WalletTypes };
 export { Transaction };
-export type { ApiConfig, DispatchResult, JWKInterface, TransactionStatusResponse };
 
-/** If using ArConnect, the wallet param is omitted */
+/** If using ArConnect, the wallet param is omitted. */
 export interface WalletDeferredToArConnect {}
-export type WalletTypes = JWKInterface | WalletDeferredToArConnect;
+type WalletTypes = JWKInterface | WalletDeferredToArConnect;
 
+/* Convenience types */
 export type Primitive = string | boolean | number;
-export type EmptyTypes = null | undefined | {} | [];
+export type EmptyTypes = null | undefined | {} | [] | '';
+export type AnyVoidFunction = (...args: any) => void | Promise<void>;
+export type AnyNonVoidFunction = (...args: any) => any | Promise<any>;
+export type AnyFunction = AnyVoidFunction | AnyNonVoidFunction;
 
-export const MANDATORY_ARWEAVE_TAGS = [
+const MANDATORY_ARWEAVE_TAGS = [
   'id',
   'kind',
 ] as const;

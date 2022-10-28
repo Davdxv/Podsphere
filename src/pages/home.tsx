@@ -4,7 +4,7 @@ import {
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import {
-  Episode, Podcast, Thread,
+  Podcast, Thread,
   // ThreadReply,
 } from '../client/interfaces';
 import { findMetadataByFeedUrl, hasMetadata } from '../utils';
@@ -130,7 +130,7 @@ function HomePage() {
   };
 
   const handleShowCreateThreadDialog = (_event: React.MouseEvent<unknown>, podcastId: Podcast['id'],
-    episodeId: Episode['publishedAt'] | null) => {
+    episodeId: Thread['episodeId']) => {
     setCreateThreadPodcastId(podcastId);
     setCreateThreadEpisodeId(episodeId);
     setShowCreateThreadDialog(true);

@@ -39,7 +39,7 @@ export function isCandidatePodcastId(id: Podcast['id']) : boolean {
   return !!id.match(PODCAST_ID_REGEX);
 }
 
-export function findBestId(ids: string[]) : string {
+export function findBestId(ids: any[]) : string {
   const validIds = ids.filter(isValidPodcastId);
   const bestId = validIds.find(id => !isCandidatePodcastId(id));
   return bestId || validIds.at(-1) || ids.at(-1) || '';

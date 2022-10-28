@@ -28,8 +28,19 @@ export function unixTimestamp(date : Date | null = null) {
   return Math.floor(date ? date.getTime() : Date.now() / 1000);
 }
 
+/** Updates the `lastMutatedAt` prop which indicates the podcast should be updated in DB tables */
 export function addLastMutatedAt<T extends Partial<Podcast>>(podcast: T) : T {
   return { ...podcast, lastMutatedAt: unixTimestamp() };
+}
+
+/**
+ * Helper function to stringify the given `array` with a conditionally pluralized identifier, e.g.:
+ * - `pluralize('transaction', [1]) => '1 transaction'`
+ * - `pluralize('transaction', null) => '0 transactions'`
+ */
+export function pluralize(name: string, array: any[] = []) {
+  const count = Array.isArray(array) ? array.length : 0;
+  return `${count} ${name}${count !== 1 ? 's' : ''}`;
 }
 
 export function metadatumToString<K extends keyof Podcast>(field: Podcast[K]) {
@@ -39,7 +50,7 @@ export function metadatumToString<K extends keyof Podcast>(field: Podcast[K]) {
   return `${field}`;
 }
 
-export function bytesToString(bytes: string | number) {
+export function bytesToString(bytes: string | number) : string {
   const UNITS = ['bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
 
   try {
@@ -52,7 +63,7 @@ export function bytesToString(bytes: string | number) {
     return `${n.toFixed(n < 10 && l > 0 ? 1 : 0)} ${UNITS[l]}`;
   }
   catch (ex) {
-    return bytes;
+    return 'unknown';
   }
 }
 
@@ -68,8 +79,8 @@ export function toISOString(date: Date | string | null | undefined) : string {
 }
 
 /**
- * Episodes without a date will have a fake date added to the feed,
- * @see: `src/client/rss/index.ts#fillMissingEpisodeDates`
+ * Episodes without a date will have a fake date added to the feed:
+ * @see {@linkcode fillMissingEpisodeDates}
  * @returns true if the given `date` has `year <= 1970` or if it's not a valid Date object
  */
 export function isFakeDate(date: Date) : boolean {
@@ -411,7 +422,6 @@ export function fillMissingEpisodeDates(episodes: Episode[]) : Episode[] {
       prevDate = ep.publishedAt;
       return ep;
     }
-
     const publishedAt = new Date(prevDate.getTime() + 1000);
     prevDate = publishedAt;
 
@@ -449,7 +459,7 @@ export function omitEmptyMetadata(metadata: Partial<Podcast> | Partial<Episode>)
  *   - an empty object (non-recursively)
  *   - an array comprised of only any of the above elements
  */
-export function valuePresent(value: any) : boolean {
+export function valuePresent(value: any) : value is NonNullable<typeof value> {
   switch (typeof value) {
     case 'number':
       return !Number.isNaN(value);
