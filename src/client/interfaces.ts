@@ -141,6 +141,7 @@ export const TX_KINDS = [
 export type MetadataTxKind = typeof METADATA_TX_KINDS[number];
 export type ThreadTxKind = typeof THREAD_TX_KINDS[number];
 export type TxKind = typeof TX_KINDS[number];
+export type NonMetadataTxKind = Exclude<TxKind, MetadataTxKind>;
 
 export interface Podcast extends PodcastTags {
   threads?: Post[];
@@ -242,8 +243,9 @@ export type StringToStringMapping = {
 
 /**
  * @enum {ArSyncTxStatus} number
+ * @memberof {@linkcode ArSyncTx}
  * @description
- *   An enum comprising all supported stages of an ArSyncTx object, used to track and update status.
+ *   An enum used to track & update status of an ArSyncTx throughout each stage of its lifecycle.
  * @member {0} ERRORED
  * @member {1} INITIALIZED
  * @member {2} POSTED
@@ -260,6 +262,8 @@ export enum ArSyncTxStatus {
 
 /**
  * @interface ArSyncTx
+ * @see [ArSync](./arweave/sync/index.ts)
+ * @see [ArweaveProvider](../providers/arweave.tsx)
  * @description
  *   Main data structure used to track an Arweave transaction through its various stages.
  *   All ArSyncTx objects with a status other than `INITIALIZED` are cached in IndexedDB, until the
@@ -294,10 +298,13 @@ export interface ArSyncTxDTO extends Omit<ArSyncTx, 'metadata'> {
 
 /**
  * @interface CachedArTx
+ * @see [TxCache#txCache](./arweave/cache/transactions.ts)
+ * @see [ArGraphQLOps#getPodcastRss2Feed##filterCandidateTxs](./arweave/graphql-ops.ts)
+ * @see [ArSync](./arweave/sync/index.ts)
  * @description
  *   Data structure used to cache the tags of one Arweave transaction (parsed into `PodcastTags`),
  *   also including all necessary props to compute whether to filter this transaction by means of:
- *   1) Filtering GraphQL responses; see `./arweave/graphql-ops#filterCandidateTxs`
+ *   1) Filtering GraphQL responses
  *   2) TODO: smarter `./metadata-filtering`
  *   3) TODO: user-level block lists
  *   4) TODO: global-level block lists (first maintained by our mods, later sharable among users)
@@ -321,6 +328,17 @@ export interface CachedArTx {
   numEpisodes: number;
 }
 
+/**
+ * @interface GraphQLMetadata
+ * @see [ArGraphQLOps#parseGqlTags,#QueryField](./arweave/graphql-ops.ts)
+ * @see [ArSync](./arweave/sync/index.ts)
+ * @see [TxCache](./arweave/cache/transactions.ts)
+ * @description Comprises only the GraphQL metadata essential for UX/core functionality, provided
+ *   that these metadata are sourced from any subset of the GraphQL response \ excluding the tags.
+ * @prop {string} txId
+ * @prop {string} ownerAddress
+ * @prop {string} txBundledIn?
+ */
 export interface GraphQLMetadata extends
   Pick<CachedArTx, 'txId' | 'ownerAddress' | 'txBundledIn'> {}
 

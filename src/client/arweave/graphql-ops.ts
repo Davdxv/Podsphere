@@ -97,10 +97,8 @@ export async function fetchPodcastId(
   return '';
 }
 
-export async function getPodcastRss2Feed(
-  feedUrl: Podcast['feedUrl'],
-  title: Podcast['title'],
-) : Promise<Partial<Podcast> | PodcastFeedError> {
+export async function getPodcastRss2Feed(feedUrl: Podcast['feedUrl'], title: Podcast['title'])
+  : Promise<Partial<Podcast> | PodcastFeedError> {
   const errorMessages : string[] = [];
   const metadataBatches : Podcast[] = [];
   const tagBatches : PodcastTags[] = [];

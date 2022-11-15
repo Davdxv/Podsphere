@@ -91,10 +91,6 @@ function mergeEpisodesMetadata(
     .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
 }
 
-/**
- * @param episodeBatches
- * @returns
- */
 export function mergeEpisodeBatches(episodeBatches: PartialEpisodeWithDate[][]) : Episode[] {
   return episodeBatches.reduce((mergedEps, batch) => mergeEpisodesMetadata(mergedEps, batch), []) as
     Episode[];
@@ -224,9 +220,7 @@ function arrayRightDiff<T extends Primitive>(oldArray : T[] = [], newArray : T[]
   return newArray.filter(x => x && !oldArray.includes(x));
 }
 
-/**
- * Calls {@linkcode rightDiff()} with parameter `returnAnyDiff = true`.
- */
+/** Calls {@linkcode rightDiff()} with parameter `returnAnyDiff = true`. */
 export function hasDiff<T extends Partial<Podcast> | Partial<Episode>>(
   oldMetadata: T,
   newMetadata: T,
@@ -239,16 +233,15 @@ export function hasDiff<T extends Partial<Podcast> | Partial<Episode>>(
 /**
  * @param oldMetadata
  * @param newMetadata
- * @param persistentMetadata Metadata props to survive the diff iff hasMetadata(diff) == true.
+ * @param persistentMetadata Metadata props to survive the diff `iff hasMetadata(diff) == true`.
  * @param returnAnyDiff If `true`, returns any diff without generating a full diff:
  *   Returns as soon as any metadatum, other than those ignored by {@linkcode hasMetadata()},
  *   is added to the diff.
- * @returns If `!returnAnyDiff`, returns `newMetadata` omitting each `{ prop: value }`
- *   already present in `oldMetadata`.
+ * @returns `returnAnyDiff = false` exhibits the default behavior of returning `newMetadata`
+ *   omitting each `{ prop: value }` already present in `oldMetadata`.
  */
 export function rightDiff<T extends Partial<Podcast> | Partial<Episode>>(
-  oldMetadata: T,
-  newMetadata: T,
+  oldMetadata: T, newMetadata: T,
   persistentMetadata: (keyof Podcast | keyof Episode)[] = ['id', 'feedType', 'feedUrl'],
   returnAnyDiff = false,
 ) : Partial<T> {
@@ -301,8 +294,6 @@ export function rightDiff<T extends Partial<Podcast> | Partial<Episode>>(
 }
 
 /**
- * @param oldMetadata
- * @param newMetadata
  * @returns The newMetadata omitting episodes whose timestamps exist in oldMetadata.
  *   If there are no new episodes, return an empty metadata object: { episodes: [] }
  */
@@ -316,11 +307,7 @@ export function simpleDiff(oldMetadata: Partial<Podcast>, newMetadata: Partial<P
   const newEpisodes = (newMetadata.episodes || [])
     .filter(newEpisode => !oldEpisodeTimestamps.includes(newEpisode.publishedAt.getTime()));
 
-  if (newEpisodes.length) {
-    return {
-      ...newMetadata,
-      episodes: newEpisodes,
-    };
-  }
+  if (newEpisodes.length) return { ...newMetadata, episodes: newEpisodes };
+
   return emptyDiff;
 }
