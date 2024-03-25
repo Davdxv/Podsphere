@@ -1,6 +1,9 @@
-import { JWKInterface } from 'arweave/node/lib/wallet';
-import Transaction from 'arweave/node/lib/transaction';
-import { Podcast, PodcastDTO } from '../src/client/interfaces';
+import {
+  JWKInterface,
+  Podcast,
+  PodcastDTO,
+  Transaction,
+} from '../src/client/interfaces';
 import { podcastsFromDTO } from '../src/utils';
 import { createNewDevWallet } from '../src/client/arweave/wallet';
 import {
@@ -30,7 +33,8 @@ export default async function seed(dtoMetadataBatches: PodcastDTO[], ms = 3000) 
   console.log('Begin seeding...');
 
   const wallet : JWKInterface = await createNewDevWallet();
-  const batches : Podcast[] = podcastsFromDTO(dtoMetadataBatches);
+  const batches : Podcast[] =
+    podcastsFromDTO(dtoMetadataBatches, { sanitize: true, sortEpisodes: true });
   const txs : Transaction[] = await Promise.all(
     batches.map(batch => newTransactionFromMetadata(wallet, batch)),
   );

@@ -10,7 +10,7 @@ import {
 import AttachmentIcon from '@mui/icons-material/AttachFile';
 import DurationIcon from '@mui/icons-material/MoreTime';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import { Episode, Podcast } from '../client/interfaces';
+import { Episode, Podcast, Thread } from '../client/interfaces';
 import {
   bytesToString,
   getTextSelection,
@@ -27,33 +27,56 @@ import style from './episode-details.module.scss';
 dayjs.extend(relativeTime);
 
 interface Props {
-  podcastId: Podcast['id'];
+  podcastId: Thread['podcastId'];
   episode: Episode;
   showImage: boolean;
   podcastImageUrl?: string;
   handleShowCreateThreadDialog: (_event: React.MouseEvent<unknown>, podcastId: Podcast['id'],
-    episodeId: Episode['publishedAt'] | null) => void;
+    episodeId: Thread['episodeId']) => void;
 }
 
-const EpisodeDetails : React.FC<Props> = ({
-  podcastId, episode, showImage,
-  podcastImageUrl, handleShowCreateThreadDialog,
-}) => {
-  const { title, publishedAt, contentHtml, summary, mediaUrl, mediaLength, duration,
-    imageUrl } = episode;
-  const imgUrl = imageUrl || podcastImageUrl || '';
+type ParsedDescriptions = {
+  fullDescription: string,
+  truncatedDescription: string,
+  isTruncated: Readonly<boolean>,
+};
 
-  const fullDescription = ((contentHtml || '').length > (summary || '').length ? contentHtml
-    : summary) || '';
-  let truncatedDescription = truncateString(summary || '', 300);
-  const isTruncated = !!truncatedDescription.match(/\.\.\.$/);
-  if (!isTruncated && contentHtml) truncatedDescription = truncateString(contentHtml, 300);
+const TRUNCATION_LEN = 300;
+
+/**
+ * Most RSS feeds define at least 2 variants of the full description per episode.
+ * Internally we reference these with:
+ *   1. `contentHtml`: intended to be the unabridged, HTML-formatted ep description;
+ *   2. `summary`: usually an unabridged plaintext version of `contentHtml`;
+ *   3. `subtitle` (yet unused): intended to be a short ep description.
+ *
+ * This function selects the optimal field to format the episode description.
+ * @returns The resulting `{ fullDescription, truncatedDescription, isTruncated }`
+ */
+const parseDescriptionMetadata = (contentHtml = '', summary = '') : ParsedDescriptions => {
+  const fullDescription = (contentHtml.length > summary.length ? contentHtml : summary) || '';
+  let truncatedDescription = truncateString(fullDescription, TRUNCATION_LEN);
+
+  const isTruncated : Readonly<boolean> = (fullDescription.length > TRUNCATION_LEN);
+  if (isTruncated && summary) truncatedDescription = truncateString(summary, TRUNCATION_LEN);
+
+  return { fullDescription, truncatedDescription, isTruncated };
+};
+
+const EpisodeDetails : React.FC<Props> = ({
+  podcastId, episode, showImage, podcastImageUrl, handleShowCreateThreadDialog,
+}) => {
+  const [expandDescription, setExpandDescription] = useState(false);
+
+  const { title, publishedAt, contentHtml, summary, mediaUrl, mediaLength, duration } = episode;
+  const imgUrl = episode.imageUrl || podcastImageUrl || '';
+
+  const { fullDescription, truncatedDescription, isTruncated } =
+    parseDescriptionMetadata(contentHtml, summary);
 
   const theme = useTheme();
   const isSm = useMediaQuery(theme.breakpoints.down('sm'));
   const isIndexed = !isCandidatePodcastId(podcastId);
-
-  const [expandDescription, setExpandDescription] = useState(false);
 
   const handleClick = (event: React.MouseEvent<unknown>) => {
     // Don't toggle episode expand/collapse if user clicks a metadata link

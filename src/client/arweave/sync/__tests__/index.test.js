@@ -1,5 +1,4 @@
 import { randomBytes } from 'crypto';
-import { initArSyncTxs, startSync } from '..';
 import { podcastFromDTO, unixTimestamp } from '../../../../utils';
 import { ArSyncTxStatus } from '../../../interfaces';
 import { decompressMetadata } from '../../utils';
@@ -12,6 +11,9 @@ import {
   newTransactionFromCompressedMetadata,
   signAndPostTransaction,
 } from '../../create-transaction';
+import arsync from '..';
+
+const { initSync, startSync } = arsync;
 
 jest.mock('../../create-transaction', () => ({
   ...jest.requireActual('../../create-transaction'),
@@ -76,14 +78,14 @@ const podcast2 = {
  *     Most of these are not mocked here, since ArSync represents an integrational module.
  *     Also, this ensures that tests remain valid upon most refactorings.
  */
-describe('initArSyncTxs', () => {
+describe('initSync', () => {
   const subscriptions = [podcast1, podcast2];
 
   describe('When metadataToSync is empty', () => {
     const metadataToSync = [];
 
     it('returns 0 txs (ArSyncTxs)', async () => {
-      const result = await initArSyncTxs(subscriptions, metadataToSync, wallet, null);
+      const result = await initSync(subscriptions, metadataToSync, wallet, null);
       expect(result).toStrictEqual([]);
     });
   });
@@ -95,7 +97,7 @@ describe('initArSyncTxs', () => {
     }];
 
     it('returns 0 txs', async () => {
-      const result = await initArSyncTxs(subscriptions, metadataToSync, wallet, null);
+      const result = await initSync(subscriptions, metadataToSync, wallet, null);
       expect(result).toStrictEqual([]);
     });
   });
@@ -120,7 +122,7 @@ describe('initArSyncTxs', () => {
       it('returns 2 initialized tx', async () => {
         newTransactionFromCompressedMetadata.mockResolvedValueOnce(mockTransaction);
         newTransactionFromCompressedMetadata.mockResolvedValueOnce(mockTransaction2);
-        const result = await initArSyncTxs(subscriptions, metadataToSync, wallet, null);
+        const result = await initSync(subscriptions, metadataToSync, wallet, null);
         expect(result).toStrictEqual([
           {
             id: global.VALID_ID,
@@ -175,7 +177,7 @@ describe('initArSyncTxs', () => {
         it('returns 2 initialized txs', async () => {
           newTransactionFromCompressedMetadata.mockResolvedValueOnce(mockTransaction);
           newTransactionFromCompressedMetadata.mockResolvedValueOnce(mockTransaction2);
-          const result = await initArSyncTxs(subscriptions, metadataToSync, wallet, null);
+          const result = await initSync(subscriptions, metadataToSync, wallet, null);
           expect(result).toStrictEqual([
             {
               id: global.VALID_ID,
@@ -216,7 +218,7 @@ describe('initArSyncTxs', () => {
         it('returns 1 initialized tx and 1 errored tx', async () => {
           newTransactionFromCompressedMetadata.mockRejectedValueOnce(mockError);
           newTransactionFromCompressedMetadata.mockResolvedValueOnce(mockTransaction);
-          const result = await initArSyncTxs(subscriptions, metadataToSync, wallet, null);
+          const result = await initSync(subscriptions, metadataToSync, wallet, null);
           expect(result).toStrictEqual([
             {
               id: global.VALID_ID,
@@ -254,7 +256,7 @@ describe('initArSyncTxs', () => {
         it('returns 2 errored txs', async () => {
           newTransactionFromCompressedMetadata.mockRejectedValueOnce(mockError);
           newTransactionFromCompressedMetadata.mockRejectedValueOnce(mockError2);
-          const result = await initArSyncTxs(subscriptions, metadataToSync, wallet, null);
+          const result = await initSync(subscriptions, metadataToSync, wallet, null);
           expect(result).toStrictEqual([
             {
               id: global.VALID_ID,
@@ -373,8 +375,8 @@ describe('initArSyncTxs', () => {
           };
 
           // Assert that the compressedMetadata comprise a complete subset of pod2
-          const result2DecompressedMetadata = newTxMockCalls.slice(1)
-            .map(params => podcastFromDTO(decompressMetadata(params[1])));
+          const result2DecompressedMetadata = newTxMockCalls.slice(1).map(params => (
+            podcastFromDTO(decompressMetadata(params[1]), { sanitize: true, sortEpisodes: true })));
           const result2MergedDecompressedMetadata = {
             ...mergeBatchMetadata(result2DecompressedMetadata, true),
             kind: 'metadataBatch',
@@ -413,7 +415,7 @@ describe('initArSyncTxs', () => {
         const asyncResultFn = async () => {
           newTransactionFromCompressedMetadata.mockResolvedValueOnce(mockTransaction);
           newTransactionFromCompressedMetadata.mockResolvedValue(mockTransaction2);
-          return initArSyncTxs(subscriptions, metadataToSync, wallet, 10 * 1024);
+          return initSync(subscriptions, metadataToSync, wallet, 10 * 1024);
         };
 
         const expectedNumTxsRange = [3, 5];
@@ -426,7 +428,7 @@ describe('initArSyncTxs', () => {
         const asyncResultFn = async () => {
           newTransactionFromCompressedMetadata.mockResolvedValueOnce(mockTransaction);
           newTransactionFromCompressedMetadata.mockResolvedValue(mockTransaction2);
-          return initArSyncTxs(subscriptions, metadataToSync, wallet, 100 * 1024);
+          return initSync(subscriptions, metadataToSync, wallet, 100 * 1024);
         };
 
         const expectedNumTxsRange = [3, 5];
@@ -439,7 +441,7 @@ describe('initArSyncTxs', () => {
         const asyncResultFn = async () => {
           newTransactionFromCompressedMetadata.mockResolvedValueOnce(mockTransaction);
           newTransactionFromCompressedMetadata.mockResolvedValue(mockTransaction2);
-          return initArSyncTxs(subscriptions, metadataToSync, wallet, 100 * 1024);
+          return initSync(subscriptions, metadataToSync, wallet, 100 * 1024);
         };
 
         const expectedNumTxsRange = [5, 11]; // ~= previous test x 2

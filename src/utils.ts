@@ -1,23 +1,24 @@
 import {
-  EmptyTypes,
-  Episode,
-  EpisodeDTO,
-  FeedType,
-  FEED_TYPES,
-  Podcast,
-  PodcastDTO,
-  PodcastFeedError,
-  TransactionKind,
-  TRANSACTION_KINDS,
+  EmptyTypes, Episode, EpisodeDTO,
+  FeedType, FEED_TYPES, Podcast,
+  PodcastDTO, PodcastFeedError, Post,
+  Thread, ThreadReply, ThreadType,
+  THREAD_TYPES, TxKind, TX_KINDS,
 } from './client/interfaces';
 import { isValidUrl } from './client/metadata-filtering';
 import { initializeKeywords } from './client/metadata-filtering/generation';
+import { sanitizeObject } from './client/metadata-filtering/sanitization';
 import { CorsProxyStorageKey } from './pages/settings-utils';
 import {
   addPrefixToPodcastId,
   isCandidatePodcastId,
   removePrefixFromPodcastId,
 } from './podcast-id';
+
+interface PodcastOptions {
+  sanitize?: boolean;
+  sortEpisodes?: boolean;
+}
 
 export const getTextSelection = () => (window.getSelection
   ? (window.getSelection() || '').toString()
@@ -27,8 +28,19 @@ export function unixTimestamp(date : Date | null = null) {
   return Math.floor(date ? date.getTime() : Date.now() / 1000);
 }
 
-export function addLastMutatedAt(subscription: Podcast) : Podcast {
-  return { ...subscription, lastMutatedAt: unixTimestamp() };
+/** Updates the `lastMutatedAt` prop which indicates the podcast should be updated in DB tables */
+export function addLastMutatedAt<T extends Partial<Podcast>>(podcast: T) : T {
+  return { ...podcast, lastMutatedAt: unixTimestamp() };
+}
+
+/**
+ * Helper function to stringify the given `array` with a conditionally pluralized identifier, e.g.:
+ * - `pluralize('transaction', [1]) => '1 transaction'`
+ * - `pluralize('transaction', null) => '0 transactions'`
+ */
+export function pluralize(name: string, array: any[] = []) {
+  const count = Array.isArray(array) ? array.length : 0;
+  return `${count} ${name}${count !== 1 ? 's' : ''}`;
 }
 
 export function metadatumToString<K extends keyof Podcast>(field: Podcast[K]) {
@@ -38,7 +50,7 @@ export function metadatumToString<K extends keyof Podcast>(field: Podcast[K]) {
   return `${field}`;
 }
 
-export function bytesToString(bytes: string | number) {
+export function bytesToString(bytes: string | number) : string {
   const UNITS = ['bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
 
   try {
@@ -51,22 +63,24 @@ export function bytesToString(bytes: string | number) {
     return `${n.toFixed(n < 10 && l > 0 ? 1 : 0)} ${UNITS[l]}`;
   }
   catch (ex) {
-    return bytes;
+    return 'unknown';
   }
 }
 
-export function toISOString(date: Date) {
+export function toISOString(date: Date | string | null | undefined) : string {
   try {
-    return date.toISOString();
+    if (!date) return '';
+    if (date instanceof Date) return date.toISOString();
   }
   catch (_ex) {
     return '';
   }
+  return typeof date === 'string' ? date : '';
 }
 
 /**
- * Episodes without a date will have a fake date added to the feed,
- * @see: `src/client/rss/index.ts#fillMissingEpisodeDates`
+ * Episodes without a date will have a fake date added to the feed:
+ * @see {@linkcode fillMissingEpisodeDates}
  * @returns true if the given `date` has `year <= 1970` or if it's not a valid Date object
  */
 export function isFakeDate(date: Date) : boolean {
@@ -101,8 +115,62 @@ export function isValidDate(date: unknown) : date is Date {
   return date instanceof Date && !!date.getTime();
 }
 
-export function isValidKind(kind: unknown) : kind is TransactionKind {
-  return typeof kind === 'string' && TRANSACTION_KINDS.some(txKind => txKind === kind);
+/**
+ * Fast & loose uuid validation.
+ * @param id If the `id` has a `temp-` prefix, the prefix is excluded from the validation
+ * @returns true if the given `id` is a string comprised of 32-64 hex chars and any dashes
+ */
+export function isValidUuid(id: unknown) : id is Podcast['id'] {
+  const isHex = (char: string) => '0123456789abcdef'.includes(char.toLowerCase());
+
+  if (!id || typeof id !== 'string') return false;
+
+  const guid = removePrefixFromPodcastId(id).replaceAll('-', '');
+  return guid.length >= 32 && guid.length <= 64 && [...guid].every(isHex);
+}
+
+/**
+ * @returns true iff the given `thread` has well-defined Thread props (a ThreadReply returns false)
+ */
+export function isValidThread(thread: unknown) : thread is Thread {
+  if (isEmpty(thread)) return false;
+
+  const { id, podcastId, content, type, subject } = thread as Thread;
+  return isValidUuid(id) && isValidUuid(podcastId) && isValidString(content)
+    && isValidThreadType(type) && isValidString(subject);
+}
+
+/**
+ * @returns true iff the given `reply` has well-defined ThreadReply props (a Thread returns false)
+ */
+export function isValidThreadReply(reply: unknown) : reply is ThreadReply {
+  if (isEmpty(reply)) return false;
+
+  const { id, podcastId, content, type, parentThreadId } = reply as ThreadReply;
+  return isReply(reply as Post) && isValidUuid(id) && isValidUuid(podcastId)
+    && isValidString(content) && isValidThreadType(type) && isValidUuid(parentThreadId);
+}
+
+export function isValidPost(post: unknown) : post is Post {
+  return (isReply(post as Post) && isValidThreadReply(post)) || isValidThread(post);
+}
+
+/** @returns Whether the given `post` is a `ThreadReply` */
+export function isReply(post: Post) : post is ThreadReply {
+  return !('subject' in post) && 'parentThreadId' in post;
+}
+
+/** @returns Whether the given `post` is a `Thread` */
+export function isThread(post: Post) : post is Thread {
+  return !isReply(post);
+}
+
+export function isValidThreadType(type: unknown) : type is ThreadType {
+  return typeof type === 'string' && THREAD_TYPES.some(t => t === type);
+}
+
+export function isValidKind(kind: unknown) : kind is TxKind {
+  return typeof kind === 'string' && TX_KINDS.some(txKind => txKind === kind);
 }
 
 export function isValidFeedType(feedType: unknown) : feedType is FeedType {
@@ -138,7 +206,7 @@ export function getLastEpisodeDate(metadata: Partial<Podcast>) : Date {
  */
 export function concatMessages(messages : string[] = [], filterDuplicates = false) {
   return (filterDuplicates ? [...new Set(messages.flat())] : messages.flat())
-    .filter(x => x) // Filter out any null elements
+    .filter(x => x)
     .join('\n').trim();
 }
 
@@ -149,7 +217,7 @@ export function concatMessages(messages : string[] = [], filterDuplicates = fals
  *   - A `0` Date object, if `date` is not a valid date string.
  *   - `date`, if `date` is already a Date object.
  */
-export function toDate(date: string | Date | undefined) : Date {
+export function toDate(date: string | Date | null | undefined) : Date {
   if (!date) return new Date(0);
   if (date instanceof Date) return date;
 
@@ -164,13 +232,12 @@ export function toDate(date: string | Date | undefined) : Date {
  *   - an empty episodes list
  *   - `Episode['publishedAt']`
  */
-export function hasMetadata<T extends Partial<Podcast>[] | Partial<Episode>[],
-K extends Partial<Podcast> | Partial<Episode>>(
-  metadata: K | T | EmptyTypes,
-) : metadata is T | K {
-  if (!isNotEmpty(metadata)) return false;
+export function hasMetadata<U extends Partial<Podcast> | Partial<Episode>, T extends U[]>(
+  metadata: T | U | EmptyTypes,
+) : metadata is T | U {
+  if (isEmpty(metadata)) return false;
   if (Array.isArray(metadata)) return !!metadata.length;
-  if (metadata.title) return true;
+  if (isNotEmpty(metadata) && metadata.title) return true;
 
   // @ts-ignore
   const { id, feedType, feedUrl, kind, lastMutatedAt, publishedAt, episodes,
@@ -189,11 +256,11 @@ export function findMetadataByFeedUrl<T extends Podcast | Partial<Podcast>>(
     || {} as T;
 }
 
-export function findMetadataById<T extends Podcast | Partial<Podcast>>(
+export function findMetadataById<T extends { id?: Podcast['id'] }>(
   id: Podcast['id'],
   metadataList: T[] = [],
 ) : T {
-  let result = metadataList.find(obj => isNotEmpty(obj) && obj.id === id);
+  let result = metadataList.find(obj => obj?.id && obj.id === id);
   if (!result) {
     if (isCandidatePodcastId(id)) {
       result = metadataList.find(obj => obj?.id && addPrefixToPodcastId(obj.id) === id);
@@ -212,9 +279,54 @@ export function findEpisodeMetadata<T extends Podcast | Partial<Podcast> | Episo
 ) : Episode | null {
   if (!isValidDate(epDate) || !metadata) return null;
   const episodes = Array.isArray(metadata) ? metadata : metadata.episodes;
-  if (!isNotEmpty(episodes)) return null;
+  if (isNotEmpty(episodes)) return episodes.find(x => datesEqual(x.publishedAt, epDate)) || null;
 
-  return episodes.find(x => datesEqual(x.publishedAt, epDate)) || null;
+  return null;
+}
+
+export function findThreadInMetadata(id: Thread['id'], subscriptions: Podcast[],
+  metadataToSync: Partial<Podcast>[] = []) : Thread | null {
+  const list1 = metadataToSync.map(p => p.threads?.filter(isThread)).flat().filter(isNotEmpty);
+  const result1 = findPostById(id, list1);
+  if (result1) return result1 as Thread;
+
+  const list2 = subscriptions.map(p => p.threads?.filter(isThread)).flat().filter(isNotEmpty);
+  const result2 = findPostById(id, list2);
+  return (result2 as Thread) || null;
+}
+
+export function findPostById(id: Thread['id'], threads: Post[] = []) : Post | null {
+  return threads.find(thr => thr.id === id) || null;
+}
+
+/** @returns `podcastToSync` with the matching `post` omitted from its `threads` */
+export function removePostFromPodcast(post: Post, podcastToSync: Partial<Podcast>)
+  : typeof podcastToSync {
+  if (!Array.isArray(podcastToSync.threads)) return podcastToSync;
+
+  return { ...podcastToSync, threads: podcastToSync.threads.filter(thr => thr.id !== post.id) };
+}
+
+/** @returns `metadataToSync` with the matching `post` omitted */
+export function removePost(post: Post, metadataToSync: Partial<Podcast>[] = [])
+  : typeof metadataToSync {
+  const podcastToSync = { ...findMetadataById(post.podcastId, metadataToSync) };
+  if (isEmpty(podcastToSync)) return metadataToSync;
+
+  return metadataToSync.filter(podcast => podcast.id !== post.podcastId)
+    .concat(removePostFromPodcast(post, podcastToSync));
+}
+
+/** @returns `metadataToSync` with the matching `post` added */
+export function addPost(post: Post, metadataToSync: Partial<Podcast>[] = [])
+  : typeof metadataToSync {
+  const prevPodcastToSync : Partial<Podcast> = findMetadataById(post.podcastId, metadataToSync);
+  const podcastToSync : Partial<Podcast> = {
+    ...prevPodcastToSync,
+    id: post.podcastId,
+    threads: [...(prevPodcastToSync.threads || []).filter(thr => thr.id !== post.id), post],
+  };
+  return metadataToSync.filter(podcast => podcast.id !== post.podcastId).concat(podcastToSync);
 }
 
 export function partialToPodcast(partialMetadata: Partial<Podcast>) : Podcast | PodcastFeedError {
@@ -233,31 +345,30 @@ export function partialToPodcast(partialMetadata: Partial<Podcast>) : Podcast | 
   return result;
 }
 
-/** TODO: expand episode validation */
 export const isValidEpisode = (ep?: Episode) => isNotEmpty(ep) && isValidDate(ep.publishedAt);
 
-/** NOTE: should not throw if resulting Podcast is incomplete */
-export function podcastFromDTO(podcast: Partial<PodcastDTO>, sortEpisodes = true) : Podcast {
-  const conditionalSort = (episodes: Podcast['episodes'] = []) => (sortEpisodes
-    ? episodes.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
-    : episodes);
+export function podcastFromDTO(podcast: Partial<PodcastDTO>, options: PodcastOptions = {})
+  : Podcast {
+  let episodes : Episode[] = (podcast.episodes || [])
+    .map(episode => ({ ...episode, publishedAt: toDate(episode.publishedAt) }))
+    .filter(isValidEpisode);
 
-  const episodes : Podcast['episodes'] = conditionalSort(
-    (podcast.episodes || [])
-      .map(episode => ({ ...episode, publishedAt: toDate(episode.publishedAt) }))
-      .filter(isValidEpisode),
-  );
+  if (options?.sortEpisodes) {
+    episodes = episodes.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
+  }
 
   let { feedType, metadataBatch,
     // eslint-disable-next-line prefer-const
-    firstEpisodeDate, lastEpisodeDate, lastBuildDate, kind, ...mainMetadata } : any = podcast;
+    firstEpisodeDate, lastEpisodeDate, lastBuildDate, ...mainMetadata } : any = podcast;
+  // TODO: destructure Podcast['*'] only => maybe add param, exclude_tags / include_tags
+  //       ensure 'threads' is not allowed from parseGqlPodcastMetadata
+  //       but they should be included from SubscriptionsProvider
 
   feedType = isValidFeedType(feedType) ? feedType : 'rss2';
   metadataBatch = Number(metadataBatch);
   firstEpisodeDate = toDate(firstEpisodeDate);
   lastEpisodeDate = toDate(lastEpisodeDate);
   lastBuildDate = toDate(lastBuildDate);
-  kind ||= 'metadataBatch';
 
   const result : Podcast = {
     ...mainMetadata as Podcast,
@@ -270,14 +381,12 @@ export function podcastFromDTO(podcast: Partial<PodcastDTO>, sortEpisodes = true
   if (isValidDate(firstEpisodeDate)) result.firstEpisodeDate = firstEpisodeDate;
   if (isValidDate(lastEpisodeDate)) result.lastEpisodeDate = lastEpisodeDate;
   if (isValidDate(lastBuildDate)) result.lastBuildDate = lastBuildDate;
-  if (isValidKind(kind)) result.kind = kind;
 
-  return result;
+  return options?.sanitize ? sanitizeObject(result) : result;
 }
 
-export function podcastsFromDTO(podcasts: Partial<PodcastDTO>[], sortEpisodes = true) {
-  return podcasts.filter(podcast => isNotEmpty(podcast))
-    .map(podcast => podcastFromDTO(podcast, sortEpisodes));
+export function podcastsFromDTO(podcasts: Partial<PodcastDTO>[], options: PodcastOptions = {}) {
+  return podcasts.filter(isNotEmpty).map(pod => podcastFromDTO(pod, options));
 }
 
 export function podcastToDTO(podcast: Partial<Podcast>) : Partial<PodcastDTO> {
@@ -287,16 +396,16 @@ export function podcastToDTO(podcast: Partial<Podcast>) : Partial<PodcastDTO> {
 
   if (feedType) result.feedType = `${feedType}`;
   if (kind) result.kind = `${kind}`;
-  if (firstEpisodeDate) result.firstEpisodeDate = `${firstEpisodeDate}`;
-  if (lastEpisodeDate) result.lastEpisodeDate = `${lastEpisodeDate}`;
-  if (lastBuildDate) result.lastBuildDate = `${lastBuildDate}`;
+  if (firstEpisodeDate) result.firstEpisodeDate = toISOString(firstEpisodeDate);
+  if (lastEpisodeDate) result.lastEpisodeDate = toISOString(lastEpisodeDate);
+  if (lastBuildDate) result.lastBuildDate = toISOString(lastBuildDate);
   if (isNotEmpty(episodes)) result.episodes = episodesToDTO(episodes);
 
   return result;
 }
 
 export function episodesToDTO(episodes: Episode[]) : EpisodeDTO[] {
-  return episodes.map(episode => ({ ...episode, publishedAt: `${episode.publishedAt}` }));
+  return episodes.map(episode => ({ ...episode, publishedAt: toISOString(episode.publishedAt) }));
 }
 
 /**
@@ -305,7 +414,7 @@ export function episodesToDTO(episodes: Episode[]) : EpisodeDTO[] {
  * In this case, each episode will be dated +1 second after the previous one, starting at Epoch +1s.
  */
 export function fillMissingEpisodeDates(episodes: Episode[]) : Episode[] {
-  if (!isNotEmpty(episodes) || episodes.every(ep => isValidDate(ep.publishedAt))) return episodes;
+  if (isEmpty(episodes) || episodes.every(ep => isValidDate(ep.publishedAt))) return episodes;
 
   let prevDate = new Date(0);
   return [...episodes].reverse().map(ep => {
@@ -313,7 +422,6 @@ export function fillMissingEpisodeDates(episodes: Episode[]) : Episode[] {
       prevDate = ep.publishedAt;
       return ep;
     }
-
     const publishedAt = new Date(prevDate.getTime() + 1000);
     prevDate = publishedAt;
 
@@ -327,13 +435,13 @@ export function fillMissingEpisodeDates(episodes: Episode[]) : Episode[] {
  * @returns The `metadata` exluding props where !valuePresent(value), @see valuePresent
  */
 export function omitEmptyMetadata(metadata: Partial<Podcast> | Partial<Episode>) {
-  if (!isNotEmpty(metadata)) return {};
+  if (isEmpty(metadata)) return {};
 
   let result : Partial<Podcast> | Partial<Episode> = {};
   Object.entries(metadata).forEach(([prop, value]) => {
     let newValue = value;
     // @ts-ignore
-    if (Array.isArray(newValue)) newValue = newValue.filter(elem => valuePresent(elem));
+    if (Array.isArray(newValue)) newValue = newValue.filter(valuePresent);
     if (valuePresent(newValue)) result = { ...result, [prop]: newValue };
   });
 
@@ -351,14 +459,14 @@ export function omitEmptyMetadata(metadata: Partial<Podcast> | Partial<Episode>)
  *   - an empty object (non-recursively)
  *   - an array comprised of only any of the above elements
  */
-export function valuePresent(value: number | string | object) : boolean {
+export function valuePresent(value: any) : value is NonNullable<typeof value> {
   switch (typeof value) {
     case 'number':
       return !Number.isNaN(value);
     case 'string':
       return !!value.trim();
     case 'object':
-      if (Array.isArray(value)) return isNotEmpty(value.filter(elem => valuePresent(elem)));
+      if (Array.isArray(value)) return isNotEmpty(value.filter(valuePresent));
       if (value instanceof Date) return isValidDate(value);
 
       return isNotEmpty(value);
@@ -368,12 +476,20 @@ export function valuePresent(value: number | string | object) : boolean {
 }
 
 /**
- * @param obj is an object that might be empty/undefined
- * @returns true if the given array or object is not empty
+ * @param val
+ * @returns true if the given `val` is an array or object that is not empty
  */
-export function isNotEmpty<T extends object>(obj: T | EmptyTypes) : obj is T {
-  const isEmpty = !obj || typeof obj !== 'object' || Object.keys(obj).length === 0;
-  return !isEmpty;
+export function isNotEmpty<T extends object>(val: T | EmptyTypes) : val is T {
+  const empty = !val || typeof val !== 'object' || Object.keys(val).length === 0;
+  return !empty;
+}
+
+/**
+ * @param val
+ * @returns true if the given `val` is not a non-empty array or object
+ */
+export function isEmpty<T extends object>(val: T | EmptyTypes) {
+  return !isNotEmpty<T>(val);
 }
 
 /* Returns true if the given objects' values are (deep)equal */
@@ -383,18 +499,20 @@ export function valuesEqual(a: object = {}, b: object = {}) : boolean {
 
   // See https://stackoverflow.com/a/32922084/8691102
   const ok = Object.keys;
-  const tx = typeof a;
-  const ty = typeof b;
-  return tx === 'object' && tx === ty ? (
+  return typeof a === 'object' && typeof a === typeof b ? (
     ok(a).length === ok(b).length
     && ok(a).every(key => valuesEqual(a[key as keyof typeof a], b[key as keyof typeof b]))
   ) : (a === b);
 }
 
+/** @returns The headers for the currently configured {@linkcode corsProxyURL()} */
 export function corsApiHeaders() {
   switch (corsProxyURL()) {
     default:
-      return {};
+      return {
+        'Access-Control-Allow-Headers': 'X-Requested-With, X-Requested-By',
+        'X-Requested-With': 'XMLHttpRequest',
+      };
   }
 }
 

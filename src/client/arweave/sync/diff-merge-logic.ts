@@ -1,21 +1,18 @@
 import {
-  Episode,
-  NewThread,
-  Podcast,
-  PodcastTags,
-  Primitive,
+  Episode, Podcast, PodcastTags,
+  Post, Primitive,
 } from '../../interfaces';
 import {
   datesEqual,
   hasMetadata,
-  isNotEmpty,
+  isEmpty,
   isValidDate,
+  isValidPost,
   omitEmptyMetadata,
   toDate,
   valuePresent,
 } from '../../../utils';
 import { mergeArraysToLowerCase } from '../../metadata-filtering/formatting';
-import { sanitizeString } from '../../metadata-filtering/sanitization';
 import { findBestId } from '../../../podcast-id';
 
 /**
@@ -94,10 +91,6 @@ function mergeEpisodesMetadata(
     .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
 }
 
-/**
- * @param episodeBatches
- * @returns
- */
 export function mergeEpisodeBatches(episodeBatches: PartialEpisodeWithDate[][]) : Episode[] {
   return episodeBatches.reduce((mergedEps, batch) => mergeEpisodesMetadata(mergedEps, batch), []) as
     Episode[];
@@ -118,7 +111,7 @@ export function mergeBatchMetadata(
   metadataBatches: Partial<Podcast>[],
   applyMergeSpecialTags = false,
 ) : Partial<Podcast> {
-  if (!isNotEmpty(metadataBatches) || metadataBatches.every(batch => !hasMetadata(batch))) {
+  if (isEmpty(metadataBatches) || metadataBatches.every(batch => !hasMetadata(batch))) {
     return {} as Partial<Podcast>;
   }
 
@@ -134,23 +127,13 @@ export function mergeBatchMetadata(
 }
 
 /**
- * @returns The given arrays of threads, concatenated, with string-props sanitized.
+ * @returns All posts present in the params, where posts last in the lists override any duplicates
  */
-export function mergeThreads(list1 : NewThread[] = [], list2 : NewThread[] = []) : NewThread[] {
-  const sanitizeThread = (thr: NewThread) : NewThread => ({
-    ...thr,
-    id: sanitizeString(thr.id),
-    podcastId: sanitizeString(thr.podcastId),
-    subject: sanitizeString(thr.subject),
-    content: sanitizeString(thr.content),
-  });
-
-  return [...list1, ...list2].reduce((acc: NewThread[], thread: NewThread) => [
-    ...(acc || []).filter(thr => thr.id !== thread.id),
-    sanitizeThread(thread),
-  ], [] as NewThread[]);
+export function mergePosts(list1 : Post[] = [], list2 : Post[] = []) : Post[] {
+  return [...list1, ...list2]
+    .reduce((acc: Post[], thr: Post) => (isValidPost(thr)
+      ? acc.filter(t => t.id !== thr.id).concat(thr) : acc), [] as Post[]);
 }
-
 /**
  * Helper function to run in the body of a reduce operation on an array of objects.
  * @returns
@@ -159,7 +142,7 @@ export function mergeThreads(list1 : NewThread[] = [], list2 : NewThread[] = [])
  *   - min holds for firstEpisodeDate
  *   - max holds for lastEpisodeDate and metadataBatch
  *   - metadataBatch maps to an Integer
- *   - categories, keywords, episodesKeywords and threads are merged
+ *   - categories, keywords, episodesKeywords and threads are each merged
  *     - NOTE: removal of certain categories and keywords can still be accomplished
  *             by omitting the (e.g. downvoted) tx.id in preselection of GraphQL results.
  */
@@ -168,20 +151,17 @@ const mergeSpecialTags = (tags: Partial<Podcast>, metadata: Partial<Podcast>) =>
   Object.entries(omitEmptyMetadata(metadata)).forEach(([tag, value]) => {
     switch (tag) {
       case 'id':
-        if (typeof value === 'string') {
-          const bestId = findBestId([acc.id || '', value]);
-          acc.id = bestId || value;
-        }
+        if (typeof value === 'string') acc.id = findBestId([acc.id, value]) || value;
         break;
       case 'episodes':
         break;
       case 'firstEpisodeDate':
-        if (!acc.firstEpisodeDate || value < acc.firstEpisodeDate) {
+        if (!acc.firstEpisodeDate || value! < acc.firstEpisodeDate) {
           acc.firstEpisodeDate = toDate(value as string | Date);
         }
         break;
       case 'lastEpisodeDate':
-        if (!acc.lastEpisodeDate || value > acc.lastEpisodeDate) {
+        if (!acc.lastEpisodeDate || value! > acc.lastEpisodeDate) {
           acc.lastEpisodeDate = toDate(value as string | Date);
         }
         break;
@@ -195,7 +175,7 @@ const mergeSpecialTags = (tags: Partial<Podcast>, metadata: Partial<Podcast>) =>
           mergeArraysToLowerCase(acc[tag] || [], value as string[]);
         break;
       case 'threads':
-        acc[tag as 'threads'] = mergeThreads(acc[tag] || [], value as NewThread[]);
+        acc[tag as 'threads'] = mergePosts(acc[tag] || [], value as Post[]);
         break;
       default:
         acc = { ...acc, [tag]: value };
@@ -217,14 +197,12 @@ export function mergeBatchTags(tagBatches: PodcastTags[]) {
 function episodesRightDiff(
   oldEpisodes : Episode[] = [],
   newEpisodes : Episode[] = [],
-  returnAnyDiff: boolean = false,
+  returnAnyDiff = false,
 ) {
   const result : PartialEpisodeWithDate[] = [];
   for (const newEpisode of newEpisodes) {
-    const oldEpisodeMatch = oldEpisodes.find(oldEpisode => datesEqual(
-      oldEpisode.publishedAt,
-      newEpisode.publishedAt,
-    ));
+    const oldEpisodeMatch =
+      oldEpisodes.find(oldEpisode => datesEqual(oldEpisode.publishedAt, newEpisode.publishedAt));
     if (oldEpisodeMatch) {
       const diff = rightDiff(oldEpisodeMatch, newEpisode, ['publishedAt']);
       if (hasMetadata(diff)) result.push(diff as PartialEpisodeWithDate);
@@ -242,9 +220,7 @@ function arrayRightDiff<T extends Primitive>(oldArray : T[] = [], newArray : T[]
   return newArray.filter(x => x && !oldArray.includes(x));
 }
 
-/**
- * Calls {@linkcode rightDiff()} with parameter `returnAnyDiff = true`.
- */
+/** Calls {@linkcode rightDiff()} with parameter `returnAnyDiff = true`. */
 export function hasDiff<T extends Partial<Podcast> | Partial<Episode>>(
   oldMetadata: T,
   newMetadata: T,
@@ -257,18 +233,17 @@ export function hasDiff<T extends Partial<Podcast> | Partial<Episode>>(
 /**
  * @param oldMetadata
  * @param newMetadata
- * @param persistentMetadata Metadata props to survive the diff iff hasMetadata(diff) == true.
+ * @param persistentMetadata Metadata props to survive the diff `iff hasMetadata(diff) == true`.
  * @param returnAnyDiff If `true`, returns any diff without generating a full diff:
  *   Returns as soon as any metadatum, other than those ignored by {@linkcode hasMetadata()},
  *   is added to the diff.
- * @returns If `!returnAnyDiff`, returns `newMetadata` omitting each `{ prop: value }`
- *   already present in `oldMetadata`.
+ * @returns `returnAnyDiff = false` exhibits the default behavior of returning `newMetadata`
+ *   omitting each `{ prop: value }` already present in `oldMetadata`.
  */
 export function rightDiff<T extends Partial<Podcast> | Partial<Episode>>(
-  oldMetadata: T,
-  newMetadata: T,
+  oldMetadata: T, newMetadata: T,
   persistentMetadata: (keyof Podcast | keyof Episode)[] = ['id', 'feedType', 'feedUrl'],
-  returnAnyDiff: boolean = false,
+  returnAnyDiff = false,
 ) : Partial<T> {
   if (!hasMetadata(oldMetadata)) return newMetadata;
   if (!hasMetadata(newMetadata)) return {} as T;
@@ -319,8 +294,6 @@ export function rightDiff<T extends Partial<Podcast> | Partial<Episode>>(
 }
 
 /**
- * @param oldMetadata
- * @param newMetadata
  * @returns The newMetadata omitting episodes whose timestamps exist in oldMetadata.
  *   If there are no new episodes, return an empty metadata object: { episodes: [] }
  */
@@ -334,11 +307,7 @@ export function simpleDiff(oldMetadata: Partial<Podcast>, newMetadata: Partial<P
   const newEpisodes = (newMetadata.episodes || [])
     .filter(newEpisode => !oldEpisodeTimestamps.includes(newEpisode.publishedAt.getTime()));
 
-  if (newEpisodes.length) {
-    return {
-      ...newMetadata,
-      episodes: newEpisodes,
-    };
-  }
+  if (newEpisodes.length) return { ...newMetadata, episodes: newEpisodes };
+
   return emptyDiff;
 }

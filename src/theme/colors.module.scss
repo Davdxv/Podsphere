@@ -7,24 +7,26 @@ $gray-25: rgba(50, 50, 50, 0.5);
 $gray-50: rgba(100, 100, 100, 0.5);
 
 $green: #b3ecae;
-$green-medium: #4b9b73;
+$green-md: #38da89;
+$green-dark: #4b9b73;
 
 $orange: rgb(255, 208, 176);
-$orange-medium: rgb(255, 150, 80);
+$orange-md: rgb(255, 150, 80);
 $orange-dark: rgb(255, 150, 0);
 
 $red: #e98a8a;
+$red-md: #e25252;
 $yellow: #e9c98a;
 
 $table_text: rgba(255, 255, 255, 0.93);
-$tab_hover: $green-medium;
+$tab_hover: $green-dark;
 
 :export {
   bgColor: $bg;
   green: $green;
-  greenMedium: $green-medium;
+  greenMedium: $green-dark;
   orange: $orange;
-  orangeMedium: $orange-medium;
+  orangeMedium: $orange-md;
   orangeDark: $orange-dark;
   red: $red;
   tableTextColor: $table_text;

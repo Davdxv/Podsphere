@@ -1,20 +1,56 @@
+import Transaction from 'arweave/node/lib/transaction';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { DispatchResult } from 'arconnect';
-import Transaction from 'arweave/node/lib/transaction';
+import { JWKInterface } from 'arweave/node/lib/wallet';
+import { TransactionStatusResponse } from 'arweave/node/transactions';
+import { ApiConfig } from 'arweave/node/lib/api.d';
 
+export type { ApiConfig, DispatchResult, JWKInterface, TransactionStatusResponse, WalletTypes };
+export { Transaction };
+
+/** If using ArConnect, the wallet param is omitted. */
+export interface WalletDeferredToArConnect {}
+type WalletTypes = JWKInterface | WalletDeferredToArConnect;
+
+/* Convenience types */
 export type Primitive = string | boolean | number;
+export type EmptyTypes = null | undefined | {} | [] | '';
+export type AnyVoidFunction = (...args: any) => void | Promise<void>;
+export type AnyNonVoidFunction = (...args: any) => any | Promise<any>;
+export type AnyFunction = AnyVoidFunction | AnyNonVoidFunction;
 
-export type EmptyTypes = null | undefined | {};
-
-export const MANDATORY_ARWEAVE_TAGS = [
+const MANDATORY_ARWEAVE_TAGS = [
   'id',
-  'feedType', // TODO: Move to MANDATORY_ARWEAVE_METADATA_TAGS
-  'feedUrl',
   'kind',
 ] as const;
 
 const MANDATORY_ARWEAVE_METADATA_TAGS = [
+  'feedType',
+  'feedUrl',
   'title',
+] as const;
+
+const MANDATORY_ARWEAVE_THREAD_TAGS = [
+  'threadId',
+  'type',
+  'content',
+  'subject',
+] as const;
+
+const MANDATORY_ARWEAVE_THREADREPLY_TAGS = [
+  'threadId',
+  'type',
+  'content',
+  'parentThreadId',
+] as const;
+
+const OPTIONAL_ARWEAVE_THREAD_TAGS = [
+  'episodeId',
+] as const;
+
+const OPTIONAL_ARWEAVE_THREADREPLY_TAGS = [
+  'episodeId',
+  'parentPostId',
 ] as const;
 
 export const OPTIONAL_ARWEAVE_STRING_TAGS = [
@@ -56,6 +92,10 @@ const OPTIONAL_ARWEAVE_SINGULAR_TAGS = [
 export const ALLOWED_ARWEAVE_TAGS = [
   ...MANDATORY_ARWEAVE_TAGS,
   ...MANDATORY_ARWEAVE_METADATA_TAGS,
+  ...MANDATORY_ARWEAVE_THREAD_TAGS,
+  ...MANDATORY_ARWEAVE_THREADREPLY_TAGS,
+  ...OPTIONAL_ARWEAVE_THREAD_TAGS,
+  ...OPTIONAL_ARWEAVE_THREADREPLY_TAGS,
   ...OPTIONAL_ARWEAVE_STRING_TAGS,
   ...OPTIONAL_ARWEAVE_BATCH_TAGS,
   ...OPTIONAL_ARWEAVE_SINGULAR_TAGS,
@@ -64,12 +104,19 @@ export const ALLOWED_ARWEAVE_TAGS = [
 export const ALLOWED_ARWEAVE_TAGS_PLURALIZED = [
   ...MANDATORY_ARWEAVE_TAGS,
   ...MANDATORY_ARWEAVE_METADATA_TAGS,
+  ...MANDATORY_ARWEAVE_THREAD_TAGS,
+  ...MANDATORY_ARWEAVE_THREADREPLY_TAGS,
+  ...OPTIONAL_ARWEAVE_THREAD_TAGS,
+  ...OPTIONAL_ARWEAVE_THREADREPLY_TAGS,
   ...OPTIONAL_ARWEAVE_STRING_TAGS,
   ...OPTIONAL_ARWEAVE_BATCH_TAGS,
   ...OPTIONAL_ARWEAVE_PLURAL_TAGS,
 ] as const;
 
 export type MandatoryTags = typeof MANDATORY_ARWEAVE_TAGS[number];
+export type MandatoryMetadataTxTags = typeof MANDATORY_ARWEAVE_METADATA_TAGS[number];
+export type MandatoryThreadTxTags = typeof MANDATORY_ARWEAVE_THREAD_TAGS[number];
+export type MandatoryThreadReplyTxTags = typeof MANDATORY_ARWEAVE_THREADREPLY_TAGS[number];
 export type AllowedTags = typeof ALLOWED_ARWEAVE_TAGS[number];
 export type AllowedTagsPluralized = typeof ALLOWED_ARWEAVE_TAGS_PLURALIZED[number];
 export type ArweaveTag = [AllowedTags, string | undefined];
@@ -87,16 +134,17 @@ export const THREAD_TX_KINDS = [
   'thread',
   'threadReply',
 ] as const;
-export const TRANSACTION_KINDS = [
+export const TX_KINDS = [
   ...METADATA_TX_KINDS,
   ...THREAD_TX_KINDS,
 ];
-export type MetadataTransactionKind = typeof METADATA_TX_KINDS[number];
-export type ThreadTransactionKind = typeof THREAD_TX_KINDS[number];
-export type TransactionKind = typeof TRANSACTION_KINDS[number];
+export type MetadataTxKind = typeof METADATA_TX_KINDS[number];
+export type ThreadTxKind = typeof THREAD_TX_KINDS[number];
+export type TxKind = typeof TX_KINDS[number];
+export type NonMetadataTxKind = Exclude<TxKind, MetadataTxKind>;
 
 export interface Podcast extends PodcastTags {
-  threads?: NewThread[];
+  threads?: Post[];
   lastMutatedAt?: number; /** @see unixTimestamp() */
   episodes?: Episode[];
   infoUrl?: string;
@@ -107,10 +155,12 @@ export interface Podcast extends PodcastTags {
 
 export interface PodcastTags {
   id: string;
+  kind?: TxKind;
+
   feedType: FeedType;
   feedUrl: string;
+
   title: string;
-  kind?: TransactionKind;
   description?: string;
   author?: string;
   summary?: string;
@@ -128,12 +178,20 @@ export interface PodcastTags {
   lastEpisodeDate?: Date;
   metadataBatch?: number;
   lastBuildDate?: Date;
+
+  threadId?: Thread['id'];
+  episodeId?: Thread['episodeId'];
+  content?: Thread['content'];
+  type?: Thread['type'];
+  subject?: Thread['subject'];
+  parentThreadId?: ThreadReply['parentThreadId'];
+  parentPostId?: ThreadReply['parentPostId'];
 }
 
 export interface PodcastDTO extends Omit<Podcast, 'feedType' | 'kind' | 'firstEpisodeDate'
 | 'lastEpisodeDate' | 'episodes' | 'lastBuildDate'> {
   feedType: FeedType | string;
-  kind?: TransactionKind | string;
+  kind?: TxKind | string;
   firstEpisodeDate?: string;
   lastEpisodeDate?: string;
   episodes?: EpisodeDTO[];
@@ -179,14 +237,15 @@ export interface DispatchResultDTO extends DispatchResult {
   bundledIn?: string;
 }
 
-export type BundledTxIdMapping = {
+export type StringToStringMapping = {
   [key: string]: string;
 };
 
 /**
  * @enum {ArSyncTxStatus} number
+ * @memberof {@linkcode ArSyncTx}
  * @description
- *   An enum comprising all supported stages of an ArSyncTx object, used to track and update status.
+ *   An enum used to track & update status of an ArSyncTx throughout each stage of its lifecycle.
  * @member {0} ERRORED
  * @member {1} INITIALIZED
  * @member {2} POSTED
@@ -203,17 +262,19 @@ export enum ArSyncTxStatus {
 
 /**
  * @interface ArSyncTx
+ * @see [ArSync](./arweave/sync/index.ts)
+ * @see [ArweaveProvider](../providers/arweave.tsx)
  * @description
  *   Main data structure used to track an Arweave transaction through its various stages.
  *   All ArSyncTx objects with a status other than `INITIALIZED` are cached in IndexedDB, until the
  *   user chooses to clear any of them.
  * @prop {string} id uuid of the ArSyncTx object
  * @prop {string} podcastId uuid of the relevant podcast
- * @prop {TransactionKind} kind
+ * @prop {TxKind} kind
  * @prop {string} title?
  * @prop {DispatchResult | DispatchResultDTO} dispatchResult?
  * @prop {Transaction | TransactionDTO | Error} resultObj
- * @prop {Partial<Podcast>} metadata
+ * @prop {Partial<Podcast> | Post} metadata
  * @prop {number} numEpisodes
  * @prop {ArSyncTxStatus} status
  * @prop {number} timestamp
@@ -221,11 +282,11 @@ export enum ArSyncTxStatus {
 export interface ArSyncTx {
   id: string,
   podcastId: Podcast['id'],
-  kind: TransactionKind,
+  kind: TxKind,
   title?: Podcast['title'],
   dispatchResult?: DispatchResult | DispatchResultDTO,
   resultObj: Transaction | TransactionDTO | Error,
-  metadata: Partial<Podcast>,
+  metadata: Partial<Podcast> | Post,
   numEpisodes: number,
   status: ArSyncTxStatus,
   timestamp: Podcast['lastMutatedAt'],
@@ -237,35 +298,51 @@ export interface ArSyncTxDTO extends Omit<ArSyncTx, 'metadata'> {
 
 /**
  * @interface CachedArTx
+ * @see [TxCache#txCache](./arweave/cache/transactions.ts)
+ * @see [ArGraphQLOps#getPodcastRss2Feed##filterCandidateTxs](./arweave/graphql-ops.ts)
+ * @see [ArSync](./arweave/sync/index.ts)
  * @description
  *   Data structure used to cache the tags of one Arweave transaction (parsed into `PodcastTags`),
  *   also including all necessary props to compute whether to filter this transaction by means of:
- *   1) Filtering GraphQL responses; see `./arweave/graphql-ops#filterCandidateTxs`
+ *   1) Filtering GraphQL responses
  *   2) TODO: smarter `./metadata-filtering`
  *   3) TODO: user-level block lists
  *   4) TODO: global-level block lists (first maintained by our mods, later sharable among users)
  * @prop {string} podcastId
  * @prop {string} txId
- * @prop {TransactionKind} kind?
+ * @prop {TxKind} kind?
  * @prop {boolean} txBlocked defaults to false, but is set to true for erroneous transactions
  * @prop {Omit<PodcastTags, 'id' | 'kind'>} tags
  * @prop {string} ownerAddress
  * @prop {string} txBundledIn?
  * @prop {number} numEpisodes
+ * @prop {number} timestamp?
  */
 export interface CachedArTx {
   podcastId: PodcastTags['id'];
   txId: string;
-  kind?: TransactionKind;
+  kind?: TxKind;
   txBlocked: boolean;
   tags: Omit<PodcastTags, 'id' | 'kind'>;
   ownerAddress: string;
   txBundledIn?: string;
   numEpisodes: number;
+  timestamp?: Podcast['lastMutatedAt'];
 }
 
+/**
+ * @interface GraphQLMetadata
+ * @see [ArGraphQLOps#parseGqlTags,#QueryField](./arweave/graphql-ops.ts)
+ * @see [ArSync](./arweave/sync/index.ts)
+ * @see [TxCache](./arweave/cache/transactions.ts)
+ * @description Comprises extra GraphQL metadata, separate from the tags.
+ * @prop {string} txId
+ * @prop {string} ownerAddress
+ * @prop {string} txBundledIn?
+ * @prop {number} timestamp?
+ */
 export interface GraphQLMetadata extends
-  Pick<CachedArTx, 'txId' | 'ownerAddress' | 'txBundledIn'> {}
+  Pick<CachedArTx, 'txId' | 'ownerAddress' | 'txBundledIn' | 'timestamp'> {}
 
 /**
  * @interface SearchPodcastResult
@@ -297,12 +374,21 @@ export const THREAD_TYPES = [
 ] as const;
 export type ThreadType = typeof THREAD_TYPES[number];
 
-export interface NewThread {
+export interface Thread {
   isDraft: boolean,
   id: string,
   podcastId: Podcast['id'],
   episodeId: Episode['publishedAt'] | null,
-  subject: string,
   content: string,
   type: ThreadType,
+  subject: string,
+  timestamp?: Podcast['lastMutatedAt'],
 }
+
+export interface ThreadReply extends Omit<Thread, 'subject'> {
+  parentThreadId: Thread['id'],
+  parentPostId?: Thread['id'], // Only used when replying to a reply
+}
+
+/** @type a `Thread` or `ThreadReply` */
+export type Post = Thread | ThreadReply;

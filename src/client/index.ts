@@ -1,24 +1,22 @@
-import { Podcast } from './interfaces';
-import * as arweave from './arweave';
-import * as rss from './rss';
+import { Podcast, Thread } from './interfaces';
+import * as Arweave from './arweave';
+import * as RSS from './rss';
 import {
-  addLastMutatedAt,
-  findMetadataByFeedUrl,
-  findMetadataById,
-  hasMetadata,
+  addLastMutatedAt, findMetadataByFeedUrl, findMetadataById,
+  hasMetadata, isEmpty, isValidUuid,
   partialToPodcast,
-  unixTimestamp,
 } from '../utils';
 import {
   hasDiff,
   mergeBatchMetadata,
+  mergePosts,
   rightDiff,
   simpleDiff,
 } from './arweave/sync/diff-merge-logic';
-import { findBestId, isValidUuid } from '../podcast-id';
+import { findBestId } from '../podcast-id';
 import { getPodcastId } from './arweave/cache/podcast-id';
 
-export const { pingTxIds } = arweave;
+export const { pingTxIds } = Arweave;
 
 export type GetPodcastResult = {
   errorMessage?: string;
@@ -26,10 +24,10 @@ export type GetPodcastResult = {
   newPodcastMetadataToSync?: Partial<Podcast>;
 };
 
-async function fetchRss2Feeds(feedUrl: Podcast['feedUrl']) {
+async function fetchRss2Feeds(feedUrl: Podcast['feedUrl'], title: Podcast['title']) {
   const [arweaveFeed, rssFeed] = await Promise.all([
-    arweave.getPodcastRss2Feed(feedUrl),
-    rss.getPodcastRss2Feed(feedUrl),
+    Arweave.getPodcastRss2Feed(feedUrl, title),
+    RSS.getPodcastRss2Feed(feedUrl),
   ]);
   return {
     arweave: arweaveFeed,
@@ -44,8 +42,8 @@ export async function fetchPodcastById(
   metadataToSync: Partial<Podcast>[] = [],
 ) : Promise<GetPodcastResult> {
   if (feedType === 'rss2') {
-    const { feedUrl } = findMetadataById(id, subscriptions);
-    if (feedUrl) return fetchPodcastRss2Feed(feedUrl, metadataToSync);
+    const { feedUrl, title } = findMetadataById(id, subscriptions);
+    if (feedUrl) return fetchPodcastRss2Feed(feedUrl, metadataToSync, id, title);
   }
   return { errorMessage: `Could not find the feed url for Podcast with id ${id}` };
 }
@@ -53,8 +51,10 @@ export async function fetchPodcastById(
 export async function fetchPodcastRss2Feed(
   feedUrl: Podcast['feedUrl'],
   metadataToSync: Partial<Podcast>[] = [],
+  id: Podcast['id'] = '',
+  title: Podcast['title'] = 'Podcast',
 ) : Promise<GetPodcastResult> {
-  const feed = await fetchRss2Feeds(feedUrl);
+  const feed = await fetchRss2Feeds(feedUrl, title);
   if ('errorMessage' in feed.arweave) return { errorMessage: feed.arweave.errorMessage };
   if ('errorMessage' in feed.rss && !hasMetadata(feed.arweave)) {
     return { errorMessage: feed.rss.errorMessage };
@@ -72,12 +72,15 @@ export async function fetchPodcastRss2Feed(
 
   const newPartialPodcastMetadata : Partial<Podcast> =
     mergeBatchMetadata([feed.arweave, metadataToSyncWithNewEpisodes], true);
-  const newPodcastMetadata = partialToPodcast(newPartialPodcastMetadata);
+  const newPodcastMetadata = partialToPodcast({
+    ...newPartialPodcastMetadata,
+    id: findBestId([newPartialPodcastMetadata.id, id]),
+  });
   if ('errorMessage' in newPodcastMetadata) return newPodcastMetadata;
 
   const newPodcastMetadataToSync = {
-    ...rightDiff(feed.arweave, metadataToSyncWithNewEpisodes, ['id', 'feedUrl', 'title']),
-    id: findBestId([feed.arweave.id || '', metadataToSyncWithNewEpisodes.id || '']),
+    ...rightDiff(feed.arweave, metadataToSyncWithNewEpisodes, ['id', 'feedUrl']),
+    id: findBestId([feed.arweave.id, id, metadataToSyncWithNewEpisodes.id]),
   };
 
   return { newPodcastMetadata: addLastMutatedAt(newPodcastMetadata), newPodcastMetadataToSync };
@@ -115,13 +118,12 @@ export function updatePodcastIds<T extends Podcast | Partial<Podcast>>(
     const { newId } = mapping;
     if (!newId) return metadata;
 
-    return (metadata.lastMutatedAt ? { ...metadata, lastMutatedAt: unixTimestamp(), id: newId }
-      : { ...metadata, id: newId });
+    const result = { ...metadata, id: newId };
+    return metadata.lastMutatedAt ? addLastMutatedAt(result) : result;
   });
 }
 
 /**
- *
  * @param subscriptions
  * @param metadataToSync
  * @param idsToRefresh if `null`, all subscriptions are refreshed
@@ -131,6 +133,30 @@ export async function refreshSubscriptions(
   metadataToSync: Partial<Podcast>[] = [],
   idsToRefresh: Podcast['id'][] | null = null,
 ) {
+  const updateSubscriptionInPlace = (newSubscription: Podcast) : void => {
+    const index = newSubscriptions.findIndex(sub => sub.id === newSubscription.id);
+    if (index >= 0) newSubscriptions[index] = newSubscription;
+  };
+
+  const updateMetadataToSyncInPlace = (newPodcastToSync: Partial<Podcast>, id: string) : void => {
+    if (id) {
+      const index = newMetadataToSync.findIndex(sub => sub.id === id);
+      if (index >= 0) {
+        const { threads } = newMetadataToSync[index];
+        const prevToSync = isEmpty(threads) ? {} : { id, threads };
+        newMetadataToSync[index] = mergeBatchMetadata([prevToSync, newPodcastToSync], true);
+      }
+      else newMetadataToSync.push(newPodcastToSync);
+    }
+  };
+
+  const withMergedPosts = (subscription: Podcast, newPodcastMetadata: Podcast, allThreads: Thread[])
+  : Podcast => {
+    const fetchedThreads = allThreads.filter(thr => thr.podcastId === newPodcastMetadata.id);
+    const mergedPosts = mergePosts(subscription.threads, fetchedThreads);
+    return { ...newPodcastMetadata, threads: mergedPosts };
+  };
+
   const errorMessages : string[] = [];
   const newSubscriptions : Podcast[] = [...subscriptions];
   const newMetadataToSync : Partial<Podcast>[] = [...metadataToSync];
@@ -139,40 +165,26 @@ export async function refreshSubscriptions(
   const results = await Promise.all(
     podcastsToRefresh.map(id => fetchPodcastById(id, 'rss2', subscriptions, metadataToSync)),
   );
-
-  const updateSubscriptionInPlace = (newSubscription: Podcast) : void => {
-    const { id } = newSubscription;
-    if (!id) return;
-    const index = newSubscriptions.findIndex(sub => sub.id === id);
-    if (index >= 0) newSubscriptions[index] = newSubscription;
-  };
-
-  const updateMetadataToSyncInPlace = (newPodcastToSync: Partial<Podcast>) : void => {
-    const { id } = newPodcastToSync;
-    if (!id) return;
-    const index = newMetadataToSync.findIndex(sub => sub.id === id);
-    if (index >= 0) {
-      newMetadataToSync[index] = mergeBatchMetadata([newMetadataToSync[index], newPodcastToSync],
-        true);
-    }
-    else newMetadataToSync.push(newPodcastToSync);
-  };
+  const allThreads = await Arweave.getAllThreads(podcastsToRefresh);
 
   results.forEach(({ errorMessage, newPodcastMetadata, newPodcastMetadataToSync }) => {
     if (hasMetadata(newPodcastMetadata)) {
       const subscription = subscriptions.find(sub => sub.id === newPodcastMetadata.id);
-      if (subscription && hasDiff(subscription, newPodcastMetadata)) {
-        updateSubscriptionInPlace(newPodcastMetadata);
-        if (hasMetadata(newPodcastMetadataToSync)) {
-          updateMetadataToSyncInPlace(newPodcastMetadataToSync);
-        }
-      }
-      else if (errorMessage) {
-        const title = subscription?.title || 'Podcast';
-        errorMessages.push(`${title} failed to refresh due to:\n${errorMessage}`);
+      const id = findBestId([subscription?.id, newPodcastMetadata.id]);
+      if (subscription && id) {
+        const newPodcastMerged = withMergedPosts(subscription, newPodcastMetadata, allThreads);
+        if (hasDiff(subscription, newPodcastMerged)) updateSubscriptionInPlace(newPodcastMerged);
+
+        const newToSync = hasMetadata(newPodcastMetadataToSync) ? newPodcastMetadataToSync : { id };
+        updateMetadataToSyncInPlace(newToSync, id);
       }
     }
+    else if (errorMessage) errorMessages.push(errorMessage);
   });
 
-  return { errorMessages, newSubscriptions, newMetadataToSync };
+  return {
+    errorMessages,
+    newSubscriptions,
+    newMetadataToSync: newMetadataToSync.filter(hasMetadata),
+  };
 }

@@ -8,12 +8,12 @@ import {
 import { toast } from 'react-toastify';
 import { v4 as uuid } from 'uuid';
 import {
-  Episode, NewThread, Podcast,
+  Episode, Podcast, Thread,
   ThreadType,
 } from '../client/interfaces';
 import {
   findEpisodeMetadata, findMetadataById,
-  isNotEmpty, isValidString,
+  isEmpty, isValidString, unixTimestamp,
 } from '../utils';
 import CloseButton from './buttons/close-button';
 import CachedImage from './cached-image';
@@ -22,10 +22,10 @@ import style from './new-thread.module.scss';
 interface Props {
   onClose: () => void;
   isOpen: boolean;
-  handleOpenSavePrompt: (draft: NewThread) => void;
-  handleSubmitThread: (thread: NewThread) => void;
+  handleOpenSavePrompt: (draft: Thread) => void;
+  handleSubmitThread: (thread: Thread) => void;
   subscriptions: Podcast[];
-  prevDraft: NewThread | null;
+  prevDraft: Thread | null;
   podcastId: Podcast['id'];
   episodeId: Episode['publishedAt'] | null; // If null, the thread pertains to the podcast itself
 }
@@ -47,7 +47,7 @@ const NewThreadDialog : React.FC<Props> = ({
 
   if (!initialized) {
     setInitialized(true);
-    const propsAreInvalid = !isNotEmpty(podcast) || !!(episodeId && !isNotEmpty(episode));
+    const propsAreInvalid = isEmpty(podcast) || !!(episodeId && isEmpty(episode));
     if (propsAreInvalid) {
       setTimeout(onClose, 250);
       toast.error('Unable to create thread: Could not find the corresponding '
@@ -59,6 +59,11 @@ const NewThreadDialog : React.FC<Props> = ({
 
   const title = [podcast.title, episode?.title].filter(x => x).join(': ');
   const imageUrl = episode?.imageUrl || podcast.imageUrl || '';
+
+  const newThread = (props: Partial<Thread> = {}) : Thread => {
+    const thr = { isDraft: false, id, podcastId, episodeId, subject, content, type };
+    return { ...thr, ...props, timestamp: unixTimestamp() };
+  };
 
   const handleSubjectChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setModified(true);
@@ -78,7 +83,7 @@ const NewThreadDialog : React.FC<Props> = ({
   const handleClose = (_event: React.MouseEvent<unknown>, reason = '') => {
     if (reason !== 'backdropClick') {
       if (modified && (isValidString(subject) || isValidString(content))) {
-        handleOpenSavePrompt({ isDraft: true, id, podcastId, episodeId, subject, content, type });
+        handleOpenSavePrompt(newThread({ isDraft: true }));
       }
       else onClose();
     }
@@ -89,7 +94,7 @@ const NewThreadDialog : React.FC<Props> = ({
       toast.warn(`Please fill in ${!subject ? 'a subject' : 'some content'} for the thread`,
         { autoClose: 2000, toastId: 'thr-submit-warning' });
     }
-    else handleSubmitThread({ isDraft: false, id, podcastId, episodeId, subject, content, type });
+    else handleSubmitThread(newThread());
   };
 
   return (

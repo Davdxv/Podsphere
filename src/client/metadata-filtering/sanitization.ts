@@ -29,6 +29,34 @@ export function sanitizeString(str : string, allowHtml = false, sanitizeOptions 
   return allowHtml ? sanitized : he.decode(sanitized);
 }
 
+/** Helper function to skip sanitization of e.g. Date instances */
+const isAnyClassInstance = (o: object) => Object.getPrototypeOf(o).constructor.name !== 'Object';
+
+/** Returns the given object where all values (not the keys) are sanitized (deep) */
+export function sanitizeObject<T extends { [K: string]: any }>(obj: T) : T {
+  if (typeof obj !== 'object') return obj;
+
+  const sanitized = Object.entries(obj).map(([key, val]) => {
+    if (typeof val === 'string') return [key, sanitizeString(val)];
+    if (Array.isArray(val)) return [key, sanitizeArray(val)];
+    if (typeof val === 'object' && !isAnyClassInstance(val)) return [key, sanitizeObject(val)];
+    return [key, val];
+  });
+  return Object.fromEntries(sanitized) as T;
+}
+
+/** Returns the given array where all values are sanitized (deep) */
+export function sanitizeArray(arr: any[]) : typeof arr {
+  if (!Array.isArray(arr)) return arr;
+
+  return arr.map(val => {
+    if (typeof val === 'string') return sanitizeString(val);
+    if (Array.isArray(val)) return sanitizeArray(val);
+    if (typeof val === 'object' && !isAnyClassInstance(val)) return sanitizeObject(val);
+    return val;
+  });
+}
+
 /**
  * TODO:
  *   - employ proper URI sanitization

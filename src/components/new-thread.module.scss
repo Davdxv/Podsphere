@@ -42,7 +42,7 @@ $modal-bg-color: rgba(33, 33, 33, 1);
 
 .new-thread-title-container {
   max-width: 70%;
-  color: colors.$orange-medium;
+  color: colors.$orange-md;
   display: inline-flex;
   flex-direction: column;
   line-height: 1.5em;
@@ -111,7 +111,7 @@ $modal-bg-color: rgba(33, 33, 33, 1);
 }
 
 .submit-button {
-  color: colors.$orange-medium;
+  color: colors.$orange-md;
   background-color: colors.$gray-25;
   border: 1px solid colors.$gray-25;
   border-radius: 1rem;

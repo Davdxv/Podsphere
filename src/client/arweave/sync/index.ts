@@ -1,171 +1,244 @@
-/**
- * @module ArSync Main module for ArSync
- *
- * Current version: v1.4.1
- *
- * ArSync comprises all necessary logic for creating, fetching and tracking Podsphere's transactions
- * on Arweave.
- * At present, these transactions comprise incremental (podcast) metadata or user threads/replies.
- * Future updates will expand this with more types of transactions.
- *
- * A modular API is not available yet, but the code is to be maintained with this prospect in mind.
- *
- * Main intrinsic interfaces/types (see {@link ../../interfaces.ts}):
- * @see {ArSyncTx}
- *   Main data structure used to track an Arweave transaction through its various stages.
- * @see {ArSyncTxStatus}
- *   An enum comprising all supported stages of an ArSyncTx object. Used to track and update status.
- */
-
 import { v4 as uuid } from 'uuid';
-import Transaction from 'arweave/node/lib/transaction';
-import { JWKInterface } from 'arweave/node/lib/wallet';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { DispatchResult } from 'arconnect';
 import {
-  ArSyncTx,
-  ArSyncTxStatus,
-  ArweaveTag,
-  Episode,
-  Podcast,
+  ArSyncTx, ArSyncTxStatus, ArweaveTag,
+  DispatchResult, Episode, NonMetadataTxKind,
+  Podcast, Transaction, WalletTypes,
 } from '../../interfaces';
 import {
   findMetadataById,
   hasMetadata,
   isNotEmpty,
+  isReply,
+  isValidPost,
+  removePostFromPodcast,
   unixTimestamp,
 } from '../../../utils';
 import { throwDevError } from '../../../errors';
-import { formatTags, withMetadataBatchNumber } from '../create-transaction';
+import { formatMetadataTxTags, withMetadataBatchNumber } from '../create-transaction';
 import { mergeBatchMetadata, rightDiff } from './diff-merge-logic';
-import { WalletDeferredToArConnect } from '../wallet';
 import {
-  calculateTagsSize,
-  compressMetadata,
-  isConfirmed,
-  isInitialized,
-  isPosted,
+  calculateTagsSize, compressMetadata, hasThreadTxKind,
+  isConfirmed, isInitialized, isPosted,
   usingArConnect,
 } from '../utils';
 import { removePrefixFromPodcastId } from '../../../podcast-id';
 import {
+  newThreadTransaction,
   newTransactionFromCompressedMetadata,
   dispatchTransaction,
   signAndPostTransaction,
 } from '..';
 
-/** Max size of compressed metadata per transaction (including tags) */
-const MAX_BATCH_SIZE = 96 * 1024; // KiloBytes
+/**
+ * @namespace ArSync
+ * @module ArSync
+ *
+ * @exports {@linkcode ArSync|ArSync as default namespace}
+ *   => immutable object mapping an es6-structured reference for each module member to be exported.
+ *
+ * @summary Main es6-module housing high-level logic to (diff &) sync new Podsphere metadata onto
+ *   Arweave. Each new Transaction is wrapped in an {@link ArSyncTx} object, used to track and
+ *   update tx status, persistent through IndexedDB until the user clears the tx history entry.
+ *
+ * @description
+ *   - ArSync is Podsphere's main ES6-module for metadata synchronization with Arweave.
+ *
+ *   - ArSync functions as the highest-level mediator between Podsphere and the Arweave-JS API.
+ *
+ *   - It integrates all required logic for creating, fetching and tracking any new transactions.
+ *     - Currently these comprise incremental podcast metadata or user threads/replies.
+ *     - Future tx types may be as easy to add as expanding {@link extractNonMetadataBatchesToSync}.
+ *
+ *   - NOTE: It is not a true RESTful API, due to its present ties with React, primarily through
+ *     [ArweaveProvider](../../../providers/arweave.tsx). If we decide TODO build such an API,
+ *     ArSync should be seamlessly refactorable: mostly extracting a lot of logic into the new API
+ *     package; similar for `ArweaveProvider`. Many other dependencies like `diff-merge-logic` would
+ *     require too much rewiring if these were to also become isolated modules.
+ *
+ * @integrational_example
+ *   Getting metadata from subscribed feeds onto Arweave roughly flows through ArSync as follows:
+ *
+ *   > - User clicks Sync button => [ArweaveProvider#prepareSync](../../../providers/arweave.tsx):
+ *     1. Refreshes all `subscriptions` & updates `metadataToSync` with the new diffs
+ *     2. Calls {@linkcode initSync()} which returns initialized txs
+ *     3. Updates `ArweaveProvider.arSyncTxs` with the initialized txs
+ *
+ *   > - User inspects the Transactions tab & clicks Sync again =>
+ *       [ArweaveProvider#startSync](../../../providers/arweave.tsx):
+ *     1. Calls {@linkcode startSync()} which returns new `arSyncTxs`, where each previously
+ *        initialized tx now has a new status of either POSTED or ERRORED
+ *     2. Calls {@linkcode formatNewMetadataToSync()} which returns new `metadataToSync`, which is
+ *        a diff vs the old one, where each POSTED or CONFIRMED tx has its (podcast/thread)
+ *        metadata omitted
+ *
+ *   > - `ArweaveProvider` periodically updates the status of each tx
+ *
+ * @implements Notable intrinsic interfaces/types:
+ *   - {@linkcode ArSyncTx}
+ *     Main data structure used to track an Arweave transaction through its various stages.
+ *   - {@linkcode ArSyncTxStatus}
+ *     An enum used to track & update status of an ArSyncTx throughout each stage of its lifecycle.
+ *
+ * @version 1.5
+ * @versions
+ *   *   `1.5` Sync Threads and ThreadReplies
+ *   *   `1.4` Integrate Transaction Cache, which ArSync and others concurrently use to e.g.:
+ *         - cache subset `CachedArTx['tags'] + GraphQLMetadata` of the GQL response.
+ *         - for cached txs, avoid fetching their tags/data each refresh
+ *         - filter `*id`s with unwanted metadata (f.i. erronous ones are flagged `txBlocked`)
+ *         - map `txId`s to `tags.metadataBatch` number, which aids chronologically sound indexing
+ *           of supplemental metadata on top of existing batches.
+ *         - avoid fetching `txId`s whose aggregate metadata is already cached in subscriptions
+ *   * `1.3.2` Change metadata primary key from subcribeUrl to uuid
+ *   * `1.3.1` Add tests for 1.3
+ *   *   `1.3`
+ *         - Partition metadata batches by gzipped size < 100KB
+ *         - Implement IndexedDB tables for metadataToSync and arSyncTxs
+ *   *   `1.2` Show transaction status
+ *   *   `1.1` Add tests, data validation and sanity checks
+ *   *   `1.0` Support segmented sync of podcast metadata
+ *   *   `0.7` Remove ArweaveSyncProvider, refactor ArSync logic
+ *   *   `0.6` Improve tests, sanity checks, helper functions
+ *   *   `0.5` Support seeding, posting and fetching of incremental episode metadata batches
+ *
+ * @license AGPLv3
+ * @author https://github.com/Davdxv 2021-2022
+ */
+const ArSync = Object.freeze({ initSync, startSync, formatNewMetadataToSync });
+export default ArSync;
 
-export async function initArSyncTxs(
+/** Max size of compressed metadata per transaction (including tags) */
+const MAX_BATCH_SIZE = 96 /* KiloBytes */ * 1024;
+
+/**
+ * @interface PartitionedBatch
+ * @description Transient local precursor to an exported & IDB-cached {@linkcode ArSyncTx}.
+ *   Comprises notably the pre-computed `compressedMetadata`, `tags` params required by
+ *   {@linkcode newTransactionFromCompressedMetadata}.
+ * @prop {string} podcastId uuid of the relevant podcast `= metadata.id`
+ * @prop {string} kind
+ * @prop {string} title?
+ * @prop {Partial<Podcast> | Post} metadata
+ * @prop {number} numEpisodes
+ * @prop {Uint8Array} compressedMetadata?
+ * @prop {ArweaveTag[]} tags?
+ */
+interface PartitionedBatch extends
+  Pick<ArSyncTx, 'podcastId' | 'kind' | 'title' | 'metadata' | 'numEpisodes'> {
+  cachedMetadata?: Partial<Podcast>;
+  compressedMetadata?: Uint8Array;
+  tags?: ArweaveTag[];
+}
+
+/**
+ * Subset of the {@link PartitionedBatch} interface.
+ * Its `kind` prop is narrowed down to {@link NonMetadataTxKind}.
+ */
+interface NonMetadataBatch extends Omit<PartitionedBatch, 'kind'> {
+  kind: NonMetadataTxKind;
+}
+
+/**
+ * Initializes Arweave transactions from the current `metadataToSync`.
+ * @returns An {@linkcode ArSyncTx} array where each element is an INITIALIZED | ERRORED tx
+ * @exported @memberof {@linkcode ArSync}
+ */
+async function initSync(
   subscriptions: Podcast[],
   metadataToSync: Partial<Podcast>[],
-  wallet: JWKInterface | WalletDeferredToArConnect,
+  wallet: WalletTypes,
   maxBatchSize: number | null = MAX_BATCH_SIZE,
-)
-  : Promise<ArSyncTx[]> {
-  let result : ArSyncTx[] = [];
-  const partitionedBatches : PartitionedBatch[] = [];
+) : Promise<ArSyncTx[]> {
+  // A transaction will be created for each PartitionedBatch
+  const metadataBatches : PartitionedBatch[] = [];
+  const otherBatches : NonMetadataBatch[] = [];
 
-  metadataToSync.forEach(podcastMetadataToSync => {
-    let cachedMetadata : Partial<Podcast> = {};
-    if (hasMetadata(podcastMetadataToSync)) {
+  metadataToSync.forEach(podcastToSync => {
+    const { id } = podcastToSync;
+    let { title } = podcastToSync;
+    if (hasMetadata(podcastToSync)) {
       try {
-        const { id } = podcastMetadataToSync;
-        if (!id) throw new Error('Could not find Podcast id.');
-        cachedMetadata = findMetadataById(id, subscriptions);
+        if (!id) throwDevError('Could not find Podcast id.', podcastToSync);
+        const cachedMetadata = findMetadataById(id, subscriptions);
+        title ||= cachedMetadata.title;
 
-        // A transaction will be created for each batchesToSync[i]
-        const batchesToSync = partitionMetadataBatches(cachedMetadata,
-          podcastMetadataToSync,
-          maxBatchSize);
-        partitionedBatches.push(...batchesToSync);
+        const { nonMetadataBatches, podcastMetadataToSync } =
+          extractNonMetadataBatchesToSync(podcastToSync, cachedMetadata);
+        otherBatches.push(...nonMetadataBatches);
+        metadataBatches
+          .push(...partitionMetadataBatches(cachedMetadata, podcastMetadataToSync, maxBatchSize));
       }
       catch (ex) {
-        const title = cachedMetadata.title || podcastMetadataToSync.title;
-        console.error(`Failed to sync ${title || podcastMetadataToSync.feedUrl} due to: ${ex}`);
+        console.error(`Failed to sync ${title || podcastToSync.feedUrl} due to: ${ex}\n\n`
+          + 'This might be caused by having unsubscribed from a feed with pending Sync data.');
+        // TODO: confirm error message reason & solve cause
       }
     }
   });
 
-  result = await Promise.all(partitionedBatches.map(async batch => {
-    let newTxResult : Transaction | Error;
-    try {
-      newTxResult = await newTransactionFromCompressedMetadata(
-        wallet, batch.compressedMetadata, batch.tags,
-      );
-    }
-    catch (ex) {
-      newTxResult = ex as Error;
-    }
-    const arSyncTx : ArSyncTx = {
-      id: uuid(),
-      podcastId: batch.podcastId,
-      kind: 'metadataBatch',
-      title: batch.title,
-      resultObj: newTxResult,
-      metadata: batch.metadata,
-      numEpisodes: batch.numEpisodes,
-      status: newTxResult instanceof Error ? ArSyncTxStatus.ERRORED : ArSyncTxStatus.INITIALIZED,
-      timestamp: unixTimestamp(),
-    };
-    return arSyncTx;
-  }));
-  console.debug('initArSyncTxs result:', result);
-
-  return result;
-}
-
-export async function startSync(
-  allTxs: ArSyncTx[],
-  wallet: JWKInterface | WalletDeferredToArConnect,
-)
-  : Promise<ArSyncTx[]> {
-  const result : ArSyncTx[] = [...allTxs];
-  await Promise.all(allTxs.map(async (tx, index) => {
-    if (isInitialized(tx)) {
-      let postedTxResult : Transaction | Error = tx.resultObj as Transaction;
-      let dispatchResult : DispatchResult | undefined;
+  const result : ArSyncTx[] =
+    await Promise.all([...metadataBatches, ...otherBatches].map(async b => {
+      let newTx : Transaction | Error;
       try {
-        if (usingArConnect()) {
-          dispatchResult = await dispatchTransaction(tx.resultObj as Transaction);
+        if (hasThreadTxKind(b)) {
+          newTx = await newThreadTransaction(wallet, b.metadata, b.cachedMetadata);
         }
-        else await signAndPostTransaction(tx.resultObj as Transaction, wallet);
+        else {
+          newTx = (isNotEmpty(b.compressedMetadata) && isNotEmpty(b.tags)
+            ? await newTransactionFromCompressedMetadata(wallet, b.compressedMetadata, b.tags)
+            : new Error('Transaction invalid due to missing metadata'));
+        }
       }
       catch (ex) {
-        postedTxResult = ex as Error;
+        newTx = ex as Error;
       }
-      const arSyncTx : ArSyncTx = {
-        ...tx,
-        dispatchResult,
-        resultObj: postedTxResult,
-        status: postedTxResult instanceof Error ? ArSyncTxStatus.ERRORED : ArSyncTxStatus.POSTED,
-      };
-      result[index] = arSyncTx;
-    }
-    else result[index] = tx;
-  }));
-  console.debug('startSync result:', result);
+      return {
+        id: uuid(),
+        podcastId: b.podcastId,
+        kind: b.kind,
+        title: b.title,
+        resultObj: newTx,
+        metadata: b.metadata,
+        numEpisodes: b.numEpisodes,
+        status: newTx instanceof Error ? ArSyncTxStatus.ERRORED : ArSyncTxStatus.INITIALIZED,
+        timestamp: unixTimestamp(),
+      } as ArSyncTx;
+    }));
 
+  console.debug('initSync result:', result);
   return result;
 }
 
 /**
- * @interface PartitionedBatch
- * @description
- *   An object that includes the `compressedMetadata` and `tags` params required by
- *   {@linkcode newTransactionFromCompressedMetadata}. Local precursor to an (exported) `ArSyncTx`.
- * @prop {string} podcastId uuid of the relevant podcast `= metadata.id`
- * @prop {string} title?
- * @prop {Partial<Podcast>} metadata
- * @prop {number} numEpisodes
- * @prop {Uint8Array} compressedMetadata
- * @prop {ArweaveTag[]} tags
+ * Since generation of metadata batches requires much more logic, this function first prepares
+ * the NonMetadataBatches, upon which the remaining `podcastMetadataToSync` serves to compute any
+ * metadata batches.
+ *
+ * @returns to {@linkcode initSync}:
+ *   - `podcastToSync` split into `nonMetadataBatches`, `podcastMetadataToSync`
  */
-interface PartitionedBatch extends
-  Pick<ArSyncTx, 'podcastId' | 'title' | 'metadata' | 'numEpisodes'> {
-  compressedMetadata: Uint8Array;
-  tags: ArweaveTag[];
+function extractNonMetadataBatchesToSync(
+  podcastToSync: Partial<Podcast>,
+  cachedMetadata: Partial<Podcast>,
+) : { nonMetadataBatches: NonMetadataBatch[], podcastMetadataToSync: Partial<Podcast> } {
+  const { threads, ...podcastMetadataToSync } = podcastToSync;
+  const nonMetadataBatches : NonMetadataBatch[] = [];
+
+  if (isNotEmpty(threads)) {
+    threads.forEach(post => {
+      if (isValidPost(post) && !post.isDraft) {
+        nonMetadataBatches.push({
+          podcastId: podcastToSync.id || '',
+          kind: isReply(post) ? 'threadReply' : 'thread' as NonMetadataTxKind,
+          title: podcastToSync.title || cachedMetadata.title || '',
+          numEpisodes: 0,
+          metadata: post,
+          cachedMetadata,
+        });
+      }
+    });
+  }
+  return { nonMetadataBatches, podcastMetadataToSync };
 }
 
 /**
@@ -175,11 +248,13 @@ interface PartitionedBatch extends
  * @param podcastMetadataToSync
  * @param episodesToSync
  * @param maxBatchSize
- * @returns A {@linkcode PartitionedBatch} object that includes the `compressedMetadata` and `tags`
- *   params required by {@linkcode newTransactionFromCompressedMetadata()}.
- *   If `episodesToSync` does not fit within `maxBatchSize`, the resulting `metadata` and
- *   `compressedMetadata` objects comprise a subset of oldest `episodesToSync` that upon gzip
- *   compression best fits within `maxBatchSize`.
+ * @returns to {@linkcode partitionMetadataBatches}:
+ *   - A {@linkcode PartitionedBatch} object, notably comprising the pre-computed params that
+ *     {@linkcode newTransactionFromCompressedMetadata()} requires: `compressedMetadata`, `tags`.
+ *     - ArSync pre-computes these metadata params to ensure they comprise fresh diffs.
+ *     - Additionally, iff maxBatchSize is set (e.g. desired for ArConnect dispatch), these diffs
+ *       comprise the best-fitting subset of `episodesToSync` out of up to 10 candidates computed by
+ *       {@linkcode findNextOptimalBatch}.
  */
 const findNextBatch = (
   cachedMetadata: Partial<Podcast>,
@@ -226,7 +301,7 @@ const findNextBatch = (
         priorBatchMetadata,
       );
 
-      const tags = formatTags(diff, cachedMetadata);
+      const tags = formatMetadataTxTags(diff, cachedMetadata);
       const tagsSize = calculateTagsSize(tags);
       const gzip : Uint8Array = compressMetadata(diff);
 
@@ -273,6 +348,7 @@ const findNextBatch = (
   const podcastId = podcastMetadataToSync.id || cachedMetadata.id || '';
   let result : PartitionedBatch = {
     podcastId,
+    kind: 'metadataBatch',
     title: podcastMetadataToSync.title || cachedMetadata.title || '',
     numEpisodes: episodesToSync.length,
     metadata: { ...allMetadataDiff, id: removePrefixFromPodcastId(podcastId) },
@@ -285,7 +361,7 @@ const findNextBatch = (
       result.metadata = withMetadataBatchNumber(result.metadata, cachedMetadata);
     }
     result.compressedMetadata = compressMetadata(result.metadata);
-    result.tags = formatTags(result.metadata, cachedMetadata);
+    result.tags = formatMetadataTxTags(result.metadata, cachedMetadata);
   }
   else {
     result = findNextOptimalBatch(result);
@@ -300,9 +376,11 @@ const findNextBatch = (
  * @param cachedMetadata
  * @param podcastMetadataToSync
  * @param maxBatchSize
- * @returns An array of partitioned `podcastMetadataToSync`, which when merged should equal
- *   `podcastMetadataToSync`. If `!maxBatchSize` or there are no episodes to sync, returns an array
- *   with one all-encompassing `PartitionedBatch`.
+ * @returns to {@linkcode initSync}:
+ *   - An array of partitioned `podcastMetadataToSync`, which when merged should equal
+ *   `podcastMetadataToSync`.
+ *     - If `!maxBatchSize` or there are no episodes to sync, returns an array with one
+ *       all-encompassing {@linkcode PartitionedBatch}.
  */
 function partitionMetadataBatches(
   cachedMetadata: Partial<Podcast>,
@@ -331,11 +409,53 @@ function partitionMetadataBatches(
   return batches.filter(batch => hasMetadata(batch.metadata));
 }
 
-export function formatNewMetadataToSync(
-  allTxs: ArSyncTx[],
-  prevMetadataToSync: Partial<Podcast>[] = [],
-) : Partial<Podcast>[] {
-  let diffs = prevMetadataToSync;
+/**
+ * Dispatches or signs and posts the `allTxs` that were initialized through {@linkcode initSync()}.
+ * @returns `allTxs` where each initialized tx now has a new status: POSTED or ERRORED
+ * @exported @memberof {@linkcode ArSync}
+ */
+async function startSync(allTxs: ArSyncTx[], wallet: WalletTypes) : Promise<ArSyncTx[]> {
+  const result : ArSyncTx[] = [...allTxs];
+  await Promise.all(allTxs.map(async (tx, index) => {
+    if (isInitialized(tx)) {
+      let postedTxResult : Transaction | Error = tx.resultObj as Transaction;
+      let dispatchResult : DispatchResult | undefined;
+      try {
+        if (usingArConnect()) {
+          dispatchResult = await dispatchTransaction(tx.resultObj as Transaction);
+        }
+        else await signAndPostTransaction(tx.resultObj as Transaction, wallet);
+      }
+      catch (ex) {
+        postedTxResult = ex as Error;
+      }
+      result[index] = {
+        ...tx,
+        dispatchResult,
+        resultObj: postedTxResult,
+        status: postedTxResult instanceof Error ? ArSyncTxStatus.ERRORED : ArSyncTxStatus.POSTED,
+      };
+    }
+    else result[index] = tx;
+  }));
+  console.debug('startSync result:', result);
+
+  return result;
+}
+
+/**
+ * Called after {@linkcode startSync()} by `ArweaveProvider`.
+ * @param allTxs all POSTED | CONFIRMED arSyncTxs currently present the local browser tx history
+ * @param prevMetadataToSync The outdated metadataToSync state var
+ * @returns `prevMetadataToSync` where fields that overlap (have diff) with the respective metadata
+ *   in `allTxs` are omitted.
+ *   TODO: Does not preserve order. This is fine if we implement CRUD timestamp & order txs by that.
+ * @exported @memberof {@linkcode ArSync}
+ */
+function formatNewMetadataToSync(allTxs: ArSyncTx[], prevMetadataToSync: Partial<Podcast>[] = [])
+  : Partial<Podcast>[] {
+  console.debug('formatNewMetadataToSync prevMetadataToSync:', prevMetadataToSync);
+  let diffs = [...prevMetadataToSync];
   allTxs.forEach(tx => {
     if (isPosted(tx) || isConfirmed(tx)) {
       const { podcastId, metadata } = tx;
@@ -345,13 +465,13 @@ export function formatNewMetadataToSync(
         newDiff = rightDiff(metadata, prevPodcastToSyncDiff, ['id', 'feedType', 'feedUrl']);
       }
 
-      const { threads } = prevPodcastToSyncDiff;
-      const newDiffWithThreads = isNotEmpty(threads) ? { ...newDiff, id: podcastId, threads } :
-        { ...newDiff };
+      if (hasThreadTxKind(tx)) newDiff = removePostFromPodcast(tx.metadata, newDiff);
+
       diffs = diffs.filter(oldDiff => oldDiff.id !== podcastId);
-      if (hasMetadata(newDiffWithThreads)) diffs.push(newDiffWithThreads);
+      if (hasMetadata(newDiff)) diffs.push(newDiff);
     }
   });
 
+  console.debug('formatNewMetadataToSync returned:', diffs);
   return diffs;
 }

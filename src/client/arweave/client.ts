@@ -1,37 +1,44 @@
 import Arweave from 'arweave';
-import { ApiConfig } from 'arweave/node/lib/api.d';
+import { ApiConfig } from '../interfaces';
 import { usingArLocal } from './utils';
 
 declare global {
   interface Window {
-    arApi : Arweave;
+    arApi: Arweave;
   }
 }
 
-const ARLOCAL_CONFIG : ApiConfig = {
+const TX_BASE_URL : Readonly<string> = 'https://arweave.net/';
+
+const ARLOCAL_CONFIG : Readonly<ApiConfig> = Object.freeze({
   host: 'localhost',
   port: 1984,
   protocol: 'http',
   timeout: 20000,
   logging: true,
-} as const;
+});
 
-const MAINNET_CONFIG : ApiConfig = {
+const MAINNET_CONFIG : Readonly<ApiConfig> = Object.freeze({
   host: 'arweave.net',
   port: 443,
   protocol: 'https',
   timeout: 20000,
   logging: true, // TODO: switch to false in production?
-} as const;
+});
 
-const client = Arweave.init(usingArLocal() ? ARLOCAL_CONFIG : MAINNET_CONFIG);
+const INITIAL_CONFIG = usingArLocal() ? ARLOCAL_CONFIG : MAINNET_CONFIG;
+
+const client = Arweave.init(INITIAL_CONFIG);
 if (typeof window !== 'undefined') window.arApi = client;
 
 export default client;
 
-export function formatArweaveUrl(path = '') : string {
+/** @returns The `ApiConfig` currently being used with the Arweave client */
+export function getApiConfig() : Readonly<ApiConfig> {
   const cfg : ApiConfig = client.getConfig().api;
-  const protocol = cfg.protocol || 'https';
-  const host = cfg.host || 'arweave.net';
-  return `${protocol}://${host}/${path}`;
+  return cfg.host && cfg.port && cfg.protocol ? Object.freeze(cfg) : INITIAL_CONFIG;
+}
+
+export function formatArweaveUrl(path = '') : string {
+  return `${TX_BASE_URL}${path}`;
 }

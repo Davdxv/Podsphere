@@ -4,7 +4,10 @@ import {
   strFromU8,
   strToU8,
 } from 'fflate';
-import { isNotEmpty, podcastFromDTO, podcastToDTO } from '../../utils';
+import {
+  findThreadInMetadata, isNotEmpty, isReply,
+  podcastFromDTO, podcastToDTO,
+} from '../../utils';
 import {
   ArSyncTx,
   ArSyncTxDTO,
@@ -12,15 +15,15 @@ import {
   ArweaveTag,
   CachedArTx,
   DispatchResultDTO,
-  MetadataTransactionKind,
+  MetadataTxKind,
   METADATA_TX_KINDS,
   Podcast,
   PodcastDTO,
-  ThreadTransactionKind,
+  Post,
+  ThreadTxKind,
   THREAD_TX_KINDS,
   TransactionDTO,
-  TransactionKind,
-  TRANSACTION_KINDS,
+  TxKind,
 } from '../interfaces';
 
 const PLURAL_TAG_MAP = {
@@ -50,16 +53,10 @@ export function fromTag(tagName: string) {
  */
 export function calculateTagsSize(tags: ArweaveTag[]) : number {
   const tagPrefixesSize = tags.length * toTag('').length;
-  const tagsSize = tags.flat().reduce((acc: number, str: string | undefined) => (
-    acc + (str ? str.length : 0)), 0);
+  const tagsSize =
+    tags.flat().reduce((acc: number, str: string | undefined) => (acc + (str ? str.length : 0)), 0);
   return tagPrefixesSize + tagsSize;
 }
-
-export const isMetadataTx = (kind: TransactionKind) => METADATA_TX_KINDS
-  .includes(kind as MetadataTransactionKind);
-
-export const isThreadTx = (kind: TransactionKind) => THREAD_TX_KINDS
-  .includes(kind as ThreadTransactionKind);
 
 export function compressMetadata(metadata: Partial<Podcast>) : Uint8Array {
   const u8data = strToU8(JSON.stringify(metadata));
@@ -90,6 +87,33 @@ export const statusToString = (status: ArSyncTxStatus) => {
   }
 };
 
+export const arSyncTxToString = (tx: ArSyncTx, subscriptions: Podcast[] = [],
+  metadataToSync: Partial<Podcast>[] = []) : string => {
+  if (hasThreadTxKind(tx)) {
+    const post = tx.metadata;
+    if (isReply(post)) {
+      const parent = findThreadInMetadata(post.parentThreadId, subscriptions, metadataToSync);
+      return parent ? `RE: ${parent.subject}` : 'Reply';
+    }
+    return `${post.subject}`;
+  }
+  return `${tx.numEpisodes} new episodes`;
+};
+
+/** @returns Whether the given `kind` is a `MetadataTxKind` */
+export const isMetadataTx = (kind: TxKind | undefined) : kind is MetadataTxKind => !!kind
+  && METADATA_TX_KINDS.includes(kind as MetadataTxKind);
+
+/** @returns Whether the given `kind` is a `ThreadTxKind` */
+export const isThreadTx = (kind: TxKind | undefined) : kind is ThreadTxKind => !!kind
+  && THREAD_TX_KINDS.includes(kind as ThreadTxKind);
+
+export const hasMetadataTxKind = <T extends Pick<CachedArTx, 'kind'>>(tx: T)
+  : tx is T & { metadata: Partial<Podcast> } => isMetadataTx(tx.kind);
+
+export const hasThreadTxKind = <T extends Pick<CachedArTx, 'kind'>>(tx: T)
+  : tx is T & { metadata: Post } => isThreadTx(tx.kind);
+
 export const isErrored = (tx: ArSyncTx) => tx.status === ArSyncTxStatus.ERRORED;
 export const isNotErrored = (tx: ArSyncTx) => tx.status !== ArSyncTxStatus.ERRORED;
 export const isInitialized = (tx: ArSyncTx) => tx.status === ArSyncTxStatus.INITIALIZED;
@@ -101,33 +125,36 @@ export const isNotConfirmed = (tx: ArSyncTx) => tx.status !== ArSyncTxStatus.CON
 export const isBundled = (tx: ArSyncTx) => isNotEmpty(tx.dispatchResult)
   && tx.dispatchResult.type === 'BUNDLED';
 
-export const hasValidKind = (tx: ArSyncTx | CachedArTx) => tx.kind
-  && TRANSACTION_KINDS.includes(tx.kind);
-
 /**
  * TODO: Some ArSyncTx-related functions can be refactored to return only the modified ArSyncTxs
  *       and call this function in the caller of those.
  * @param oldArSyncTxs
- * @param updatedArSyncTxs Assumed to be a subset of `oldArSyncTxs`
+ * @param updatedArSyncTxs NOTE: Assumed to be a subset of `oldArSyncTxs`
  * @returns The `oldArSyncTxs` where each of the `updatedArSyncTxs` is updated in-place.
  */
-export const mergeArSyncTxs = (oldArSyncTxs: ArSyncTx[], updatedArSyncTxs: ArSyncTx[])
-: ArSyncTx[] => oldArSyncTxs.map(oldElem => updatedArSyncTxs.find(newElem => newElem.id
-  === oldElem.id) || oldElem);
+export const updateArSyncTxs = (oldArSyncTxs: ArSyncTx[], updatedArSyncTxs: ArSyncTx[])
+: ArSyncTx[] => oldArSyncTxs.map(oldElem => updatedArSyncTxs
+  .find(newElem => newElem.id === oldElem.id) || oldElem);
 
 /**
- * @returns The id of the Arweave Transaction associated with the given ArSyncTx object;
- *   returns an empty string if not found.
+ * @returns - The id of the Arweave Transaction associated with the given ArSyncTx object;
+ *   - an empty string if not found.
  */
-export const getTxId = (tx: ArSyncTx) : string => (isBundled(tx) ? tx.dispatchResult!.id
+export const getLayer1TxId = (tx: ArSyncTx) : string => (isBundled(tx) ? tx.dispatchResult!.id
   : (tx.resultObj as TransactionDTO).id) || '';
 
 /**
- * @returns The id of the parent ArBundle Arweave Transaction enclosing the ArBundled Transaction
- *   associated with the given ArSyncTx object; returns an empty string if not found.
+ * @returns - The id of the parent ArBundle Arweave Transaction enclosing the ArBundled Transaction;
+ *   - an empty string if not found.
  */
-export const getBundleTxId = (tx: ArSyncTx) : string => (isNotEmpty(tx.dispatchResult)
+export const getLayer2TxId = (tx: ArSyncTx) : string => (isNotEmpty(tx.dispatchResult)
   ? (tx.dispatchResult as DispatchResultDTO).bundledIn : '') || '';
+
+/**
+ * @returns - The ArBundled tx id if there is one, else returns the main tx id;
+ *   - an empty string if neither are present.
+ */
+export const getTxId = (tx: ArSyncTx) : string => getLayer2TxId(tx) || getLayer1TxId(tx);
 
 /**
  * @param arSyncTxs
@@ -195,12 +222,12 @@ export function arSyncTxsFromDTO(arSyncTxs: ArSyncTxDTO[], throwOnError = false)
   return result;
 }
 
-/** Defaults to true, if process.env.REACT_APP_USE_ARCONNECT != false */
+/** Defaults to true, if `process.env.REACT_APP_USE_ARCONNECT != false` */
 export function usingArConnect() : boolean {
   return (process.env.REACT_APP_USE_ARCONNECT as string) !== 'false';
 }
 
-/** Defaults to false, if process.env.REACT_APP_USE_ARLOCAL != true */
+/** Defaults to false, if `process.env.REACT_APP_USE_ARLOCAL != true` */
 export function usingArLocal() : boolean {
   return (process.env.REACT_APP_USE_ARLOCAL as string) === 'true';
 }

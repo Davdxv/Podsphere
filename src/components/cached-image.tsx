@@ -10,9 +10,9 @@ import PlaceholderImage from '../assets/placeholder-52x52.png';
 
 type CachedImg = {
   src: string;
-  tData?: string;
-  tWidth?: number;
-  tHeight?: number;
+  tData?: string; // b64 encoded img
+  tWidth?: number; // Cached image (thumbnail) width
+  tHeight?: number; // Cached image (thumbnail) height
 };
 
 interface Props extends Omit<CachedImg, 'tData'>,
@@ -72,6 +72,7 @@ const CachedImage : React.FC<Props> = ({ src, alt, classes, tWidth, tHeight, ...
 
       const img = document.createElement('img');
       img.crossOrigin = 'anonymous';
+      img.referrerPolicy = 'origin';
       img.decoding = 'async';
       img.onload = () => {
         let b64Url;

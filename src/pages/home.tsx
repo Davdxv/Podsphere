@@ -4,7 +4,8 @@ import {
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import {
-  Episode, NewThread, Podcast,
+  Podcast, Thread,
+  // ThreadReply,
 } from '../client/interfaces';
 import { findMetadataByFeedUrl, hasMetadata } from '../utils';
 import { SubscriptionsContext } from '../providers/subscriptions';
@@ -28,6 +29,13 @@ interface TabPanelProps {
   className?: string;
 }
 
+enum TAB {
+  SUBS = 0,
+  TXS,
+  THREADS,
+  DRAFTS,
+}
+
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, className, ...other } = props;
 
@@ -45,7 +53,7 @@ function TabPanel(props: TabPanelProps) {
 
 function HomePage() {
   const {
-    handleCreateThread,
+    handleCreatePost,
     handleDiscardThread,
     handleSearch,
     handleFetchPodcastRss2Feed,
@@ -57,9 +65,9 @@ function HomePage() {
     subscribe,
     unsubscribe,
   } = useContext(SubscriptionsContext);
-  const { arSyncTxs, isSyncing, removeArSyncTxs } = useContext(ArweaveContext);
+  const { arSyncTxs, hasPendingTxs, isSyncing, removeArSyncTxs } = useContext(ArweaveContext);
 
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState<TAB>(TAB.SUBS);
   const [searchQuery, setSearchQuery] = useState('');
 
   const [selectedPodcastId, setSelectedPodcastId] = useState<string | null>(null);
@@ -74,7 +82,7 @@ function HomePage() {
   const [createThreadEpisodeId, setCreateThreadEpisodeId] = useState<Date | null>(null);
 
   const [showSavePrompt, setShowSavePrompt] = useState(false);
-  const [threadDraft, setThreadDraft] = useState<NewThread | null>(null);
+  const [threadDraft, setThreadDraft] = useState<Thread | null>(null);
 
   const isSubscribed = (feedUrl: string = selectedPodcastId || '') => hasMetadata(
     findMetadataByFeedUrl(feedUrl, 'rss2', subscriptions),
@@ -122,13 +130,13 @@ function HomePage() {
   };
 
   const handleShowCreateThreadDialog = (_event: React.MouseEvent<unknown>, podcastId: Podcast['id'],
-    episodeId: Episode['publishedAt'] | null) => {
+    episodeId: Thread['episodeId']) => {
     setCreateThreadPodcastId(podcastId);
     setCreateThreadEpisodeId(episodeId);
     setShowCreateThreadDialog(true);
   };
 
-  const handleShowEditThreadDialog = (_event: React.MouseEvent<unknown>, draft: NewThread) => {
+  const handleShowEditThreadDialog = (_event: React.MouseEvent<unknown>, draft: Thread) => {
     setThreadDraft(draft);
     setCreateThreadPodcastId(draft.podcastId);
     setCreateThreadEpisodeId(draft.episodeId);
@@ -142,7 +150,7 @@ function HomePage() {
     setCreateThreadEpisodeId(null);
   };
 
-  const handleOpenSavePrompt = (draft: NewThread) => {
+  const handleOpenSavePrompt = (draft: Thread) => {
     setThreadDraft(draft);
     setShowSavePrompt(true);
   };
@@ -151,11 +159,12 @@ function HomePage() {
     setShowSavePrompt(false);
   };
 
-  const handleSubmitThread = (thread: NewThread) => {
+  const handleSubmitThread = (thread: Thread) => {
     if (thread) {
       toast.success('Thread saved in browser storage.\n\nTo upload it to Arweave, tap the Sync '
         + 'button twice.\n\nYou may still edit or discard it from the Drafts tab.');
-      handleCreateThread(thread);
+      setTab(TAB.DRAFTS);
+      handleCreatePost(thread);
       handleCloseCreateThreadDialog();
     }
   };
@@ -164,7 +173,8 @@ function HomePage() {
     if (threadDraft) {
       toast.success('Draft saved in browser storage.\n\nYou can edit, submit or discard it from '
         + 'the Drafts tab.');
-      handleCreateThread(threadDraft);
+      setTab(TAB.DRAFTS);
+      handleCreatePost(threadDraft);
     }
     setShowSavePrompt(false);
     handleCloseCreateThreadDialog();
@@ -180,7 +190,7 @@ function HomePage() {
   };
 
   useEffect(() => {
-    if (isSyncing) setTab(1);
+    if (isSyncing) setTab(TAB.TXS);
   }, [isSyncing]);
 
   useEffect(() => {
@@ -221,7 +231,7 @@ function HomePage() {
             </Tabs>
           </Box>
 
-          <TabPanel className={style['tab-panel']} value={tab} index={0}>
+          <TabPanel className={style['tab-panel']} value={tab} index={TAB.SUBS}>
             <PodcastList
               subscriptions={subscriptions}
               unsubscribe={unsubscribe}
@@ -229,25 +239,27 @@ function HomePage() {
             />
           </TabPanel>
 
-          <TabPanel className={style['tab-panel']} value={tab} index={1}>
+          <TabPanel className={style['tab-panel']} value={tab} index={TAB.TXS}>
             <TransactionList
               subscriptions={subscriptions}
+              metadataToSync={metadataToSync}
               txs={arSyncTxs}
               removeArSyncTxs={removeArSyncTxs}
             />
           </TabPanel>
 
-          <TabPanel className={style['tab-panel']} value={tab} index={2}>
+          <TabPanel className={style['tab-panel']} value={tab} index={TAB.THREADS}>
             <div />
           </TabPanel>
 
-          <TabPanel className={style['tab-panel']} value={tab} index={3}>
+          <TabPanel className={style['tab-panel']} value={tab} index={TAB.DRAFTS}>
             <DraftList
               subscriptions={subscriptions}
               metadataToSync={metadataToSync}
+              hasPendingTxs={hasPendingTxs}
               handleShowEditThreadDialog={handleShowEditThreadDialog}
               handleOpenSavePrompt={handleOpenSavePrompt}
-              handleCreateThread={handleCreateThread}
+              handleCreatePost={handleCreatePost}
             />
           </TabPanel>
         </Box>

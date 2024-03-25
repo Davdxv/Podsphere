@@ -1,8 +1,8 @@
 import { Podcast } from '../../interfaces';
-import { isNotEmpty } from '../../../utils';
+import { isEmpty } from '../../../utils';
 import {
   isCandidatePodcastId,
-  isValidUuid,
+  isValidPodcastId,
   newCandidatePodcastId,
 } from '../../../podcast-id';
 import { fetchPodcastId } from '../graphql-ops';
@@ -14,7 +14,7 @@ export const idCache : IdMapping[] = [];
 
 const isValidMapping = (mapping : IdMapping) => {
   const { id, feedType, feedUrl, ...otherProps } = mapping;
-  return isValidUuid(id) && feedType && feedUrl && !isNotEmpty(otherProps);
+  return isValidPodcastId(id) && feedType && feedUrl && isEmpty(otherProps);
 };
 
 export function metadataToIdMappings(metadata: Podcast[] = []) : IdMapping[] {

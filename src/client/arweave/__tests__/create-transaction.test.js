@@ -1,6 +1,11 @@
+import { v4 as uuid } from 'uuid';
 import { strToU8, compressSync } from 'fflate';
 import * as TxCache from '../cache/transactions';
-import { formatTags, newTransactionFromMetadata } from '../create-transaction';
+import {
+  formatMetadataTxTags,
+  newThreadTransaction,
+  newTransactionFromMetadata,
+} from '../create-transaction';
 import { toTag } from '../utils';
 // eslint-disable-next-line import/named
 import { addTag, createTransaction } from '../client';
@@ -136,47 +141,47 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  TxCache.initializeTxCache([]);
+  TxCache.initializeTxCache();
 });
+
+function assertAddTagCalls(expectedTags) {
+  const formattedExpectedTags = [
+    ['App-Name', 'testPodsphere'],
+    ['App-Version', 'testVersion'],
+    ['Content-Type', 'application/gzip'],
+    ['Unix-Time', `${MOCK_TIMESTAMP}`],
+  ].concat(expectedTags.map(([k, v]) => [toTag(k), v]));
+
+  expect(addTag.mock.calls).toEqual(formattedExpectedTags);
+}
+
+const withAndWithoutArConnect = assertTest => {
+  describe('With ArConnect disabled', () => {
+    assertTest();
+  });
+
+  describe('With ArConnect enabled', () => {
+    beforeAll(() => { global.enableArConnect(); });
+
+    afterAll(() => { global.disableArConnect(); });
+
+    assertTest({ useArConnect: true });
+  });
+};
 
 /**
  * newTransactionFromCompressedMetadata() is implicitly tested through newTransactionFromMetadata()
  */
 describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () => {
-  function assertAddTagCalls(expectedTags) {
-    const formattedExpectedTags = [
-      ['App-Name', 'testPodsphere'],
-      ['App-Version', 'testVersion'],
-      ['Content-Type', 'application/gzip'],
-      ['Unix-Time', `${MOCK_TIMESTAMP}`],
-    ].concat(expectedTags.map(([k, v]) => [toTag(k), v]));
-
-    expect(addTag.mock.calls).toEqual(formattedExpectedTags);
-  }
-
-  const withAndWithoutArConnect = assertTest => {
-    describe('With ArConnect disabled', () => {
-      assertTest();
-    });
-
-    describe('With ArConnect enabled', () => {
-      beforeAll(() => { global.enableArConnect(); });
-
-      afterAll(() => { global.disableArConnect(); });
-
-      assertTest({ useArConnect: true });
-    });
-  };
-
   describe('When there is no cached metadata yet for the podcast to be posted to Arweave', () => {
     const assertTest = (modifiers = { useArConnect: false }) => {
       it('creates a transaction with the expected metadata and tags', async () => {
         const expectedMetadata = newMetadata();
         const expectedTags = [
           ['id', removePrefixFromPodcastId(PODCAST_ID)],
+          ['kind', 'metadataBatch'],
           ['feedType', 'rss2'],
           ['feedUrl', 'https://server.dummy/foo'],
-          ['kind', 'metadataBatch'],
           ['title', 'newTitle'],
           ['description', 'newDescription'],
           ['language', 'en-us'],
@@ -218,9 +223,9 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
         const expectedMetadata = newMetadata({ episodes: allEpisodes.slice(0, 2) });
         const expectedTags = [
           ['id', removePrefixFromPodcastId(PODCAST_ID)],
+          ['kind', 'metadataBatch'],
           ['feedType', 'rss2'],
           ['feedUrl', 'https://server.dummy/foo'],
-          ['kind', 'metadataBatch'],
           ['title', 'newTitle'],
           ['description', 'newDescription'],
           ['language', 'en-us'],
@@ -266,9 +271,9 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
         const expectedMetadata = newMetadata({ episodes: allEpisodes.slice(2, 4) });
         const expectedTags = [
           ['id', removePrefixFromPodcastId(PODCAST_ID)],
+          ['kind', 'metadataBatch'],
           ['feedType', 'rss2'],
           ['feedUrl', 'https://server.dummy/foo'],
-          ['kind', 'metadataBatch'],
           ['title', 'newTitle'],
           ['description', 'newDescription'],
           ['language', 'en-us'],
@@ -327,9 +332,9 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
         const expectedMetadata = newMetadata({ episodes: allEpisodes.slice(0, 1) });
         const expectedTags = [
           ['id', removePrefixFromPodcastId(PODCAST_ID)],
+          ['kind', 'metadataBatch'],
           ['feedType', 'rss2'],
           ['feedUrl', 'https://server.dummy/foo'],
-          ['kind', 'metadataBatch'],
           ['title', 'newTitle'],
           ['description', 'newDescription'],
           ['language', 'en-us'],
@@ -437,13 +442,172 @@ describe('newTransactionFromMetadata, newTransactionFromCompressedMetadata', () 
       });
 
       it('throws an Error if the kind is missing or invalid', () => {
-        expect(() => formatTags(mandatoryMetadata, {}, 'invalidKind')).toThrow(/kind is missing/);
-        expect(() => formatTags(mandatoryMetadata, {}, 1)).toThrow(/kind is missing/);
+        expect(() => formatMetadataTxTags(mandatoryMetadata, {}, 'ABC')).toThrow(/kind is missing/);
+        expect(() => formatMetadataTxTags(mandatoryMetadata, {}, 1)).toThrow(/kind is missing/);
       });
 
       it('throws an Error if the title is missing', async () => {
         const { title, ...insufficientMetadata } = mandatoryMetadata;
         return assertThrow(insufficientMetadata, /title is missing/);
+      });
+    });
+  });
+});
+
+describe('newThreadTransaction', () => {
+  describe('New Thread', () => {
+    const THREAD = {
+      isDraft: false,
+      id: uuid(),
+      podcastId: uuid(),
+      episodeId: new Date(ep1date),
+      type: 'public',
+      content: '0123456789'.repeat(500),
+      subject: 'My Subject',
+      timestamp: MOCK_TIMESTAMP,
+    };
+
+    const assertTest = (modifiers = { useArConnect: false }) => {
+      it('creates a transaction with the expected thread and tags', async () => {
+        const expectedTags = [
+          ['id', THREAD.podcastId],
+          ['kind', 'thread'],
+          ['threadId', THREAD.id],
+          ['type', THREAD.type],
+          ['content', expect.stringContaining(THREAD.content.substring(0, 2048))],
+          ['subject', THREAD.subject],
+          ['episodeId', ep1date],
+        ];
+
+        const result = await newThreadTransaction(stubbedWallet, THREAD, {});
+        expect(result).toEqual(mockResult);
+
+        expect(strToU8).toHaveBeenCalledWith(JSON.stringify(THREAD));
+        expect(compressSync).toHaveBeenCalled();
+
+        const params = modifiers.useArConnect
+          ? [{ data: MOCK_U8_METADATA }]
+          : [{ data: MOCK_U8_METADATA }, stubbedWallet];
+        expect(createTransaction).toHaveBeenCalledWith(...params);
+
+        assertAddTagCalls(expectedTags);
+      });
+    };
+
+    withAndWithoutArConnect(assertTest);
+
+    describe('Error handling', () => {
+      /** NOTE: test `return assertThrow()` to get a proper stack trace if test fails */
+      const assertThrow = async (erroneousThread, errorRegex) => {
+        await expect(newThreadTransaction(stubbedWallet, erroneousThread, {}))
+          .rejects.toThrow(errorRegex);
+
+        expect(createTransaction).not.toHaveBeenCalled();
+        expect(addTag).not.toHaveBeenCalled();
+      };
+
+      it('throws an Error if the thread id is invalid', async () => {
+        const insufficientMetadata = { ...THREAD, id: 'x' };
+        return assertThrow(insufficientMetadata, /threadId is missing/);
+      });
+
+      it('throws an Error if the podcast id is invalid', async () => {
+        const insufficientMetadata = { ...THREAD, podcastId: 'x' };
+        return assertThrow(insufficientMetadata, /id is missing/);
+      });
+
+      it('throws an Error if the thread type is invalid', async () => {
+        const insufficientMetadata = { ...THREAD, type: 'x' };
+        return assertThrow(insufficientMetadata, /type is missing/);
+      });
+
+      it('throws an Error if the subject is missing', async () => {
+        const { subject, ...insufficientMetadata } = THREAD;
+        return assertThrow(insufficientMetadata, /subject is missing/);
+      });
+
+      it('throws an Error if the content is missing', async () => {
+        const { content, ...insufficientMetadata } = THREAD;
+        return assertThrow(insufficientMetadata, /content is missing/);
+      });
+    });
+  });
+
+  describe('New Reply', () => {
+    const REPLY = {
+      isDraft: false,
+      id: uuid(),
+      podcastId: uuid(),
+      episodeId: null,
+      type: 'public',
+      content: 'My Reply',
+      parentThreadId: uuid(),
+      parentPostId: uuid(),
+      timestamp: MOCK_TIMESTAMP,
+    };
+
+    const assertTest = (modifiers = { useArConnect: false }) => {
+      it('creates a transaction with the expected reply and tags', async () => {
+        const expectedTags = [
+          ['id', REPLY.podcastId],
+          ['kind', 'threadReply'],
+          ['threadId', REPLY.id],
+          ['type', REPLY.type],
+          ['content', REPLY.content],
+          ['parentThreadId', REPLY.parentThreadId],
+          ['parentPostId', REPLY.parentPostId],
+        ];
+
+        const result = await newThreadTransaction(stubbedWallet, REPLY, {});
+        expect(result).toEqual(mockResult);
+
+        expect(strToU8).toHaveBeenCalledWith(JSON.stringify(REPLY));
+        expect(compressSync).toHaveBeenCalled();
+
+        const params = modifiers.useArConnect
+          ? [{ data: MOCK_U8_METADATA }]
+          : [{ data: MOCK_U8_METADATA }, stubbedWallet];
+        expect(createTransaction).toHaveBeenCalledWith(...params);
+
+        assertAddTagCalls(expectedTags);
+      });
+    };
+
+    withAndWithoutArConnect(assertTest);
+
+    describe('Error handling', () => {
+      /** NOTE: test `return assertThrow()` to get a proper stack trace if test fails */
+      const assertThrow = async (erroneousThread, errorRegex) => {
+        await expect(newThreadTransaction(stubbedWallet, erroneousThread, {}))
+          .rejects.toThrow(errorRegex);
+
+        expect(createTransaction).not.toHaveBeenCalled();
+        expect(addTag).not.toHaveBeenCalled();
+      };
+
+      it('throws an Error if the thread id is invalid', async () => {
+        const insufficientMetadata = { ...REPLY, id: 'x' };
+        return assertThrow(insufficientMetadata, /threadId is missing/);
+      });
+
+      it('throws an Error if the podcast id is invalid', async () => {
+        const insufficientMetadata = { ...REPLY, podcastId: 'x' };
+        return assertThrow(insufficientMetadata, /id is missing/);
+      });
+
+      it('throws an Error if the thread type is invalid', async () => {
+        const insufficientMetadata = { ...REPLY, type: 'x' };
+        return assertThrow(insufficientMetadata, /type is missing/);
+      });
+
+      it('throws an Error if the parent id is invalid', async () => {
+        const insufficientMetadata = { ...REPLY, parentThreadId: 'x' };
+        return assertThrow(insufficientMetadata, /parentThreadId is missing/);
+      });
+
+      it('throws an Error if the content is empty', async () => {
+        const insufficientMetadata = { ...REPLY, content: '' };
+        return assertThrow(insufficientMetadata, /content is missing/);
       });
     });
   });

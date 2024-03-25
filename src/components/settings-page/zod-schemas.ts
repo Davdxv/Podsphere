@@ -1,6 +1,5 @@
-import Transaction from 'arweave/node/lib/transaction';
 import { z } from 'zod';
-import { ArSyncTxStatus } from '../../client/interfaces';
+import { ArSyncTxStatus, Transaction } from '../../client/interfaces';
 
 const txKindsSchema = z.union([z.literal('metadataBatch'), z.literal('customMetadata')]);
 

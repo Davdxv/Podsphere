@@ -15,7 +15,7 @@ This is achieved organically, through mere use of any of the `core features`:
 - Catalogue your favorite podcast moments
   - Choose which ones to put up for public discussion and which ones to keep as private heirlooms
 
-Our goal is not just to provide a platform uniting these features, but to provide `permanent archival of all corresponding data`.  
+The goal is not just to provide a platform uniting these features, but to provide `permanent archival of all corresponding data`.  
 The `Arweave blockchain` facilitates this, conceivably for centuries to come:
 
 - Decentralization and cryptography fortify stored data against tampering, censorship and server outages
@@ -23,5 +23,11 @@ The `Arweave blockchain` facilitates this, conceivably for centuries to come:
 - Moreover, each user can always download a copy of their most valued data, providing them with a local back-up, as well as an organized journal
 
 ### Current version: v0.0.7 (alpha)
-Podsphere currently resides in a pre-prototype stage.
+Podsphere currently resides in a prototype stage. It has not been maintained since the end of 2022.
 The latest version of the code can be found right here, on the [development](https://github.com/Davdxv/Podsphere/tree/development) branch.
+
+The quickest way to test the current version of the app is to clone the repo and run:
+
+```
+$ node run startlocal
+```

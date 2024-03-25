@@ -87,7 +87,7 @@
     font-size: 2rem;
 
     &:hover, &:focus {
-      color: colors.$green-medium;
+      color: colors.$green-dark;
     }
   }
 }
@@ -179,6 +179,12 @@
     width: 0.7em;
     height: 0.7em;
   }
+
+  &--disabled {
+    &:hover {
+      background-color: unset;
+    }
+  }
 }
 
 .toggle-btn {
@@ -194,6 +200,11 @@
   background-color: transparent;
   color: colors.$text;
   font-size: 0.875rem;
+  opacity: 1;
+
+  &--disabled {
+    opacity: 0.5;
+  }
 
   &--on {
     color: colors.$green;
