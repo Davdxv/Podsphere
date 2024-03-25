@@ -268,9 +268,10 @@ export async function newThreadTransaction(
   post: Post,
   cachedMetadata: Partial<Podcast> = {},
 ) : Promise<Transaction> {
-  const id = post.podcastId;
-  const newCompressedMetadata : Uint8Array = compressMetadata(post);
-  const tags : ArweaveTag[] = formatThreadTxTags(post, { ...cachedMetadata, id });
+  const newPost = { ...post, timestamp: unixTimestamp() };
+  const id = newPost.podcastId;
+  const newCompressedMetadata : Uint8Array = compressMetadata(newPost);
+  const tags : ArweaveTag[] = formatThreadTxTags(newPost, { ...cachedMetadata, id });
   return newTransactionFromCompressedMetadata(wallet, newCompressedMetadata, tags);
 }
 

@@ -30,6 +30,7 @@ import {
   isEmpty,
   isNotEmpty,
   isValidDate,
+  isValidInteger,
   isValidString,
   isValidThread,
   isValidUuid,
@@ -200,20 +201,22 @@ export async function getPodcastRss2Feed(feedUrl: Podcast['feedUrl'], title: Pod
  *         {@linkcode getGqlQueryResult} => {@linkcode parseGqlResult} => {@linkcode parseGqlTags}
  */
 export async function getAllThreads(podcastIds: string[]) : Promise<Thread[]> {
-  const gqlResultsToThreads = (results: ParsedGqlResult[]) : Thread[] => results.map(({ tags }) => {
-    if (isNotEmpty(tags)) {
-      return {
-        isDraft: false,
-        id: tags.threadId || '',
-        podcastId: tags.id,
-        episodeId: isValidDate(toDate(tags.episodeId)) ? toDate(tags.episodeId) : null,
-        content: tags.content || '',
-        type: tags.type || 'public',
-        subject: tags.subject || '',
-      } as Thread;
-    }
-    return null;
-  }).filter(isValidThread);
+  const gqlResultsToThreads = (results: ParsedGqlResult[]) : Thread[] => results
+    .map(({ gqlMetadata, tags }) => {
+      if (isNotEmpty(tags)) {
+        return {
+          isDraft: false,
+          id: tags.threadId || '',
+          podcastId: tags.id,
+          episodeId: isValidDate(toDate(tags.episodeId)) ? toDate(tags.episodeId) : null,
+          content: tags.content || '',
+          type: tags.type || 'public',
+          subject: tags.subject || '',
+          timestamp: isNotEmpty(gqlMetadata) ? gqlMetadata.timestamp : 0,
+        } as Thread;
+      }
+      return null;
+    }).filter(isValidThread);
 
   if (isEmpty(podcastIds)) return [];
   const gqlQueries = podcastIds.map(id => gqlQueryForTags(
@@ -305,8 +308,11 @@ function parseGqlTags(tx: GQLTransaction) : Pick<ParsedGqlResult, 'tags' | 'gqlM
   let gqlMetadata : GraphQLMetadata | {} = {};
 
   if (tx?.id && tx?.owner?.address) gqlMetadata = { txId: tx.id, ownerAddress: tx.owner.address };
-
   if (isBundledTx(tx)) gqlMetadata = { ...gqlMetadata, txBundledIn: tx.bundledIn.id };
+
+  const timestampTag = tx.tags.find(tag => tag.name === 'Unix-Time');
+  const timestamp = timestampTag ? parseInt(timestampTag.value, 10) : 0;
+  if (isValidInteger(timestamp) && timestamp > 0) gqlMetadata = { ...gqlMetadata, timestamp };
 
   if (isNotEmpty(tx.tags)) {
     tags = tx.tags
