@@ -464,6 +464,7 @@ describe('newThreadTransaction', () => {
       type: 'public',
       content: '0123456789'.repeat(500),
       subject: 'My Subject',
+      timestamp: MOCK_TIMESTAMP,
     };
 
     const assertTest = (modifiers = { useArConnect: false }) => {
@@ -542,6 +543,7 @@ describe('newThreadTransaction', () => {
       content: 'My Reply',
       parentThreadId: uuid(),
       parentPostId: uuid(),
+      timestamp: MOCK_TIMESTAMP,
     };
 
     const assertTest = (modifiers = { useArConnect: false }) => {

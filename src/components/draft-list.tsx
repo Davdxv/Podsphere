@@ -35,6 +35,12 @@ const DraftList : React.FC<Props> = ({
   const SYNC_PENDING = 'Synchronization pending. Please inspect the initialized transactions '
     + 'in the Transactions tab and press the Sync button again to sync them.';
 
+  const toggleIsDraft = (thr: Thread) : Thread => ({ ...thr, isDraft: !thr.isDraft });
+
+  const handleToggleSyncThread = (thr: Thread) => {
+    handleCreatePost(toggleIsDraft(thr));
+  };
+
   return (
     <Box className={style['list-container']}>
       { drafts.length ? [...drafts].reverse().map(draft => {
@@ -47,12 +53,6 @@ const DraftList : React.FC<Props> = ({
 
         const TOGGLE_TOOLTIP = (draft.isDraft ? 'This Thread is saved locally only'
           : 'This thread is marked ready for upload to Arweave');
-
-        const toggleIsDraft = (thr: Thread) : Thread => ({ ...thr, isDraft: !thr.isDraft });
-
-        const handleToggleSyncThread = (thread: Thread) => {
-          handleCreatePost(toggleIsDraft(thread));
-        };
 
         return propsAreInvalid ? <span key={draft.id} /> : (
           <Box

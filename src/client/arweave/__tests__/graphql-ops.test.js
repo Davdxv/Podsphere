@@ -13,6 +13,7 @@ jest.mock('../../axios');
 const getCachedTxForFeedSpy = jest.spyOn(TxCache, 'getCachedTxForFeed');
 
 const FEED_URL = 'https://server.dummy/rss';
+const TIMESTAMP = 1620172800;
 
 function baseGqlResponse(edges = []) {
   return {
@@ -54,7 +55,7 @@ function gqlResponse(specifiedFieldsPerNode = [{}]) {
           { name: 'App-Name', value: 'Podsphere' },
           { name: 'App-Version', value: 'bestVersion' },
           { name: 'Content-Type', value: 'application/gzip' },
-          { name: 'Unix-Time', value: '1620172800' },
+          { name: 'Unix-Time', value: `${TIMESTAMP}` },
           { name: 'id', value: id },
           { name: 'feedType', value: 'rss2' },
           { name: 'feedUrl', value: FEED_URL },
@@ -227,7 +228,11 @@ describe('getPodcastRss2Feed', () => {
     });
 
     describe('getPodcastFeedsForGqlQuery, Transaction Cache interaction', () => {
-      const expectedGqlMetadata = { txId: 'txId0', ownerAddress: 'ownerAddress' };
+      const expectedGqlMetadata = {
+        timestamp: TIMESTAMP,
+        txId: 'txId0',
+        ownerAddress: 'ownerAddress',
+      };
       const expectedTags = {
         categories: ['politics', 'cats'],
         keywords: ['comedy'],

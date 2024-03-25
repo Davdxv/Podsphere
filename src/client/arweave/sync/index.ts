@@ -83,7 +83,7 @@ import {
  * @versions
  *   *   `1.5` Sync Threads and ThreadReplies
  *   *   `1.4` Integrate Transaction Cache, which ArSync and others concurrently use to e.g.:
- *         - cache subset {@link CachedArTx['tags']} + {@link GraphQLMetadata} of the GQL response.
+ *         - cache subset `CachedArTx['tags'] + GraphQLMetadata` of the GQL response.
  *         - for cached txs, avoid fetching their tags/data each refresh
  *         - filter `*id`s with unwanted metadata (f.i. erronous ones are flagged `txBlocked`)
  *         - map `txId`s to `tags.metadataBatch` number, which aids chronologically sound indexing

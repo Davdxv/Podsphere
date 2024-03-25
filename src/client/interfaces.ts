@@ -316,6 +316,7 @@ export interface ArSyncTxDTO extends Omit<ArSyncTx, 'metadata'> {
  * @prop {string} ownerAddress
  * @prop {string} txBundledIn?
  * @prop {number} numEpisodes
+ * @prop {number} timestamp?
  */
 export interface CachedArTx {
   podcastId: PodcastTags['id'];
@@ -326,6 +327,7 @@ export interface CachedArTx {
   ownerAddress: string;
   txBundledIn?: string;
   numEpisodes: number;
+  timestamp?: Podcast['lastMutatedAt'];
 }
 
 /**
@@ -333,14 +335,14 @@ export interface CachedArTx {
  * @see [ArGraphQLOps#parseGqlTags,#QueryField](./arweave/graphql-ops.ts)
  * @see [ArSync](./arweave/sync/index.ts)
  * @see [TxCache](./arweave/cache/transactions.ts)
- * @description Comprises only the GraphQL metadata essential for UX/core functionality, provided
- *   that these metadata are sourced from any subset of the GraphQL response \ excluding the tags.
+ * @description Comprises extra GraphQL metadata, separate from the tags.
  * @prop {string} txId
  * @prop {string} ownerAddress
  * @prop {string} txBundledIn?
+ * @prop {number} timestamp?
  */
 export interface GraphQLMetadata extends
-  Pick<CachedArTx, 'txId' | 'ownerAddress' | 'txBundledIn'> {}
+  Pick<CachedArTx, 'txId' | 'ownerAddress' | 'txBundledIn' | 'timestamp'> {}
 
 /**
  * @interface SearchPodcastResult
@@ -380,6 +382,7 @@ export interface Thread {
   content: string,
   type: ThreadType,
   subject: string,
+  timestamp?: Podcast['lastMutatedAt'],
 }
 
 export interface ThreadReply extends Omit<Thread, 'subject'> {
