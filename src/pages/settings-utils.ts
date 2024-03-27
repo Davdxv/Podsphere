@@ -10,9 +10,6 @@ export interface SettingsPageProps {
 }
 
 export const standardOptions : { name: string; value: string }[] = [{
-  name: 'Podsphere CORS proxy',
-  value: 'https://cors-anywhere-podsphere.onrender.com/',
-}, {
   name: 'CORS-Anywhere',
   value: 'https://cors-anywhere.herokuapp.com/',
 }, {

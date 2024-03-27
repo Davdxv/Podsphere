@@ -517,7 +517,7 @@ export function corsApiHeaders() {
 }
 
 export function corsProxyURL() {
-  const defaultProxy = 'https://cors-anywhere-podsphere.onrender.com/';
+  const defaultProxy = 'https://cors-anywhere.herokuapp.com/';
   if (typeof window !== 'undefined') {
     const customProxy = localStorage.getItem(CorsProxyStorageKey);
     if (customProxy && isValidUrl(customProxy)) return customProxy;
