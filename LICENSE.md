@@ -631,7 +631,7 @@ the "copyright" line and a pointer to where the full notice is found.
 
     Podsphere is a graph-visualized podcast discovery and discussion Web3-app,
     fully-decentralized on Arweave.
-    Copyright (C) 2021-2022 David S. (github.com/Davdxv)
+    Copyright (C) 2021-2024 David S. (github.com/Davdxv)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published
